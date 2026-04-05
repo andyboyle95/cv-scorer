@@ -2,10 +2,11 @@
 
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import { FileText, X, Upload, FileWarning } from "lucide-react";
+import { FileText, X, Upload, FileWarning, FlaskConical } from "lucide-react";
 import { Button } from "@/ui/button";
 import { formatFileSize } from "@/lib/utils";
 import type { UploadedFile } from "@/lib/types";
+import { EXAMPLE_CVS } from "@/lib/example-cvs";
 
 interface CvUploadZoneProps {
   files: UploadedFile[];
@@ -63,7 +64,31 @@ export function CvUploadZone({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-[#0E4DA4]">Upload CVs</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-[#0E4DA4]">Upload CVs</h2>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={disabled}
+          className="gap-2 border-dashed border-[#0E4DA4] text-[#0E4DA4] hover:bg-blue-50"
+          onClick={() => {
+            const examples: UploadedFile[] = EXAMPLE_CVS.map((cv) => ({
+              id: `example-${cv.name}-${Math.random()}`,
+              name: cv.name,
+              size: cv.text.length,
+              type: "text/plain",
+              file: new File([cv.text], cv.name, { type: "text/plain" }),
+              status: "pending" as const,
+              extractedText: cv.text,
+            }));
+            onFilesAdded(examples);
+          }}
+        >
+          <FlaskConical className="h-4 w-4" />
+          Load 20 Example CVs
+        </Button>
+      </div>
 
       {/* Drop Zone */}
       <div

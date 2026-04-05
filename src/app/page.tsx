@@ -62,27 +62,34 @@ export default function Home() {
       );
 
       try {
-        // Step 1: Parse CV
-        const formData = new FormData();
-        formData.append("file", files[i].file);
+        // Step 1: Parse CV (skip if text is pre-loaded, e.g. from example CVs)
+        let text: string;
+        if (files[i].extractedText) {
+          text = files[i].extractedText!;
+        } else {
+          const formData = new FormData();
+          formData.append("file", files[i].file);
 
-        const parseRes = await fetch("/api/parse-cv", {
-          method: "POST",
-          body: formData,
-        });
+          const parseRes = await fetch("/api/parse-cv", {
+            method: "POST",
+            body: formData,
+          });
 
-        if (!parseRes.ok) {
-          const { error } = await parseRes.json();
-          throw new Error(error ?? "Failed to parse CV");
+          if (!parseRes.ok) {
+            const { error } = await parseRes.json();
+            throw new Error(error ?? "Failed to parse CV");
+          }
+
+          const json = await parseRes.json();
+          text = json.text;
         }
-
-        const { text } = await parseRes.json();
 
         setFiles((prev) =>
           prev.map((f, idx) =>
             idx === i ? { ...f, status: "scoring", extractedText: text } : f
           )
         );
+
 
         // Step 2: Score CV
         const scoreRes = await fetch("/api/score-cv", {
