@@ -5,6 +5,102 @@ export interface ExampleCv {
 
 export const EXAMPLE_CVS: ExampleCv[] = [
   {
+    name: "Andy_Boyle_CV.txt",
+    text: `ANDY BOYLE
+andyboyle95@gmail.com | 07594 802492 | London/Leeds
+
+SUMMARY
+SEO & GEO leader with 10+ years' experience in organic channel optimisation with a passion for driving commercial value for Telecoms organisations. In my current role at Virgin Media O2, I've doubled acquisition orders from organic search, cut modelled calls to the contact centre by 40% and made OPEX savings of £3m p/a through in-housing and process efficiencies. My current role involves hybrid working in a 50:50 pattern between Leeds and London.
+
+EXPERIENCE
+
+Senior SEO Manager (Virgin Media Head of SEO & GEO) — Virgin Media O2 (July 2022–present)
+SEO & AI search lead for VMO2's Fixed (Broadband & TV) proposition. Lead a team of digital specialists across content, technical, outreach and data. Headcount: 9 | Budget responsibility £1M+ p/a.
+Key achievements:
+- Driving business readiness for AI search through establishing a Visibility, Accuracy & Sentiment measurement framework for LLMs, onboarding new tooling and setting up processes
+- Growing AI Overview citations from 50% to 60% for Fixed acquisition search terms
+- Doubling product orders by 101% YoY through Organic Search from a new backlink strategy (cost per referring domain <£200), content refreshes and improving JavaScript technical SEO infrastructure
+- Reducing Paid Search customer acquisition costs by 40% through changing bid strategy for branded Virgin Media keywords
+- In-housing informational content production saving £1M of OPEX and doubling XSUS orders from content platform
+- Delivering a new Refer a Friend programme which aims to deliver £19M EBITDA benefit over a 5-year period
+
+Interim Head of Owned and Earned Digital Channels — Virgin Media O2 (July–September 2022)
+Paternity leave cover leading organic channels including Email, Content & SEO across both Mobile (O2) and Fixed products. Headcount: 18 | Budget: £5M+ p/a.
+- Delivering new Basket Recovery communications campaigns increasing acquisition orders by 90%
+- Developing a new trading model with conversion & traffic metrics for GA UA to GA4 migration
+
+SEO Manager (Europe & Middle East) — HSBC (September 2021–July 2022)
+Led organic search activities for 15 websites across 13 countries. Directly managed a team of 4 SEO specialists and 4 agencies. Budget: £400k+ p/a.
+- Delivering 14 migrations across EMEA to Adobe Experience Manager
+- Driving a £4M EBITDA benefit through delivering highest visibility financial services brand for mortgages
+
+SEO Specialist (Europe & Middle East) — HSBC (January 2019–September 2021)
+Promoted to SEO Manager in September 2021 after taking on line management responsibilities.
+
+SEO Strategist — Epiphany Search (now Jaywing) (April 2018–December 2018)
+Led SEO & Content retainers for Savills, Hitachi Capital and Kempinski. Marketing spend: £400k+ p/a.
+
+SEO Executive — Epiphany Search (June 2017–April 2018)
+
+Digital Marketing Graduate Scheme — Epiphany Search (July 2016)
+
+Digital Marketing Executive — Aaron Wallis Sales Recruitment (July 2014–June 2016)
+Multi-channel B2B marketing role including PPC, SEO, web development, PR and email.
+
+EDUCATION
+BA (Hons) International Development: 1st Class — University of Leeds (2016)
+Postgraduate Diploma in Digital Marketing & Data — Institute of Data & Marketing (2021)
+
+TOOLS
+SEO: SEOclarity, Ahrefs, Semrush, Screaming Frog, Google Search Console, Advanced Web Ranking
+AI Search: ClarityArcAI, Profound, PeekAI
+CMS: AEM, Umbraco, Strapi, Storyblok
+Paid Media: Google Ads, LinkedIn Ads, Meta Ads
+Analytics: Google Analytics, Adobe Analytics, Looker, Tableau
+
+INTERESTS
+Volunteering — Digital Marketing Advisor for UNICEF since July 2024
+Golf — active member of local golf club`,
+  },
+  {
+    name: "Rob_Scott_CV.txt",
+    text: `ROB SCOTT
+Managing Director — Aaron Wallis Sales Recruitment
+
+SUMMARY
+Managing Director and founder of Aaron Wallis Sales Recruitment with 26+ years in sales and sales recruitment. Founded Aaron Wallis in 2007 and has grown the business to achieve consistent double-digit year-on-year growth. Previously Marketing & Sales Director at a £0.5BN recruitment group for 10 years. Early career in stockbroking at RBS and direct sales as a school tour operator.
+
+EXPERIENCE
+
+Managing Director — Aaron Wallis Sales Recruitment (2007–present)
+Founded and built Aaron Wallis from the ground up into one of the UK's leading specialist sales recruitment agencies.
+- Consistent double-digit year-on-year revenue growth since founding
+- Personally recruits and places approximately 40 candidates per year
+- Specialises in technical sales recruitment, particularly engineering and electronics sectors
+- Published major UK sales professional surveys (2007, 2009, 2013)
+- Published articles in the Guardian, Financial Times, Daily Mail and The Times
+- Featured twice on the front cover of Winning Edge magazine
+
+Marketing & Sales Director — Major UK Recruitment Group (£0.5BN turnover) (1997–2007)
+- Won best-performing manager award in 2004 for profitability across 315 group managers
+- Responsible for marketing and sales strategy at a large multi-division recruitment group
+- Led commercial strategy, operational management and staff performance
+
+Stockbroker — RBS (early career)
+Direct sales role in financial products.
+
+Sales — School Tour Operator (early career)
+Direct sales role selling international school tours.
+
+EDUCATION
+MBA (Merit)
+First Class Honours Degree in History
+PgCert in Management Practice
+
+CORE SKILLS
+Sales recruitment, technical sales, operational management, commercial strategy, consulting, staff management, performance measurement`,
+  },
+  {
     name: "James_Whitfield_CV.txt",
     text: `JAMES WHITFIELD
 james.whitfield@email.com | 07700 900123 | LinkedIn: jameswhitfield | London, UK
