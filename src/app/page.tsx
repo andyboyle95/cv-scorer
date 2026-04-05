@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Header } from "@/components/header";
 import { JobBriefForm } from "@/components/job-brief-form";
 import { CvUploadZone } from "@/components/cv-upload-zone";
@@ -19,6 +19,7 @@ export default function Home() {
   const [results, setResults] = useState<ScoredCandidate[]>([]);
   const [startTime, setStartTime] = useState<number>(0);
   const [processingTimeMs, setProcessingTimeMs] = useState(0);
+  const stopRef = useRef(false);
 
   const handleBriefSubmit = (brief: JobBrief) => {
     setJobBrief(brief);
@@ -40,9 +41,14 @@ export default function Home() {
     setFiles((prev) => prev.filter((f) => f.id !== id));
   }, []);
 
+  const handleStopScoring = () => {
+    stopRef.current = true;
+  };
+
   const processFiles = async () => {
     if (!jobBrief || files.length === 0) return;
 
+    stopRef.current = false;
     setStep("scoring");
     setCurrentIndex(0);
     setResults([]);
@@ -52,6 +58,7 @@ export default function Home() {
     const scored: ScoredCandidate[] = [];
 
     for (let i = 0; i < files.length; i++) {
+      if (stopRef.current) break;
       setCurrentIndex(i);
 
       // Update file status to uploading
@@ -191,7 +198,7 @@ export default function Home() {
         )}
 
         {step === "scoring" && (
-          <ScoringProgress files={files} currentIndex={currentIndex} results={results} />
+          <ScoringProgress files={files} currentIndex={currentIndex} results={results} onStop={handleStopScoring} />
         )}
 
         {step === "results" && (

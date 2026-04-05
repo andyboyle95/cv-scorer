@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, StopCircle } from "lucide-react";
 import { Progress } from "@/ui/progress";
 import { Card, CardContent } from "@/ui/card";
 import { ScoreBadge } from "./score-badge";
@@ -10,9 +10,10 @@ interface ScoringProgressProps {
   files: UploadedFile[];
   currentIndex: number;
   results: ScoredCandidate[];
+  onStop: () => void;
 }
 
-export function ScoringProgress({ files, currentIndex, results }: ScoringProgressProps) {
+export function ScoringProgress({ files, currentIndex, results, onStop }: ScoringProgressProps) {
   const total = files.length;
   const done = files.filter(
     (f) => f.status === "done" || f.status === "error"
@@ -29,7 +30,7 @@ export function ScoringProgress({ files, currentIndex, results }: ScoringProgres
       <CardContent className="pt-6 space-y-4">
         <div className="flex items-center gap-3">
           <Loader2 className="h-5 w-5 text-[#E8006D] animate-spin flex-shrink-0" />
-          <div>
+          <div className="flex-1">
             <p className="text-sm font-semibold text-[#2D2D2D]">
               Scoring CV {Math.min(currentIndex + 1, total)} of {total}
               {currentFile && (
@@ -42,6 +43,15 @@ export function ScoringProgress({ files, currentIndex, results }: ScoringProgres
               Prompt caching active — each CV after the first scores faster.
             </p>
           </div>
+          {done > 0 && (
+            <button
+              onClick={onStop}
+              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-red-600 border border-gray-200 hover:border-red-300 rounded-md px-2.5 py-1.5 transition-colors flex-shrink-0"
+            >
+              <StopCircle className="h-3.5 w-3.5" />
+              Stop &amp; view results
+            </button>
+          )}
         </div>
 
         <div className="space-y-1">
