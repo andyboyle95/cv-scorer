@@ -222,8 +222,7 @@ export default function Home() {
       </main>
 
       <footer className="border-t border-[#E2E8F0] bg-white py-4 px-6 text-center text-xs text-gray-400">
-        Aaron Wallis CV Scoring Tool — AI-assisted shortlisting. For review by
-        a qualified recruiter. Not a substitute for human judgement.
+        Aaron Wallis CV Scoring Tool — AI-assisted shortlisting. Built by Andy Boyle.
       </footer>
     </div>
   );
