@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(score);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Scoring failed";
+    console.error("[score-cv] Error:", err);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
