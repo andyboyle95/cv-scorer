@@ -21,7 +21,7 @@ export const CVScoreSchema = z.object({
   strengths: z.array(z.string()).min(1),
   weaknesses: z.array(z.string()).min(1),
   red_flags: z.array(z.string()).default([]),
-  summary: z.string(),
+  summary: z.string().default(""),
   data_gaps: z.array(z.string()).default([]),
   overqualification_risk: z.boolean().default(false),
   aspirational_flag: z.boolean().default(false),
