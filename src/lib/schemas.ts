@@ -18,13 +18,13 @@ export const CVScoreSchema = z.object({
     career_trajectory: CategoryScoreSchema,
     quota_attainment: CategoryScoreSchema,
   }),
-  strengths: z.array(z.string()).min(1).max(5),
-  weaknesses: z.array(z.string()).min(1).max(5),
-  red_flags: z.array(z.string()),
+  strengths: z.array(z.string()).min(1),
+  weaknesses: z.array(z.string()).min(1),
+  red_flags: z.array(z.string()).default([]),
   summary: z.string(),
-  data_gaps: z.array(z.string()),
-  overqualification_risk: z.boolean(),
-  aspirational_flag: z.boolean(),
+  data_gaps: z.array(z.string()).default([]),
+  overqualification_risk: z.boolean().default(false),
+  aspirational_flag: z.boolean().default(false),
 });
 
 export type CVScore = z.infer<typeof CVScoreSchema>;
