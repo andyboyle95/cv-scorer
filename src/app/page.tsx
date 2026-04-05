@@ -191,7 +191,7 @@ export default function Home() {
         )}
 
         {step === "scoring" && (
-          <ScoringProgress files={files} currentIndex={currentIndex} />
+          <ScoringProgress files={files} currentIndex={currentIndex} results={results} />
         )}
 
         {step === "results" && (

@@ -1,22 +1,28 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { Progress } from "@/ui/progress";
 import { Card, CardContent } from "@/ui/card";
-import type { UploadedFile } from "@/lib/types";
+import { ScoreBadge } from "./score-badge";
+import type { UploadedFile, ScoredCandidate } from "@/lib/types";
 
 interface ScoringProgressProps {
   files: UploadedFile[];
   currentIndex: number;
+  results: ScoredCandidate[];
 }
 
-export function ScoringProgress({ files, currentIndex }: ScoringProgressProps) {
+export function ScoringProgress({ files, currentIndex, results }: ScoringProgressProps) {
   const total = files.length;
   const done = files.filter(
     (f) => f.status === "done" || f.status === "error"
   ).length;
   const percent = total > 0 ? Math.round((done / total) * 100) : 0;
   const currentFile = files[currentIndex];
+
+  const resultsByFileId = Object.fromEntries(
+    results.map((r) => [r.fileId, r])
+  );
 
   return (
     <Card className="border-[#E2E8F0]">
@@ -28,13 +34,12 @@ export function ScoringProgress({ files, currentIndex }: ScoringProgressProps) {
               Scoring CV {Math.min(currentIndex + 1, total)} of {total}
               {currentFile && (
                 <span className="font-normal text-gray-600">
-                  {" "}
-                  — {currentFile.name}
+                  {" "}— {currentFile.name}
                 </span>
               )}
             </p>
             <p className="text-xs text-gray-500 mt-0.5">
-              This may take a few minutes. Each CV takes 3–8 seconds to score.
+              Prompt caching active — each CV after the first scores faster.
             </p>
           </div>
         </div>
@@ -48,38 +53,62 @@ export function ScoringProgress({ files, currentIndex }: ScoringProgressProps) {
         </div>
 
         {/* File Status List */}
-        <div className="max-h-40 overflow-y-auto space-y-1">
-          {files.map((file, i) => (
-            <div key={file.id} className="flex items-center gap-2 text-xs">
+        <div className="max-h-96 overflow-y-auto space-y-1.5">
+          {files.map((file, i) => {
+            const result = resultsByFileId[file.id];
+            const isDone = file.status === "done" && result;
+            const isError = file.status === "error";
+            const isActive = i === currentIndex && !isDone && !isError;
+
+            return (
               <div
-                className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                  file.status === "done"
-                    ? "bg-green-500"
-                    : file.status === "error"
-                    ? "bg-red-500"
-                    : i === currentIndex
-                    ? "bg-[#E8006D] animate-pulse"
-                    : "bg-gray-200"
+                key={file.id}
+                className={`rounded-lg px-3 py-2 text-xs transition-colors ${
+                  isDone
+                    ? "bg-green-50 border border-green-100"
+                    : isError
+                    ? "bg-red-50 border border-red-100"
+                    : isActive
+                    ? "bg-pink-50 border border-pink-200"
+                    : "bg-gray-50 border border-transparent"
                 }`}
-              />
-              <span
-                className={
-                  file.status === "done"
-                    ? "text-green-700"
-                    : file.status === "error"
-                    ? "text-red-600"
-                    : i === currentIndex
-                    ? "text-[#E8006D] font-medium"
-                    : "text-gray-400"
-                }
               >
-                {file.name}
-                {file.status === "error" && file.error && (
-                  <span className="text-red-500"> — {file.error}</span>
+                <div className="flex items-center gap-2">
+                  {isDone ? (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+                  ) : isError ? (
+                    <XCircle className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />
+                  ) : isActive ? (
+                    <Loader2 className="h-3.5 w-3.5 text-[#E8006D] animate-spin flex-shrink-0" />
+                  ) : (
+                    <div className="h-3.5 w-3.5 rounded-full border border-gray-300 flex-shrink-0" />
+                  )}
+
+                  <span className={`font-medium truncate flex-1 ${
+                    isDone ? "text-green-800" :
+                    isError ? "text-red-700" :
+                    isActive ? "text-[#E8006D]" :
+                    "text-gray-400"
+                  }`}>
+                    {isDone ? result.score.candidate_name : file.name.replace(/\.[^.]+$/, "")}
+                  </span>
+
+                  {isDone && (
+                    <ScoreBadge score={result.score.overall_score} size="sm" />
+                  )}
+                  {isError && (
+                    <span className="text-red-500 truncate max-w-[160px]">{file.error}</span>
+                  )}
+                </div>
+
+                {isDone && result.score.summary && (
+                  <p className="mt-1 text-gray-500 leading-snug line-clamp-2 pl-5">
+                    {result.score.summary}
+                  </p>
                 )}
-              </span>
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
       </CardContent>
     </Card>
