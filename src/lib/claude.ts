@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { SYSTEM_PROMPT, buildUserPrompt } from "./prompts";
+import { SYSTEM_PROMPT, buildJobBriefBlock } from "./prompts";
 import { scoringJsonSchema, CVScoreSchema, type CVScore } from "./schemas";
 import type { JobBrief } from "./types";
 
@@ -22,7 +22,17 @@ export async function scoreCv(
     messages: [
       {
         role: "user",
-        content: buildUserPrompt(jobBrief, cvText),
+        content: [
+          {
+            type: "text",
+            text: buildJobBriefBlock(jobBrief),
+            cache_control: { type: "ephemeral" },
+          },
+          {
+            type: "text",
+            text: `<cv>\n${cvText}\n</cv>\n\nScore this CV against the job brief and rubric above.`,
+          },
+        ],
       },
     ],
     tools: [

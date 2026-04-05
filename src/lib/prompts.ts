@@ -42,7 +42,7 @@ For each criterion, look for:
 Be calibrated: a score of 50 means "average fit", 75 means "strong fit", 90+ means "exceptional, near-perfect match". Do not inflate scores.
 </scoring_approach>`;
 
-export function buildUserPrompt(jobBrief: JobBrief, cvText: string): string {
+export function buildJobBriefBlock(jobBrief: JobBrief): string {
   return `<job_brief>
 <job_title>${jobBrief.jobTitle}</job_title>
 <company>${jobBrief.company}</company>
@@ -52,7 +52,6 @@ export function buildUserPrompt(jobBrief: JobBrief, cvText: string): string {
 <target_clients>${jobBrief.targetClients}</target_clients>
 <deal_complexity>${jobBrief.dealComplexity}</deal_complexity>
 <salary_range>${jobBrief.salaryRange}</salary_range>
-<required_experience>${jobBrief.keyRequirements}</required_experience>
 <key_requirements>${jobBrief.keyRequirements}</key_requirements>
 <nice_to_haves>${jobBrief.niceToHaves}</nice_to_haves>
 </job_brief>
@@ -113,9 +112,5 @@ export function buildUserPrompt(jobBrief: JobBrief, cvText: string): string {
 </criterion>
 </scoring_rubric>
 
-<cv>
-${cvText}
-</cv>
-
-Score this candidate's CV against the job brief using the rubric above. Calculate the overall_score as the weighted average of all criterion scores.`;
+Score the CV below against this job brief and rubric. Calculate overall_score as the weighted average.`;
 }
