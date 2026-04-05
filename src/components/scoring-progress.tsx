@@ -8,18 +8,19 @@ import type { UploadedFile, ScoredCandidate } from "@/lib/types";
 
 interface ScoringProgressProps {
   files: UploadedFile[];
-  currentIndex: number;
   results: ScoredCandidate[];
   onStop: () => void;
 }
 
-export function ScoringProgress({ files, currentIndex, results, onStop }: ScoringProgressProps) {
+export function ScoringProgress({ files, results, onStop }: ScoringProgressProps) {
   const total = files.length;
   const done = files.filter(
     (f) => f.status === "done" || f.status === "error"
   ).length;
+  const active = files.filter(
+    (f) => f.status === "uploading" || f.status === "scoring"
+  ).length;
   const percent = total > 0 ? Math.round((done / total) * 100) : 0;
-  const currentFile = files[currentIndex];
 
   const resultsByFileId = Object.fromEntries(
     results.map((r) => [r.fileId, r])
@@ -32,15 +33,15 @@ export function ScoringProgress({ files, currentIndex, results, onStop }: Scorin
           <Loader2 className="h-5 w-5 text-[#E8006D] animate-spin flex-shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-semibold text-[#2D2D2D]">
-              Scoring CV {Math.min(currentIndex + 1, total)} of {total}
-              {currentFile && (
+              {done} of {total} scored
+              {active > 0 && (
                 <span className="font-normal text-gray-600">
-                  {" "}— {currentFile.name}
+                  {" "}— {active} scoring in parallel
                 </span>
               )}
             </p>
             <p className="text-xs text-gray-500 mt-0.5">
-              Prompt caching active — each CV after the first scores faster.
+              Up to 3 CVs scored simultaneously with prompt caching.
             </p>
           </div>
           {done > 0 && (
@@ -68,7 +69,7 @@ export function ScoringProgress({ files, currentIndex, results, onStop }: Scorin
             const result = resultsByFileId[file.id];
             const isDone = file.status === "done" && result;
             const isError = file.status === "error";
-            const isActive = i === currentIndex && !isDone && !isError;
+            const isActive = file.status === "uploading" || file.status === "scoring";
 
             return (
               <div

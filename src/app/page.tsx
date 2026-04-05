@@ -15,11 +15,10 @@ export default function Home() {
   const [step, setStep] = useState<Step>("brief");
   const [jobBrief, setJobBrief] = useState<JobBrief | null>(null);
   const [files, setFiles] = useState<UploadedFile[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [results, setResults] = useState<ScoredCandidate[]>([]);
-  const [startTime, setStartTime] = useState<number>(0);
   const [processingTimeMs, setProcessingTimeMs] = useState(0);
   const stopRef = useRef(false);
+  const startTimeRef = useRef(0);
 
   const handleBriefSubmit = (brief: JobBrief) => {
     setJobBrief(brief);
@@ -43,6 +42,8 @@ export default function Home() {
 
   const handleStopScoring = () => {
     stopRef.current = true;
+    setProcessingTimeMs(Date.now() - startTimeRef.current);
+    setStep("results");
   };
 
   const processFiles = async () => {
@@ -50,46 +51,44 @@ export default function Home() {
 
     stopRef.current = false;
     setStep("scoring");
-    setCurrentIndex(0);
     setResults([]);
     const t0 = Date.now();
-    setStartTime(t0);
+    startTimeRef.current = t0;
 
-    const scored: ScoredCandidate[] = [];
+    const fileSnapshot = [...files];
+    let nextIndex = 0;
 
-    for (let i = 0; i < files.length; i++) {
-      if (stopRef.current) break;
-      setCurrentIndex(i);
+    const processOne = async (file: UploadedFile, i: number) => {
+      if (stopRef.current) return;
 
-      // Update file status to uploading
       setFiles((prev) =>
-        prev.map((f, idx) =>
-          idx === i ? { ...f, status: "uploading" } : f
-        )
+        prev.map((f, idx) => (idx === i ? { ...f, status: "uploading" } : f))
       );
 
       try {
-        // Step 1: Parse CV (skip if text is pre-loaded, e.g. from example CVs)
+        // Step 1: Parse CV (skip if text is pre-loaded)
         let text: string;
-        if (files[i].extractedText) {
-          text = files[i].extractedText!;
+        if (file.extractedText) {
+          text = file.extractedText;
         } else {
           const formData = new FormData();
-          formData.append("file", files[i].file);
-
+          formData.append("file", file.file);
           const parseRes = await fetch("/api/parse-cv", {
             method: "POST",
             body: formData,
           });
-
           if (!parseRes.ok) {
             const { error } = await parseRes.json();
             throw new Error(error ?? "Failed to parse CV");
           }
-
           const json = await parseRes.json();
           text = json.text;
         }
+
+        if (stopRef.current) return;
+
+        // Truncate to 4000 chars to reduce token count and API latency
+        const truncatedText = text.length > 4000 ? text.slice(0, 4000) : text;
 
         setFiles((prev) =>
           prev.map((f, idx) =>
@@ -97,12 +96,11 @@ export default function Home() {
           )
         );
 
-
         // Step 2: Score CV
         const scoreRes = await fetch("/api/score-cv", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ jobBrief, cvText: text }),
+          body: JSON.stringify({ jobBrief, cvText: truncatedText }),
         });
 
         if (!scoreRes.ok) {
@@ -112,30 +110,44 @@ export default function Home() {
 
         const scoreData: CVScore = await scoreRes.json();
 
-        scored.push({
-          fileId: files[i].id,
-          fileName: files[i].name,
-          score: scoreData,
-        });
-
-        setResults([...scored]);
+        setResults((prev) => [
+          ...prev,
+          { fileId: file.id, fileName: file.name, score: scoreData },
+        ]);
         setFiles((prev) =>
           prev.map((f, idx) => (idx === i ? { ...f, status: "done" } : f))
         );
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Unknown error";
+        const message = err instanceof Error ? err.message : "Unknown error";
         setFiles((prev) =>
           prev.map((f, idx) =>
             idx === i ? { ...f, status: "error", error: message } : f
           )
         );
       }
-    }
+    };
 
-    setProcessingTimeMs(Date.now() - t0);
-    setCurrentIndex(files.length);
-    setStep("results");
+    // Run up to 3 CVs in parallel
+    const CONCURRENCY = 3;
+    const worker = async () => {
+      while (true) {
+        if (stopRef.current) break;
+        const i = nextIndex++;
+        if (i >= fileSnapshot.length) break;
+        await processOne(fileSnapshot[i], i);
+      }
+    };
+
+    await Promise.all(
+      Array.from({ length: Math.min(CONCURRENCY, fileSnapshot.length) }, () =>
+        worker()
+      )
+    );
+
+    if (!stopRef.current) {
+      setProcessingTimeMs(Date.now() - t0);
+      setStep("results");
+    }
   };
 
   return (
@@ -198,7 +210,7 @@ export default function Home() {
         )}
 
         {step === "scoring" && (
-          <ScoringProgress files={files} currentIndex={currentIndex} results={results} onStop={handleStopScoring} />
+          <ScoringProgress files={files} results={results} onStop={handleStopScoring} />
         )}
 
         {step === "results" && (
