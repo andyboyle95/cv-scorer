@@ -88,7 +88,7 @@ export default function Home() {
         if (stopRef.current) return;
 
         // Truncate to 4000 chars to reduce token count and API latency
-        const truncatedText = text.length > 4000 ? text.slice(0, 4000) : text;
+        const truncatedText = text.length > 8000 ? text.slice(0, 8000) : text;
 
         setFiles((prev) =>
           prev.map((f, idx) =>
