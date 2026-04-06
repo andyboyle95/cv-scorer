@@ -324,18 +324,18 @@ ${notSuitableReport.length > 0 ? `
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-[#0E4DA4]">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg sm:text-xl font-semibold text-[#4B0082]">
             Results — {candidates.length} CVs Scored
           </h2>
-          <div className="flex gap-2">
-            <Button onClick={downloadCsv} variant="outline" size="sm" className="gap-2">
-              <Download className="h-4 w-4" />
-              Download CSV
+          <div className="flex gap-2 flex-shrink-0">
+            <Button onClick={downloadCsv} variant="outline" size="sm" className="gap-1.5 text-xs sm:text-sm">
+              <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Download </span>CSV
             </Button>
-            <Button onClick={generateReport} size="sm" className="gap-2 bg-[#4B0082] hover:bg-[#3a006b]">
-              <FileText className="h-4 w-4" />
-              Generate Report
+            <Button onClick={generateReport} size="sm" className="gap-1.5 text-xs sm:text-sm bg-[#4B0082] hover:bg-[#3a006b]">
+              <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Generate </span>Report
             </Button>
           </div>
         </div>
@@ -367,8 +367,8 @@ ${notSuitableReport.length > 0 ? `
         </div>
 
         {/* Search & Filter */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
+        <div className="flex flex-col gap-2">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Search by name..."
@@ -378,7 +378,7 @@ ${notSuitableReport.length > 0 ? `
             />
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-600">
-            <span>Min score:</span>
+            <span className="flex-shrink-0">Min score:</span>
             <input
               type="range"
               min={0}
@@ -386,40 +386,46 @@ ${notSuitableReport.length > 0 ? `
               step={5}
               value={minScore}
               onChange={(e) => setMinScore(Number(e.target.value))}
-              className="w-28"
+              className="flex-1"
             />
-            <span className="w-8 font-medium">{minScore}</span>
+            <span className="w-8 font-medium text-right">{minScore}</span>
           </div>
         </div>
 
         {/* Tabs */}
         <Tabs defaultValue="fast-track">
-          <TabsList className="w-full justify-start gap-1 h-auto p-1 bg-gray-100">
-            <TabsTrigger value="fast-track" className="gap-1.5 data-[state=active]:bg-green-50 data-[state=active]:text-green-800">
-              <span className="w-2 h-2 rounded-full bg-green-500" />
-              Fast-track ({fastTrack.length})
-            </TabsTrigger>
-            <TabsTrigger value="review" className="gap-1.5 data-[state=active]:bg-amber-50 data-[state=active]:text-amber-800">
-              <span className="w-2 h-2 rounded-full bg-amber-500" />
-              Review Carefully ({reviewCarefully.length})
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-3.5 w-3.5 text-gray-400" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <p>
-                    This is where most hiring mistakes happen. These candidates
-                    score 50–74 and need focused screening calls to determine
-                    fit. Don&apos;t dismiss them without speaking to them first.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TabsTrigger>
-            <TabsTrigger value="not-suitable" className="gap-1.5 data-[state=active]:bg-red-50 data-[state=active]:text-red-800">
-              <span className="w-2 h-2 rounded-full bg-red-400" />
-              Not Suitable ({notSuitable.length})
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-1 px-1">
+            <TabsList className="w-max min-w-full justify-start gap-1 h-auto p-1 bg-gray-100">
+              <TabsTrigger value="fast-track" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap data-[state=active]:bg-green-50 data-[state=active]:text-green-800">
+                <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
+                Fast-track ({fastTrack.length})
+              </TabsTrigger>
+              <TabsTrigger value="review" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap data-[state=active]:bg-amber-50 data-[state=active]:text-amber-800">
+                <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
+                <span className="hidden sm:inline">Review Carefully</span>
+                <span className="sm:hidden">Review</span>
+                ({reviewCarefully.length})
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p>
+                      This is where most hiring mistakes happen. These candidates
+                      score 50–74 and need focused screening calls to determine
+                      fit. Don&apos;t dismiss them without speaking to them first.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TabsTrigger>
+              <TabsTrigger value="not-suitable" className="gap-1.5 text-xs sm:text-sm whitespace-nowrap data-[state=active]:bg-red-50 data-[state=active]:text-red-800">
+                <span className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0" />
+                <span className="hidden sm:inline">Not Suitable</span>
+                <span className="sm:hidden">No</span>
+                ({notSuitable.length})
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {[
             { value: "fast-track", data: fastTrack },
@@ -595,19 +601,19 @@ function CandidateTable({
                       ))}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1.5">
+                  <td className="px-3 py-3 text-right">
+                    <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => downloadCv(candidate)}
                         title="Download CV"
-                        className="p-1.5 rounded text-gray-400 hover:text-[#4B0082] hover:bg-purple-50 transition-colors"
+                        className="hidden sm:block p-1.5 rounded text-gray-400 hover:text-[#4B0082] hover:bg-purple-50 transition-colors"
                       >
                         <FileDown className="h-4 w-4" />
                       </button>
                       <Button
                         size="sm"
                         onClick={() => onSelect(candidate)}
-                        className="text-xs"
+                        className="text-xs px-2.5"
                       >
                         View
                       </Button>
