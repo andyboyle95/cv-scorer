@@ -164,7 +164,7 @@ export default function Home() {
                 <div
                   className={`flex items-center gap-1.5 ${
                     step === s
-                      ? "text-[#E8006D] font-semibold"
+                      ? "text-[#df2681] font-semibold"
                       : step === "results" ||
                         (step === "scoring" && i < 2) ||
                         (step === "upload" && i < 1)
@@ -175,7 +175,7 @@ export default function Home() {
                   <span
                     className={`w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold ${
                       step === s
-                        ? "bg-[#E8006D] text-white"
+                        ? "bg-[#df2681] text-white"
                         : "bg-gray-200 text-gray-500"
                     }`}
                   >

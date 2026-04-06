@@ -48,7 +48,7 @@ export default function LoginPage() {
               unoptimized
             />
           </div>
-          <h1 className="text-lg font-semibold text-[#0E4DA4]">
+          <h1 className="text-lg font-semibold text-[#1a3668]">
             CV Scoring Tool
           </h1>
           <p className="text-sm text-gray-500 mt-1">
@@ -58,7 +58,7 @@ export default function LoginPage() {
         <CardContent className="pb-8">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-[#0E4DA4]">
+              <Label htmlFor="password" className="text-[#1a3668]">
                 Password
               </Label>
               <div className="relative">

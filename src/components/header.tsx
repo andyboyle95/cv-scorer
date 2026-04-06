@@ -2,7 +2,7 @@ import Image from "next/image";
 
 export function Header() {
   return (
-    <header className="bg-[#4B0082] text-white px-6 py-3 flex items-center gap-4 shadow-md">
+    <header className="bg-[#1a3668] text-white px-6 py-3 flex items-center gap-4 shadow-md">
       <div className="flex items-center gap-3">
         <div className="bg-white rounded px-2 py-1">
           <Image

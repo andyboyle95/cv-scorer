@@ -108,7 +108,7 @@ export function JobBriefForm({ onSubmit, disabled }: JobBriefFormProps) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-[#0E4DA4]">Job Brief</h2>
+        <h2 className="text-xl font-semibold text-[#1a3668]">Job Brief</h2>
         <Button
           type="button"
           onClick={handleLoadExample}
@@ -123,41 +123,41 @@ export function JobBriefForm({ onSubmit, disabled }: JobBriefFormProps) {
       {/* Section 1 — Role Basics */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base text-[#0E4DA4]">
+          <CardTitle className="text-base text-[#1a3668]">
             Role Basics
           </CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label className="text-[#0E4DA4]">Job Title *</Label>
+            <Label className="text-[#1a3668]">Job Title *</Label>
             <Input {...register("jobTitle")} disabled={disabled} />
             {errors.jobTitle && (
               <p className="text-xs text-red-500">{errors.jobTitle.message}</p>
             )}
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[#0E4DA4]">Company *</Label>
+            <Label className="text-[#1a3668]">Company *</Label>
             <Input {...register("company")} disabled={disabled} />
             {errors.company && (
               <p className="text-xs text-red-500">{errors.company.message}</p>
             )}
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[#0E4DA4]">Sector / Industry *</Label>
+            <Label className="text-[#1a3668]">Sector / Industry *</Label>
             <Input {...register("sector")} disabled={disabled} />
             {errors.sector && (
               <p className="text-xs text-red-500">{errors.sector.message}</p>
             )}
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[#0E4DA4]">Location *</Label>
+            <Label className="text-[#1a3668]">Location *</Label>
             <Input {...register("location")} disabled={disabled} />
             {errors.location && (
               <p className="text-xs text-red-500">{errors.location.message}</p>
             )}
           </div>
           <div className="space-y-1.5 md:col-span-2">
-            <Label className="text-[#0E4DA4]">Salary Range *</Label>
+            <Label className="text-[#1a3668]">Salary Range *</Label>
             <Input {...register("salaryRange")} disabled={disabled} />
             {errors.salaryRange && (
               <p className="text-xs text-red-500">
@@ -171,13 +171,13 @@ export function JobBriefForm({ onSubmit, disabled }: JobBriefFormProps) {
       {/* Section 2 — Role Description */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base text-[#0E4DA4]">
+          <CardTitle className="text-base text-[#1a3668]">
             Role Description
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1.5">
-            <Label className="text-[#0E4DA4]">Role Summary *</Label>
+            <Label className="text-[#1a3668]">Role Summary *</Label>
             <Textarea
               {...register("roleSummary")}
               rows={4}
@@ -190,7 +190,7 @@ export function JobBriefForm({ onSubmit, disabled }: JobBriefFormProps) {
             )}
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[#0E4DA4]">Key Requirements *</Label>
+            <Label className="text-[#1a3668]">Key Requirements *</Label>
             <Textarea
               {...register("keyRequirements")}
               rows={4}
@@ -203,7 +203,7 @@ export function JobBriefForm({ onSubmit, disabled }: JobBriefFormProps) {
             )}
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[#0E4DA4]">Nice-to-Haves</Label>
+            <Label className="text-[#1a3668]">Nice-to-Haves</Label>
             <Textarea
               {...register("niceToHaves")}
               rows={3}
@@ -216,13 +216,13 @@ export function JobBriefForm({ onSubmit, disabled }: JobBriefFormProps) {
       {/* Section 3 — Sales-Specific Criteria */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base text-[#0E4DA4]">
+          <CardTitle className="text-base text-[#1a3668]">
             Sales-Specific Criteria
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1.5">
-            <Label className="text-[#0E4DA4]">Route to Market *</Label>
+            <Label className="text-[#1a3668]">Route to Market *</Label>
             <Textarea
               {...register("routeToMarket")}
               rows={3}
@@ -235,7 +235,7 @@ export function JobBriefForm({ onSubmit, disabled }: JobBriefFormProps) {
             )}
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[#0E4DA4]">Target Clients *</Label>
+            <Label className="text-[#1a3668]">Target Clients *</Label>
             <Textarea
               {...register("targetClients")}
               rows={3}
@@ -248,7 +248,7 @@ export function JobBriefForm({ onSubmit, disabled }: JobBriefFormProps) {
             )}
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[#0E4DA4]">Typical Deal Complexity *</Label>
+            <Label className="text-[#1a3668]">Typical Deal Complexity *</Label>
             <Textarea
               {...register("dealComplexity")}
               rows={3}
@@ -271,13 +271,13 @@ export function JobBriefForm({ onSubmit, disabled }: JobBriefFormProps) {
             onClick={() => setShowAdvanced(!showAdvanced)}
             className="flex items-center justify-between w-full text-left"
           >
-            <CardTitle className="text-base text-[#0E4DA4]">
+            <CardTitle className="text-base text-[#1a3668]">
               Advanced: Scoring Weights
             </CardTitle>
             {showAdvanced ? (
-              <ChevronUp className="h-4 w-4 text-[#0E4DA4]" />
+              <ChevronUp className="h-4 w-4 text-[#1a3668]" />
             ) : (
-              <ChevronDown className="h-4 w-4 text-[#0E4DA4]" />
+              <ChevronDown className="h-4 w-4 text-[#1a3668]" />
             )}
           </button>
         </CardHeader>
@@ -294,8 +294,8 @@ export function JobBriefForm({ onSubmit, disabled }: JobBriefFormProps) {
             {weightFields.map(({ key, label }) => (
               <div key={key} className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-[#0E4DA4] text-sm">{label}</Label>
-                  <span className="text-sm font-semibold text-[#0E4DA4]">
+                  <Label className="text-[#1a3668] text-sm">{label}</Label>
+                  <span className="text-sm font-semibold text-[#1a3668]">
                     {weights[key]}%
                   </span>
                 </div>

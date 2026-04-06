@@ -30,7 +30,7 @@ export function ScoringProgress({ files, results, onStop }: ScoringProgressProps
     <Card className="border-[#E2E8F0]">
       <CardContent className="pt-6 space-y-4">
         <div className="flex items-center gap-3">
-          <Loader2 className="h-5 w-5 text-[#E8006D] animate-spin flex-shrink-0" />
+          <Loader2 className="h-5 w-5 text-[#df2681] animate-spin flex-shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-semibold text-[#2D2D2D]">
               {done} of {total} scored
@@ -90,7 +90,7 @@ export function ScoringProgress({ files, results, onStop }: ScoringProgressProps
                   ) : isError ? (
                     <XCircle className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />
                   ) : isActive ? (
-                    <Loader2 className="h-3.5 w-3.5 text-[#E8006D] animate-spin flex-shrink-0" />
+                    <Loader2 className="h-3.5 w-3.5 text-[#df2681] animate-spin flex-shrink-0" />
                   ) : (
                     <div className="h-3.5 w-3.5 rounded-full border border-gray-300 flex-shrink-0" />
                   )}
@@ -98,7 +98,7 @@ export function ScoringProgress({ files, results, onStop }: ScoringProgressProps
                   <span className={`font-medium truncate flex-1 ${
                     isDone ? "text-green-800" :
                     isError ? "text-red-700" :
-                    isActive ? "text-[#E8006D]" :
+                    isActive ? "text-[#df2681]" :
                     "text-gray-400"
                   }`}>
                     {isDone ? result.score.candidate_name : file.name.replace(/\.[^.]+$/, "")}

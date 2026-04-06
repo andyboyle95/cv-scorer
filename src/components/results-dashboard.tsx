@@ -225,7 +225,7 @@ export function ResultsDashboard({
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: Arial, sans-serif; font-size: 13px; color: #1a1a1a; background: #fff; }
-  .header { background: #4B0082; color: white; padding: 20px 32px; display: flex; align-items: center; gap: 20px; }
+  .header { background: #1a3668; color: white; padding: 20px 32px; display: flex; align-items: center; gap: 20px; }
   .header-logo { background: white; border-radius: 4px; padding: 6px 12px; }
   .header-logo img { height: 32px; display: block; }
   .header-title h1 { font-size: 18px; font-weight: 700; }
@@ -235,10 +235,10 @@ export function ResultsDashboard({
   .meta-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #7c3aed; }
   .meta-value { font-size: 13px; font-weight: 600; margin-top: 1px; }
   .section { padding: 24px 32px; }
-  .section-title { font-size: 15px; font-weight: 700; color: #4B0082; border-bottom: 2px solid #e2d9f3; padding-bottom: 8px; margin-bottom: 16px; }
+  .section-title { font-size: 15px; font-weight: 700; color: #1a3668; border-bottom: 2px solid #e2d9f3; padding-bottom: 8px; margin-bottom: 16px; }
   .candidate { border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 14px; page-break-inside: avoid; }
   .candidate-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
-  .rank { background: #4B0082; color: white; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+  .rank { background: #1a3668; color: white; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
   .candidate-name-block { flex: 1; }
   .candidate-name-block h3 { font-size: 15px; font-weight: 700; }
   .candidate-name-block .rec-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px; margin-top: 4px; margin-right: 4px; }
@@ -258,8 +258,8 @@ export function ResultsDashboard({
   .not-suitable-table td { padding: 8px 10px; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
   .footer { border-top: 1px solid #e5e7eb; padding: 12px 32px; font-size: 11px; color: #9ca3af; display: flex; justify-content: space-between; }
   .print-bar { position: sticky; top: 0; z-index: 100; background: #f3f0f8; border-bottom: 1px solid #e2d9f3; padding: 8px 32px; display: flex; justify-content: flex-end; gap: 8px; }
-  .print-btn { background: #4B0082; color: white; border: none; border-radius: 6px; padding: 7px 18px; font-size: 13px; font-weight: 600; cursor: pointer; }
-  .print-btn:hover { background: #3a006b; }
+  .print-btn { background: #1a3668; color: white; border: none; border-radius: 6px; padding: 7px 18px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .print-btn:hover { background: #122a52; }
   @media print {
     body { font-size: 11px; }
     .print-bar { display: none; }
@@ -325,7 +325,7 @@ ${notSuitableReport.length > 0 ? `
     <TooltipProvider>
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg sm:text-xl font-semibold text-[#4B0082]">
+          <h2 className="text-lg sm:text-xl font-semibold text-[#1a3668]">
             Results — {candidates.length} CVs Scored
           </h2>
           <div className="flex gap-2 flex-shrink-0">
@@ -333,7 +333,7 @@ ${notSuitableReport.length > 0 ? `
               <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Download </span>CSV
             </Button>
-            <Button onClick={generateReport} size="sm" className="gap-1.5 text-xs sm:text-sm bg-[#4B0082] hover:bg-[#3a006b]">
+            <Button onClick={generateReport} size="sm" className="gap-1.5 text-xs sm:text-sm bg-[#1a3668] hover:bg-[#122a52]">
               <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Generate </span>Report
             </Button>
@@ -358,7 +358,7 @@ ${notSuitableReport.length > 0 ? `
                 <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">
                   {label}
                 </p>
-                <p className="text-xl font-bold text-[#0E4DA4] mt-1">
+                <p className="text-xl font-bold text-[#1a3668] mt-1">
                   {value}
                 </p>
               </CardContent>
@@ -497,41 +497,41 @@ function CandidateTable({
         <table className="w-full text-sm">
           <thead className="bg-[#F7F7F7] border-b border-[#E2E8F0]">
             <tr>
-              <th className="text-left px-4 py-3 font-medium text-[#0E4DA4] w-12">#</th>
-              <th className="text-left px-4 py-3 font-medium text-[#0E4DA4]">
+              <th className="text-left px-4 py-3 font-medium text-[#1a3668] w-12">#</th>
+              <th className="text-left px-4 py-3 font-medium text-[#1a3668]">
                 <button
                   onClick={() => onSort("name")}
-                  className="flex items-center gap-1 hover:text-[#E8006D]"
+                  className="flex items-center gap-1 hover:text-[#df2681]"
                 >
                   Candidate
                   <ArrowUpDown className="h-3 w-3" />
                 </button>
               </th>
-              <th className="text-left px-4 py-3 font-medium text-[#0E4DA4]">
+              <th className="text-left px-4 py-3 font-medium text-[#1a3668]">
                 <button
                   onClick={() => onSort("score")}
-                  className="flex items-center gap-1 hover:text-[#E8006D]"
+                  className="flex items-center gap-1 hover:text-[#df2681]"
                 >
                   Score
                   <ArrowUpDown className="h-3 w-3" />
                 </button>
               </th>
-              <th className="text-left px-4 py-3 font-medium text-[#0E4DA4] hidden md:table-cell">
+              <th className="text-left px-4 py-3 font-medium text-[#1a3668] hidden md:table-cell">
                 <button
                   onClick={() => onSort("recommendation")}
-                  className="flex items-center gap-1 hover:text-[#E8006D]"
+                  className="flex items-center gap-1 hover:text-[#df2681]"
                 >
                   Recommendation
                   <ArrowUpDown className="h-3 w-3" />
                 </button>
               </th>
-              <th className="text-left px-4 py-3 font-medium text-[#0E4DA4] hidden lg:table-cell">
+              <th className="text-left px-4 py-3 font-medium text-[#1a3668] hidden lg:table-cell">
                 Top Strengths
               </th>
-              <th className="text-left px-4 py-3 font-medium text-[#0E4DA4] hidden lg:table-cell">
+              <th className="text-left px-4 py-3 font-medium text-[#1a3668] hidden lg:table-cell">
                 Key Concerns
               </th>
-              <th className="text-right px-4 py-3 font-medium text-[#0E4DA4]">
+              <th className="text-right px-4 py-3 font-medium text-[#1a3668]">
                 Action
               </th>
             </tr>
@@ -580,7 +580,7 @@ function CandidateTable({
                       {s.strengths.slice(0, 2).map((str, i) => (
                         <span
                           key={i}
-                          className="inline-block bg-blue-50 text-[#0E4DA4] border border-blue-100 rounded px-1.5 py-0.5 text-xs max-w-[120px] truncate"
+                          className="inline-block bg-blue-50 text-[#1a3668] border border-blue-100 rounded px-1.5 py-0.5 text-xs max-w-[120px] truncate"
                           title={str}
                         >
                           {str}
@@ -606,7 +606,7 @@ function CandidateTable({
                       <button
                         onClick={() => downloadCv(candidate)}
                         title="Download CV"
-                        className="hidden sm:block p-1.5 rounded text-gray-400 hover:text-[#4B0082] hover:bg-purple-50 transition-colors"
+                        className="hidden sm:block p-1.5 rounded text-gray-400 hover:text-[#1a3668] hover:bg-purple-50 transition-colors"
                       >
                         <FileDown className="h-4 w-4" />
                       </button>

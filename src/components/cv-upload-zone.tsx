@@ -68,13 +68,13 @@ export function CvUploadZone({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-[#0E4DA4]">Upload CVs</h2>
+        <h2 className="text-xl font-semibold text-[#1a3668]">Upload CVs</h2>
         <Button
           type="button"
           variant="outline"
           size="sm"
           disabled={disabled}
-          className="gap-2 border-dashed border-[#0E4DA4] text-[#0E4DA4] hover:bg-blue-50"
+          className="gap-2 border-dashed border-[#1a3668] text-[#1a3668] hover:bg-blue-50"
           onClick={() => {
             const examples: UploadedFile[] = EXAMPLE_CVS.map((cv) => ({
               id: `example-${cv.name}-${Math.random()}`,
@@ -98,14 +98,14 @@ export function CvUploadZone({
         {...getRootProps()}
         className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors ${
           isDragActive
-            ? "border-[#E8006D] bg-pink-50"
-            : "border-[#E2E8F0] hover:border-[#0E4DA4] hover:bg-blue-50/40"
+            ? "border-[#df2681] bg-pink-50"
+            : "border-[#E2E8F0] hover:border-[#1a3668] hover:bg-blue-50/40"
         } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
       >
         <input {...getInputProps()} />
         <Upload
           className={`mx-auto h-10 w-10 mb-3 ${
-            isDragActive ? "text-[#E8006D]" : "text-[#0E4DA4]"
+            isDragActive ? "text-[#df2681]" : "text-[#1a3668]"
           }`}
         />
         <p className="text-base font-medium text-[#2D2D2D]">
@@ -122,7 +122,7 @@ export function CvUploadZone({
       {files.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-[#0E4DA4]">
+            <h3 className="text-sm font-medium text-[#1a3668]">
               {files.length} file{files.length !== 1 ? "s" : ""} ready
             </h3>
             {!disabled && (

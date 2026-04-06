@@ -64,18 +64,18 @@ export function CandidateDetail({ candidate, onClose, files }: CandidateDetailPr
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#4B0082] transition-colors flex-shrink-0 py-1"
+              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#1a3668] transition-colors flex-shrink-0 py-1"
             >
               <ArrowLeft className="h-4 w-4" />
               <span className="hidden sm:inline">Back</span>
             </button>
-            <SheetTitle className="text-[#4B0082] text-base sm:text-lg font-semibold flex-1 min-w-0 truncate">
+            <SheetTitle className="text-[#1a3668] text-base sm:text-lg font-semibold flex-1 min-w-0 truncate">
               {score.candidate_name}
             </SheetTitle>
             <button
               onClick={handleDownload}
               title="Download CV"
-              className="flex items-center gap-1 text-xs text-gray-500 hover:text-[#4B0082] border border-gray-200 hover:border-purple-300 rounded-md px-2 py-1.5 transition-colors flex-shrink-0"
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-[#1a3668] border border-gray-200 hover:border-purple-300 rounded-md px-2 py-1.5 transition-colors flex-shrink-0"
             >
               <FileDown className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">CV</span>
@@ -119,14 +119,14 @@ export function CandidateDetail({ candidate, onClose, files }: CandidateDetailPr
           {/* Summary */}
           {score.summary && (
             <div>
-              <h3 className="text-sm font-semibold text-[#4B0082] mb-2">Summary</h3>
+              <h3 className="text-sm font-semibold text-[#1a3668] mb-2">Summary</h3>
               <p className="text-sm text-[#2D2D2D] leading-relaxed">{score.summary}</p>
             </div>
           )}
 
           {/* Category Scores */}
           <div>
-            <h3 className="text-sm font-semibold text-[#4B0082] mb-3">Category Scores</h3>
+            <h3 className="text-sm font-semibold text-[#1a3668] mb-3">Category Scores</h3>
             <div className="space-y-5">
               {Object.entries(score.category_scores).map(([key, cat]) => (
                 <div key={key} className="space-y-2">
@@ -155,7 +155,7 @@ export function CandidateDetail({ candidate, onClose, files }: CandidateDetailPr
           {/* Strengths */}
           {score.strengths.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-[#4B0082] mb-2">Strengths</h3>
+              <h3 className="text-sm font-semibold text-[#1a3668] mb-2">Strengths</h3>
               <ul className="space-y-1.5">
                 {score.strengths.map((s, i) => (
                   <li key={i} className="flex gap-2 text-sm text-[#2D2D2D]">
@@ -170,7 +170,7 @@ export function CandidateDetail({ candidate, onClose, files }: CandidateDetailPr
           {/* Weaknesses */}
           {score.weaknesses.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-[#4B0082] mb-2">Weaknesses</h3>
+              <h3 className="text-sm font-semibold text-[#1a3668] mb-2">Weaknesses</h3>
               <ul className="space-y-1.5">
                 {score.weaknesses.map((w, i) => (
                   <li key={i} className="flex gap-2 text-sm text-[#2D2D2D]">
@@ -185,7 +185,7 @@ export function CandidateDetail({ candidate, onClose, files }: CandidateDetailPr
           {/* Red Flags */}
           {score.red_flags && score.red_flags.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-[#4B0082] mb-2">Red Flags</h3>
+              <h3 className="text-sm font-semibold text-[#1a3668] mb-2">Red Flags</h3>
               <ul className="space-y-1.5">
                 {score.red_flags.map((f, i) => (
                   <li key={i} className="flex gap-2 text-sm text-[#2D2D2D]">
@@ -200,7 +200,7 @@ export function CandidateDetail({ candidate, onClose, files }: CandidateDetailPr
           {/* Data Gaps */}
           {score.data_gaps && score.data_gaps.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-[#4B0082] mb-2">Data Gaps</h3>
+              <h3 className="text-sm font-semibold text-[#1a3668] mb-2">Data Gaps</h3>
               <ul className="space-y-1.5">
                 {score.data_gaps.map((g, i) => (
                   <li key={i} className="flex gap-2 text-sm text-[#2D2D2D]">
