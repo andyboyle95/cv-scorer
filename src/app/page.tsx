@@ -11,6 +11,23 @@ import type { CVScore } from "@/lib/schemas";
 
 type Step = "brief" | "upload" | "scoring" | "results";
 
+// Strip formatting noise from CV text to reduce input tokens sent to Claude
+function cleanCvText(text: string): string {
+  return text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => {
+      if (/^page\s+\d+(\s+of\s+\d+)?$/i.test(l)) return false; // page numbers
+      if (/^[-=_*•]{3,}$/.test(l)) return false;                // horizontal rules
+      if (/^(tel|phone|mobile|email|address|linkedin|www\.)\s*:/i.test(l)) return false; // boilerplate contact
+      return true;
+    })
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n") // collapse 3+ blank lines to 2
+    .trim()
+    .slice(0, 7000);
+}
+
 export default function Home() {
   const [step, setStep] = useState<Step>("brief");
   const [jobBrief, setJobBrief] = useState<JobBrief | null>(null);
@@ -87,8 +104,8 @@ export default function Home() {
 
         if (stopRef.current) return;
 
-        // Truncate to 4000 chars to reduce token count and API latency
-        const truncatedText = text.length > 8000 ? text.slice(0, 8000) : text;
+        // Clean and truncate CV text to reduce input tokens
+        const truncatedText = cleanCvText(text);
 
         setFiles((prev) =>
           prev.map((f, idx) =>
@@ -128,7 +145,7 @@ export default function Home() {
     };
 
     // Run up to 3 CVs in parallel
-    const CONCURRENCY = 1;
+    const CONCURRENCY = 3;
     const worker = async () => {
       while (true) {
         if (stopRef.current) break;

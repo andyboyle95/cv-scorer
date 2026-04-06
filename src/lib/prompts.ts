@@ -112,5 +112,5 @@ export function buildJobBriefBlock(jobBrief: JobBrief): string {
 </criterion>
 </scoring_rubric>
 
-Score the CV below against this job brief and rubric. Calculate overall_score as the weighted average. Keep each rationale to 1–2 sentences. Include at most 2 evidence items per criterion.`;
+Score the CV below against this job brief and rubric. Calculate overall_score as the weighted average. Keep each rationale to 1 sentence. Include at most 1 evidence item per criterion. Omit data_gaps if none are present.`;
 }
