@@ -11,7 +11,7 @@ export async function scoreCv(
 ): Promise<CVScore> {
   const response = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 1500,
+    max_tokens: 2000,
     system: [
       {
         type: "text",
@@ -54,6 +54,10 @@ export async function scoreCv(
   }
 
   const rawData = toolUseBlock.input as unknown;
-  const parsed = CVScoreSchema.parse(rawData);
-  return parsed;
+  try {
+    return CVScoreSchema.parse(rawData);
+  } catch (err) {
+    console.error("[claude] Schema validation failed. Raw data:", JSON.stringify(rawData, null, 2));
+    throw err;
+  }
 }

@@ -1,15 +1,15 @@
 import { z } from "zod";
 
 export const CategoryScoreSchema = z.object({
-  score: z.number().int().min(0).max(100),
-  rationale: z.string(),
-  evidence: z.array(z.string()),
+  score: z.number().min(0).max(100).transform((v) => Math.round(v)),
+  rationale: z.string().default(""),
+  evidence: z.array(z.string()).default([]),
 });
 
 export const CVScoreSchema = z.object({
-  candidate_name: z.string(),
-  overall_score: z.number().int().min(0).max(100),
-  recommendation: z.enum(["strong_yes", "yes", "maybe", "no", "strong_no"]),
+  candidate_name: z.string().default("Unknown"),
+  overall_score: z.number().min(0).max(100).transform((v) => Math.round(v)),
+  recommendation: z.enum(["strong_yes", "yes", "maybe", "no", "strong_no"]).default("maybe"),
   category_scores: z.object({
     route_to_market: CategoryScoreSchema,
     client_type_fit: CategoryScoreSchema,
@@ -18,8 +18,8 @@ export const CVScoreSchema = z.object({
     career_trajectory: CategoryScoreSchema,
     quota_attainment: CategoryScoreSchema,
   }),
-  strengths: z.array(z.string()).min(1),
-  weaknesses: z.array(z.string()).min(1),
+  strengths: z.array(z.string()).default([]),
+  weaknesses: z.array(z.string()).default([]),
   red_flags: z.array(z.string()).default([]),
   summary: z.string().default(""),
   data_gaps: z.array(z.string()).default([]),
