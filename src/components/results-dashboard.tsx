@@ -4,6 +4,8 @@ import { useState, useMemo } from "react";
 import {
   ArrowUpDown,
   Download,
+  FileDown,
+  FileText,
   Search,
   Info,
 } from "lucide-react";
@@ -16,7 +18,7 @@ import {
   getRecommendationLabel,
   getRecommendationStyle,
 } from "@/lib/utils";
-import type { ScoredCandidate } from "@/lib/types";
+import type { ScoredCandidate, UploadedFile, JobBrief } from "@/lib/types";
 import {
   Tooltip,
   TooltipContent,
@@ -28,6 +30,8 @@ import { Card, CardContent } from "@/ui/card";
 interface ResultsDashboardProps {
   candidates: ScoredCandidate[];
   processingTimeMs: number;
+  files: UploadedFile[];
+  jobBrief: JobBrief;
 }
 
 type SortField = "rank" | "name" | "score" | "recommendation";
@@ -36,6 +40,8 @@ type SortDir = "asc" | "desc";
 export function ResultsDashboard({
   candidates,
   processingTimeMs,
+  files,
+  jobBrief,
 }: ResultsDashboardProps) {
   const [search, setSearch] = useState("");
   const [minScore, setMinScore] = useState(0);
@@ -149,6 +155,145 @@ export function ResultsDashboard({
     URL.revokeObjectURL(url);
   };
 
+  const generateReport = () => {
+    const date = new Date().toLocaleDateString("en-GB", {
+      day: "numeric", month: "long", year: "numeric",
+    });
+    const shortlisted = sorted.filter((c) => c.score.overall_score >= 50);
+    const notSuitableReport = sorted.filter((c) => c.score.overall_score < 50);
+
+    const recLabel = (r: string) => getRecommendationLabel(r);
+    const scoreColour = (s: number) =>
+      s >= 75 ? "#16a34a" : s >= 50 ? "#d97706" : "#dc2626";
+
+    const candidateHtml = shortlisted.map((c, i) => {
+      const s = c.score;
+      return `
+        <div class="candidate">
+          <div class="candidate-header">
+            <span class="rank">${i + 1}</span>
+            <div class="candidate-name-block">
+              <h3>${s.candidate_name}</h3>
+              <span class="rec-badge" style="background:${scoreColour(s.overall_score)}20;color:${scoreColour(s.overall_score)};border:1px solid ${scoreColour(s.overall_score)}40">${recLabel(s.recommendation)}</span>
+              ${s.overqualification_risk ? '<span class="flag overq">Overqualification Risk</span>' : ""}
+              ${s.aspirational_flag ? '<span class="flag aspir">Aspirational</span>' : ""}
+            </div>
+            <div class="score-circle" style="border-color:${scoreColour(s.overall_score)};color:${scoreColour(s.overall_score)}">${s.overall_score}</div>
+          </div>
+          <p class="summary">${s.summary}</p>
+          <div class="two-col">
+            <div>
+              <p class="col-label">Strengths</p>
+              <ul>${s.strengths.map((x) => `<li>${x}</li>`).join("")}</ul>
+            </div>
+            <div>
+              <p class="col-label">Areas to Probe</p>
+              <ul class="concerns">${s.weaknesses.map((x) => `<li>${x}</li>`).join("")}</ul>
+            </div>
+          </div>
+          ${s.red_flags && s.red_flags.length > 0 ? `<div class="red-flags"><strong>⚠ Red Flags:</strong> ${s.red_flags.join(" · ")}</div>` : ""}
+        </div>`;
+    }).join("");
+
+    const notSuitableRows = notSuitableReport.map((c) =>
+      `<tr><td>${c.score.candidate_name}</td><td style="color:${scoreColour(c.score.overall_score)};font-weight:600">${c.score.overall_score}</td><td>${c.score.summary}</td></tr>`
+    ).join("");
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CV Shortlist — ${jobBrief.jobTitle} at ${jobBrief.company}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 13px; color: #1a1a1a; background: #fff; }
+  .header { background: #4B0082; color: white; padding: 20px 32px; display: flex; align-items: center; gap: 20px; }
+  .header-logo { background: white; border-radius: 4px; padding: 6px 12px; }
+  .header-logo img { height: 32px; display: block; }
+  .header-title h1 { font-size: 18px; font-weight: 700; }
+  .header-title p { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+  .meta { background: #f3f0f8; border-bottom: 1px solid #e2d9f3; padding: 14px 32px; display: flex; gap: 32px; flex-wrap: wrap; }
+  .meta-item { }
+  .meta-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #7c3aed; }
+  .meta-value { font-size: 13px; font-weight: 600; margin-top: 1px; }
+  .section { padding: 24px 32px; }
+  .section-title { font-size: 15px; font-weight: 700; color: #4B0082; border-bottom: 2px solid #e2d9f3; padding-bottom: 8px; margin-bottom: 16px; }
+  .candidate { border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 14px; page-break-inside: avoid; }
+  .candidate-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+  .rank { background: #4B0082; color: white; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+  .candidate-name-block { flex: 1; }
+  .candidate-name-block h3 { font-size: 15px; font-weight: 700; }
+  .candidate-name-block .rec-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px; margin-top: 4px; margin-right: 4px; }
+  .flag { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; margin-left: 4px; }
+  .overq { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+  .aspir { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+  .score-circle { width: 48px; height: 48px; border-radius: 50%; border: 3px solid; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; }
+  .summary { font-size: 12px; color: #374151; margin-bottom: 12px; line-height: 1.5; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .col-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 4px; }
+  ul { padding-left: 16px; }
+  li { font-size: 12px; margin-bottom: 3px; line-height: 1.4; }
+  ul.concerns li { color: #6b7280; }
+  .red-flags { margin-top: 10px; font-size: 11px; color: #dc2626; background: #fee2e2; padding: 6px 10px; border-radius: 4px; }
+  .not-suitable-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .not-suitable-table th { text-align: left; padding: 8px 10px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; }
+  .not-suitable-table td { padding: 8px 10px; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
+  .footer { border-top: 1px solid #e5e7eb; padding: 12px 32px; font-size: 11px; color: #9ca3af; display: flex; justify-content: space-between; }
+  @media print {
+    body { font-size: 11px; }
+    .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .meta { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .rank { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-logo">
+    <img src="https://www.aaronwallis.co.uk/media/chgpaiwp/aaron-wallis-logo.png" alt="Aaron Wallis" />
+  </div>
+  <div class="header-title">
+    <h1>CV Shortlist Report</h1>
+    <p>AI-assisted shortlisting · Built by Andy Boyle · ${date}</p>
+  </div>
+</div>
+<div class="meta">
+  <div class="meta-item"><div class="meta-label">Role</div><div class="meta-value">${jobBrief.jobTitle}</div></div>
+  <div class="meta-item"><div class="meta-label">Company</div><div class="meta-value">${jobBrief.company}</div></div>
+  <div class="meta-item"><div class="meta-label">Location</div><div class="meta-value">${jobBrief.location}</div></div>
+  <div class="meta-item"><div class="meta-label">Salary</div><div class="meta-value">${jobBrief.salaryRange}</div></div>
+  <div class="meta-item"><div class="meta-label">CVs Reviewed</div><div class="meta-value">${sorted.length}</div></div>
+  <div class="meta-item"><div class="meta-label">Shortlisted</div><div class="meta-value">${shortlisted.length}</div></div>
+</div>
+
+${shortlisted.length > 0 ? `
+<div class="section">
+  <div class="section-title">Shortlisted Candidates (Score ≥ 50)</div>
+  ${candidateHtml}
+</div>` : ""}
+
+${notSuitableReport.length > 0 ? `
+<div class="section">
+  <div class="section-title">Not Progressed (Score &lt; 50)</div>
+  <table class="not-suitable-table">
+    <thead><tr><th>Candidate</th><th>Score</th><th>Reason</th></tr></thead>
+    <tbody>${notSuitableRows}</tbody>
+  </table>
+</div>` : ""}
+
+<div class="footer">
+  <span>Aaron Wallis Sales Recruitment · aaronwallis.co.uk</span>
+  <span>AI-assisted shortlisting — for review by a qualified recruiter</span>
+</div>
+</body></html>`;
+
+    const win = window.open("", "_blank");
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+    }
+  };
+
   const processingTimeSecs = (processingTimeMs / 1000).toFixed(0);
 
   return (
@@ -158,10 +303,16 @@ export function ResultsDashboard({
           <h2 className="text-xl font-semibold text-[#0E4DA4]">
             Results — {candidates.length} CVs Scored
           </h2>
-          <Button onClick={downloadCsv} variant="outline" size="sm" className="gap-2">
-            <Download className="h-4 w-4" />
-            Download CSV
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={downloadCsv} variant="outline" size="sm" className="gap-2">
+              <Download className="h-4 w-4" />
+              Download CSV
+            </Button>
+            <Button onClick={generateReport} size="sm" className="gap-2 bg-[#4B0082] hover:bg-[#3a006b]">
+              <FileText className="h-4 w-4" />
+              Generate Report
+            </Button>
+          </div>
         </div>
 
         {/* Stats Bar */}
@@ -258,6 +409,7 @@ export function ResultsDashboard({
                 sortDir={sortDir}
                 onSort={handleSort}
                 onSelect={setSelectedCandidate}
+                files={files}
               />
             </TabsContent>
           ))}
@@ -279,6 +431,7 @@ interface CandidateTableProps {
   sortDir: SortDir;
   onSort: (field: SortField) => void;
   onSelect: (candidate: ScoredCandidate) => void;
+  files: UploadedFile[];
 }
 
 function CandidateTable({
@@ -286,7 +439,18 @@ function CandidateTable({
   allCandidates,
   onSort,
   onSelect,
+  files,
 }: CandidateTableProps) {
+  const downloadCv = (candidate: ScoredCandidate) => {
+    const file = files.find((f) => f.id === candidate.fileId);
+    if (!file) return;
+    const url = URL.createObjectURL(file.file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.name;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   if (candidates.length === 0) {
     return (
       <div className="text-center py-10 text-gray-500 text-sm">
@@ -406,13 +570,22 @@ function CandidateTable({
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Button
-                      size="sm"
-                      onClick={() => onSelect(candidate)}
-                      className="text-xs"
-                    >
-                      View Details
-                    </Button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        onClick={() => downloadCv(candidate)}
+                        title="Download CV"
+                        className="p-1.5 rounded text-gray-400 hover:text-[#4B0082] hover:bg-purple-50 transition-colors"
+                      >
+                        <FileDown className="h-4 w-4" />
+                      </button>
+                      <Button
+                        size="sm"
+                        onClick={() => onSelect(candidate)}
+                        className="text-xs"
+                      >
+                        View
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               );

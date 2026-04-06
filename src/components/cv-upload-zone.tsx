@@ -54,8 +54,11 @@ export function CvUploadZone({
     onDrop,
     accept: {
       "application/pdf": [".pdf"],
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-        [".docx"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+      "application/msword": [".doc"],
+      "application/rtf": [".rtf"],
+      "text/rtf": [".rtf"],
+      "text/plain": [".txt"],
     },
     maxSize: 10 * 1024 * 1024, // 10MB
     maxFiles: 50,
@@ -111,7 +114,7 @@ export function CvUploadZone({
             : "Drag & drop CVs here, or click to browse"}
         </p>
         <p className="text-sm text-gray-500 mt-1">
-          PDF and DOCX files, up to 10MB each · Maximum 50 CVs
+          PDF, DOCX, DOC, RTF or TXT · Up to 10MB each · Maximum 50 CVs
         </p>
       </div>
 

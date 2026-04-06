@@ -213,10 +213,12 @@ export default function Home() {
           <ScoringProgress files={files} results={results} onStop={handleStopScoring} />
         )}
 
-        {step === "results" && (
+        {step === "results" && jobBrief && (
           <ResultsDashboard
             candidates={results}
             processingTimeMs={processingTimeMs}
+            files={files}
+            jobBrief={jobBrief}
           />
         )}
       </main>
