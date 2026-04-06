@@ -195,9 +195,27 @@ export function ResultsDashboard({
         </div>`;
     }).join("");
 
-    const notSuitableRows = notSuitableReport.map((c) =>
-      `<tr><td>${c.score.candidate_name}</td><td style="color:${scoreColour(c.score.overall_score)};font-weight:600">${c.score.overall_score}</td><td>${c.score.summary}</td></tr>`
-    ).join("");
+    const catLabels: Record<string, string> = {
+      route_to_market: "Route to Market",
+      client_type_fit: "Client Type Fit",
+      deal_complexity: "Deal Complexity",
+      sector_fit: "Sector Fit",
+      career_trajectory: "Career Trajectory",
+      quota_attainment: "Quota Attainment",
+    };
+
+    const notSuitableRows = notSuitableReport.map((c) => {
+      const s = c.score;
+      const weakCats = Object.entries(s.category_scores)
+        .sort((a, b) => a[1].score - b[1].score)
+        .slice(0, 2)
+        .map(([k, v]) => `${catLabels[k] ?? k}: ${v.score}/100`)
+        .join(", ");
+      const reason = s.summary
+        || (s.weaknesses?.length ? s.weaknesses.slice(0, 2).join("; ") : null)
+        || `Weakest areas: ${weakCats}`;
+      return `<tr><td>${s.candidate_name}</td><td style="color:${scoreColour(s.overall_score)};font-weight:600">${s.overall_score}</td><td>${reason}</td></tr>`;
+    }).join("");
 
     const html = `<!DOCTYPE html>
 <html lang="en">
@@ -239,8 +257,12 @@ export function ResultsDashboard({
   .not-suitable-table th { text-align: left; padding: 8px 10px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; }
   .not-suitable-table td { padding: 8px 10px; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
   .footer { border-top: 1px solid #e5e7eb; padding: 12px 32px; font-size: 11px; color: #9ca3af; display: flex; justify-content: space-between; }
+  .print-bar { position: sticky; top: 0; z-index: 100; background: #f3f0f8; border-bottom: 1px solid #e2d9f3; padding: 8px 32px; display: flex; justify-content: flex-end; gap: 8px; }
+  .print-btn { background: #4B0082; color: white; border: none; border-radius: 6px; padding: 7px 18px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .print-btn:hover { background: #3a006b; }
   @media print {
     body { font-size: 11px; }
+    .print-bar { display: none; }
     .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .meta { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .rank { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -248,13 +270,16 @@ export function ResultsDashboard({
 </style>
 </head>
 <body>
+<div class="print-bar">
+  <button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
+</div>
 <div class="header">
   <div class="header-logo">
     <img src="https://www.aaronwallis.co.uk/media/chgpaiwp/aaron-wallis-logo.png" alt="Aaron Wallis" />
   </div>
   <div class="header-title">
-    <h1>CV Shortlist Report</h1>
-    <p>AI-assisted shortlisting · Built by Andy Boyle · ${date}</p>
+    <h1>Candidate Shortlist Report</h1>
+    <p>Aaron Wallis Sales Recruitment · ${date}</p>
   </div>
 </div>
 <div class="meta">
@@ -283,7 +308,7 @@ ${notSuitableReport.length > 0 ? `
 
 <div class="footer">
   <span>Aaron Wallis Sales Recruitment · aaronwallis.co.uk</span>
-  <span>AI-assisted shortlisting — for review by a qualified recruiter</span>
+  <span>Confidential — for client use only</span>
 </div>
 </body></html>`;
 
@@ -418,6 +443,7 @@ ${notSuitableReport.length > 0 ? `
         <CandidateDetail
           candidate={selectedCandidate}
           onClose={() => setSelectedCandidate(null)}
+          files={files}
         />
       </div>
     </TooltipProvider>

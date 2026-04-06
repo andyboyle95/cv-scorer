@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   AlertCircle,
   Info,
+  FileDown,
 } from "lucide-react";
 import {
   Sheet,
@@ -21,11 +22,12 @@ import {
   getRecommendationLabel,
   getRecommendationStyle,
 } from "@/lib/utils";
-import type { ScoredCandidate } from "@/lib/types";
+import type { ScoredCandidate, UploadedFile } from "@/lib/types";
 
 interface CandidateDetailProps {
   candidate: ScoredCandidate | null;
   onClose: () => void;
+  files: UploadedFile[];
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -37,12 +39,23 @@ const CATEGORY_LABELS: Record<string, string> = {
   quota_attainment: "Quota Attainment",
 };
 
-export function CandidateDetail({ candidate, onClose }: CandidateDetailProps) {
+export function CandidateDetail({ candidate, onClose, files }: CandidateDetailProps) {
   const [showRawText, setShowRawText] = useState(false);
 
   if (!candidate) return null;
 
   const { score } = candidate;
+
+  const handleDownload = () => {
+    const file = files.find((f) => f.id === candidate.fileId);
+    if (!file) return;
+    const url = URL.createObjectURL(file.file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.name;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <Sheet open={!!candidate} onOpenChange={(open) => !open && onClose()}>
@@ -65,6 +78,14 @@ export function CandidateDetail({ candidate, onClose }: CandidateDetailProps) {
             >
               {getRecommendationLabel(score.recommendation)}
             </span>
+            <button
+              onClick={handleDownload}
+              title="Download CV"
+              className="ml-auto flex items-center gap-1.5 text-xs text-gray-500 hover:text-[#4B0082] border border-gray-200 hover:border-purple-300 rounded-md px-2.5 py-1.5 transition-colors"
+            >
+              <FileDown className="h-3.5 w-3.5" />
+              Download CV
+            </button>
           </div>
         </div>
 

@@ -112,9 +112,11 @@ export function ScoringProgress({ files, results, onStop }: ScoringProgressProps
                   )}
                 </div>
 
-                {isDone && result.score.summary && (
+                {isDone && (result.score.summary || result.score.strengths?.[0]) && (
                   <p className="mt-1 text-gray-500 leading-snug line-clamp-2 pl-5">
-                    {result.score.summary}
+                    {result.score.summary
+                      ? result.score.summary
+                      : `${result.score.strengths[0]}${result.score.weaknesses?.[0] ? ` · ${result.score.weaknesses[0]}` : ""}`}
                   </p>
                 )}
               </div>
