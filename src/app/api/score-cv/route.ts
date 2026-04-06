@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { scoreCv } from "@/lib/claude";
 import type { JobBrief } from "@/lib/types";
 
+export const maxDuration = 60; // seconds
+
 export async function POST(req: NextRequest) {
   const { jobBrief, cvText } = (await req.json()) as {
     jobBrief: JobBrief;

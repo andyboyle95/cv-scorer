@@ -128,7 +128,7 @@ export default function Home() {
     };
 
     // Run up to 3 CVs in parallel
-    const CONCURRENCY = 3;
+    const CONCURRENCY = 1;
     const worker = async () => {
       while (true) {
         if (stopRef.current) break;
