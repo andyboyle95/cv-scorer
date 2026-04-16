@@ -3,7 +3,7 @@ import { SYSTEM_PROMPT, buildJobBriefBlock } from "./prompts";
 import { scoringJsonSchema, CVScoreSchema, type CVScore } from "./schemas";
 import type { JobBrief } from "./types";
 
-const client = new Anthropic();
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export async function scoreCv(
   jobBrief: JobBrief,
