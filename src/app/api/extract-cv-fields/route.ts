@@ -49,35 +49,47 @@ const extractionSchema = {
 };
 
 export async function POST(req: NextRequest) {
-  const { cvText } = (await req.json()) as { cvText: string };
+  let cvText: string;
+  try {
+    const body = await req.json();
+    cvText = body.cvText;
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 
   if (!cvText || cvText.trim().length < 50) {
     return NextResponse.json({ error: "CV text is too short to extract" }, { status: 400 });
   }
 
-  const response = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 3000,
-    tools: [
-      {
-        name: "extract_cv_fields",
-        description: "Extract structured CV data from raw CV text to populate a formatted CV template",
-        input_schema: extractionSchema,
-      },
-    ],
-    tool_choice: { type: "tool", name: "extract_cv_fields" },
-    messages: [
-      {
-        role: "user",
-        content: `Extract all CV data from the following text and populate the fields. Use best judgement for any fields not explicitly stated. Preserve the candidate's own words where possible.\n\n<cv>\n${cvText.slice(0, 12000)}\n</cv>`,
-      },
-    ],
-  });
+  try {
+    const response = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 3000,
+      tools: [
+        {
+          name: "extract_cv_fields",
+          description: "Extract structured CV data from raw CV text to populate a formatted CV template",
+          input_schema: extractionSchema,
+        },
+      ],
+      tool_choice: { type: "tool", name: "extract_cv_fields" },
+      messages: [
+        {
+          role: "user",
+          content: `Extract all CV data from the following text and populate the fields. Use best judgement for any fields not explicitly stated. Preserve the candidate's own words where possible.\n\n<cv>\n${cvText.slice(0, 12000)}\n</cv>`,
+        },
+      ],
+    });
 
-  const toolUse = response.content.find((b) => b.type === "tool_use");
-  if (!toolUse || toolUse.type !== "tool_use") {
-    return NextResponse.json({ error: "Extraction failed" }, { status: 500 });
+    const toolUse = response.content.find((b) => b.type === "tool_use");
+    if (!toolUse || toolUse.type !== "tool_use") {
+      return NextResponse.json({ error: "No structured output returned by AI" }, { status: 500 });
+    }
+
+    return NextResponse.json(toolUse.input);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Extraction failed";
+    console.error("[extract-cv-fields]", err);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-
-  return NextResponse.json(toolUse.input);
 }

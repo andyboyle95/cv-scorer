@@ -189,11 +189,15 @@ export default function GeneratePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cvText }),
       })
-      if (!res.ok) {
-        const { error } = await res.json()
-        throw new Error(error ?? 'Extraction failed')
+      let extracted: Record<string, unknown>
+      try {
+        extracted = await res.json()
+      } catch {
+        throw new Error(`Server error (${res.status}) — check your ANTHROPIC_API_KEY is set`)
       }
-      const extracted = await res.json()
+      if (!res.ok) {
+        throw new Error((extracted as { error?: string }).error ?? 'Extraction failed')
+      }
 
       // Merge: preserve cover-sheet meta (consultant info), replace candidate fields
       setData((prev) => ({
@@ -224,11 +228,14 @@ export default function GeneratePage() {
       const formData = new FormData()
       formData.append('file', file)
       const res = await fetch('/api/parse-cv', { method: 'POST', body: formData })
-      if (!res.ok) {
-        const { error } = await res.json()
-        throw new Error(error ?? 'Failed to parse file')
+      let parsed: Record<string, unknown>
+      try {
+        parsed = await res.json()
+      } catch {
+        throw new Error(`File parse failed (${res.status})`)
       }
-      const { text } = await res.json()
+      if (!res.ok) throw new Error((parsed as { error?: string }).error ?? 'Failed to parse file')
+      const { text } = parsed as { text: string }
       await extractAndApply(text)
     } catch (err) {
       setImportError(err instanceof Error ? err.message : 'File parsing failed')
