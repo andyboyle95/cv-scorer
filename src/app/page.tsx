@@ -1,8 +1,20 @@
+'use client';
+
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { FileSearch, FileText, ArrowRight } from "lucide-react";
 
 export default function Home() {
+  const router = useRouter();
+
+  // Pre-compile both tool routes in the background as soon as home loads
+  useEffect(() => {
+    router.prefetch('/score');
+    router.prefetch('/generate');
+  }, [router]);
+
   return (
     <div className="min-h-screen bg-[#F7F7F7] flex flex-col">
 
@@ -16,6 +28,7 @@ export default function Home() {
             width={160}
             className="h-8 w-auto object-contain"
             unoptimized
+            priority
           />
         </div>
         <div className="h-7 w-px bg-white/30" />
@@ -34,6 +47,7 @@ export default function Home() {
           {/* CV Scorer */}
           <Link
             href="/score"
+            prefetch={true}
             className="group bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-[#1a3668]/40 transition-all p-8 flex flex-col items-start gap-4 text-left"
           >
             <div className="w-12 h-12 rounded-xl bg-[#1a3668]/10 flex items-center justify-center group-hover:bg-[#1a3668]/20 transition-colors">
@@ -53,6 +67,7 @@ export default function Home() {
           {/* CV Generator */}
           <Link
             href="/generate"
+            prefetch={true}
             className="group bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-[#df2681]/40 transition-all p-8 flex flex-col items-start gap-4 text-left"
           >
             <div className="w-12 h-12 rounded-xl bg-[#df2681]/10 flex items-center justify-center group-hover:bg-[#df2681]/20 transition-colors">
