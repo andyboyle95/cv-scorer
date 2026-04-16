@@ -15,7 +15,7 @@ const BLANK_DATA: CandidateData = {
   consultant: '',
   consultantEmail: '',
   consultantTel: '',
-  dateSubmitted: new Date().toLocaleDateString('en-GB'),
+  dateSubmitted: '',
   roleAppliedFor: '',
   candidateName: '',
   salaryExpectations: '',
@@ -294,7 +294,7 @@ export default function GeneratePage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => { setData(BLANK_DATA); setImportStatus('idle') }}
+              onClick={() => { setData({ ...BLANK_DATA, dateSubmitted: new Date().toLocaleDateString('en-GB') }); setImportStatus('idle') }}
               className="text-xs"
             >
               New CV

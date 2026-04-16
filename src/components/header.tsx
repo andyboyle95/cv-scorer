@@ -12,6 +12,7 @@ export function Header() {
             width={160}
             className="h-8 w-auto object-contain"
             unoptimized
+            priority
           />
         </div>
         <div className="h-7 w-px bg-white/30" />
