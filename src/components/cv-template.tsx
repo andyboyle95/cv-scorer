@@ -42,16 +42,12 @@ export function CvTemplate({ data, printRef }: CvTemplateProps) {
       <style>{`
         @media print {
           @page { size: A4; margin: 0; }
-          body * { visibility: hidden !important; }
-          #cv-print-area, #cv-print-area * { visibility: visible !important; }
-          #cv-print-area { position: fixed; inset: 0; overflow: visible; }
-          .cv-page { page-break-after: always; box-shadow: none !important; margin: 0 !important; border-radius: 0 !important; }
+          .cv-page { page-break-after: always; box-shadow: none !important; margin: 0 !important; border-radius: 0 !important; width: 100% !important; }
           .cv-page:last-child { page-break-after: avoid; }
-          .no-print { display: none !important; }
         }
       `}</style>
 
-      <div id="cv-print-area" ref={printRef} className="font-sans text-[11px] text-gray-900">
+      <div ref={printRef} className="font-sans text-[11px] text-gray-900">
 
         {/* ── COVER PAGE ── */}
         <div className="cv-page bg-white shadow-md rounded mx-auto" style={{ width: '210mm', minHeight: '297mm', padding: '14mm 14mm 10mm' }}>
