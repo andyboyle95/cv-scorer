@@ -195,7 +195,7 @@ export default function GeneratePage() {
       <div className="no-print bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm">
         <Link href="/" className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-[#1a3668]">
           <ArrowLeft className="h-4 w-4" />
-          Back to Scorer
+          Home
         </Link>
         <h1 className="text-base font-semibold text-[#1a3668]">CV Generator</h1>
         <Button
