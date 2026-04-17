@@ -154,7 +154,7 @@ export function CvTemplate({ data, printRef }: CvTemplateProps) {
             />
             <span className="text-[9px] font-semibold tracking-widest uppercase"
               style={{ color: '#df2681', letterSpacing: '0.15em' }}>
-              Sales Recruitment
+              Aaron Wallis Sales Recruitment
             </span>
           </div>
 

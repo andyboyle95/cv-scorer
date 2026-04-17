@@ -9,7 +9,7 @@ import { Input } from '@/ui/input'
 import { Textarea } from '@/ui/textarea'
 import { Label } from '@/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/tabs'
-import { Plus, Trash2, FileDown, ArrowLeft, Upload, ClipboardPaste, Loader2, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Trash2, FileDown, ArrowLeft, Upload, ClipboardPaste, Loader2, CheckCircle2, ChevronDown, ChevronUp, Linkedin } from 'lucide-react'
 
 const BLANK_DATA: CandidateData = {
   consultant: 'Rob Scott',
@@ -170,6 +170,7 @@ export default function GeneratePage() {
   // Import state
   const [importOpen, setImportOpen] = useState(false)
   const [pasteText, setPasteText] = useState('')
+  const [linkedInUrl, setLinkedInUrl] = useState('')
   const [importStatus, setImportStatus] = useState<ImportStatus>('idle')
   const [importError, setImportError] = useState('')
   const [dragOver, setDragOver] = useState(false)
@@ -179,6 +180,21 @@ export default function GeneratePage() {
   }, [])
 
   // ── Import logic ──────────────────────────────────────────────
+
+  const applyExtracted = (extracted: Record<string, unknown>) => {
+    setData((prev) => ({
+      ...prev,
+      candidateName: (extracted.candidateName as string) ?? prev.candidateName,
+      executiveSummary: (extracted.executiveSummary as string) ?? prev.executiveSummary,
+      profile: (extracted.profile as string) ?? prev.profile,
+      skills: (extracted.skills as string[])?.length ? extracted.skills as string[] : prev.skills,
+      experience: (extracted.experience as Omit<ExperienceEntry, 'id'>[])?.length
+        ? (extracted.experience as Omit<ExperienceEntry, 'id'>[]).map((e, i) => ({ ...e, id: String(i + 1) }))
+        : prev.experience,
+      qualifications: (extracted.qualifications as string[])?.length ? extracted.qualifications as string[] : prev.qualifications,
+      languages: (extracted.languages as string[])?.length ? extracted.languages as string[] : prev.languages,
+    }))
+  }
 
   const extractAndApply = async (cvText: string) => {
     setImportStatus('extracting')
@@ -195,28 +211,41 @@ export default function GeneratePage() {
       } catch {
         throw new Error(`Server error (${res.status}) — check your ANTHROPIC_API_KEY is set`)
       }
-      if (!res.ok) {
-        throw new Error((extracted as { error?: string }).error ?? 'Extraction failed')
-      }
-
-      // Merge: preserve cover-sheet meta (consultant info), replace candidate fields
-      setData((prev) => ({
-        ...prev,
-        candidateName: extracted.candidateName ?? prev.candidateName,
-        executiveSummary: extracted.executiveSummary ?? prev.executiveSummary,
-        profile: extracted.profile ?? prev.profile,
-        skills: extracted.skills?.length ? extracted.skills : prev.skills,
-        experience: extracted.experience?.length
-          ? extracted.experience.map((e: Omit<ExperienceEntry, 'id'>, i: number) => ({ ...e, id: String(i + 1) }))
-          : prev.experience,
-        qualifications: extracted.qualifications?.length ? extracted.qualifications : prev.qualifications,
-        languages: extracted.languages?.length ? extracted.languages : prev.languages,
-      }))
-
+      if (!res.ok) throw new Error((extracted as { error?: string }).error ?? 'Extraction failed')
+      applyExtracted(extracted)
       setImportStatus('done')
       setPasteText('')
     } catch (err) {
       setImportError(err instanceof Error ? err.message : 'Failed to extract CV fields')
+      setImportStatus('error')
+    }
+  }
+
+  const handleLinkedIn = async () => {
+    if (!linkedInUrl.includes('linkedin.com/in/')) return
+    setImportStatus('extracting')
+    setImportError('')
+    try {
+      const res = await fetch('/api/fetch-linkedin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: linkedInUrl }),
+      })
+      let json: Record<string, unknown>
+      try {
+        json = await res.json()
+      } catch {
+        throw new Error(`Server error (${res.status})`)
+      }
+      if (!res.ok) {
+        const msg = (json as { error?: string; blocked?: boolean }).error ?? 'LinkedIn import failed'
+        throw new Error(msg)
+      }
+      applyExtracted(json)
+      setImportStatus('done')
+      setLinkedInUrl('')
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'LinkedIn import failed')
       setImportStatus('error')
     }
   }
@@ -337,8 +366,43 @@ export default function GeneratePage() {
               {importOpen && (
                 <div className="px-5 pb-4 space-y-3">
                   <p className="text-xs text-gray-500">
-                    Upload a CV file or paste text — fields will be auto-filled using AI.
+                    Import from LinkedIn, upload a CV file, or paste text — fields will be auto-filled using AI.
                   </p>
+
+                  {/* LinkedIn URL */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
+                      <Linkedin className="h-3.5 w-3.5 text-[#0A66C2]" /> LinkedIn Profile URL
+                    </label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={linkedInUrl}
+                        onChange={(e) => setLinkedInUrl(e.target.value)}
+                        placeholder="https://www.linkedin.com/in/..."
+                        className="text-xs flex-1"
+                        disabled={busy}
+                        onKeyDown={(e) => e.key === 'Enter' && handleLinkedIn()}
+                      />
+                      <Button
+                        onClick={handleLinkedIn}
+                        disabled={!linkedInUrl.includes('linkedin.com/in/') || busy}
+                        size="sm"
+                        className="bg-[#0A66C2] hover:bg-[#004182] text-white shrink-0"
+                      >
+                        Import
+                      </Button>
+                    </div>
+                    <p className="text-[10px] text-gray-400">
+                      Public profiles only. If blocked, paste the profile text below.
+                    </p>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-px bg-gray-200" />
+                    <span className="text-[10px] text-gray-400 uppercase tracking-wide">or upload file</span>
+                    <div className="flex-1 h-px bg-gray-200" />
+                  </div>
 
                   {/* File drop zone */}
                   <div
@@ -365,7 +429,7 @@ export default function GeneratePage() {
                   {/* Divider */}
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-px bg-gray-200" />
-                    <span className="text-[10px] text-gray-400 uppercase tracking-wide">or paste text</span>
+                    <span className="text-[10px] text-gray-400 uppercase tracking-wide">or paste CV text</span>
                     <div className="flex-1 h-px bg-gray-200" />
                   </div>
 
