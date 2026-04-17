@@ -12,9 +12,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/tabs'
 import { Plus, Trash2, FileDown, ArrowLeft, Upload, ClipboardPaste, Loader2, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react'
 
 const BLANK_DATA: CandidateData = {
-  consultant: '',
-  consultantEmail: '',
-  consultantTel: '',
+  consultant: 'Rob Scott',
+  consultantEmail: 'robert.scott@aaronwallis.co.uk',
+  consultantTel: '01908 061400',
   dateSubmitted: '',
   roleAppliedFor: '',
   candidateName: '',
@@ -163,7 +163,7 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 type ImportStatus = 'idle' | 'parsing' | 'extracting' | 'done' | 'error'
 
 export default function GeneratePage() {
-  const [data, setData] = useState<CandidateData>(DEFAULT_DATA)
+  const [data, setData] = useState<CandidateData>({ ...BLANK_DATA, dateSubmitted: new Date().toLocaleDateString('en-GB') })
   const printRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -298,6 +298,14 @@ export default function GeneratePage() {
               className="text-xs"
             >
               New CV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { setData(DEFAULT_DATA); setImportStatus('idle') }}
+              className="text-xs border-[#df2681]/40 text-[#df2681] hover:bg-[#df2681]/5"
+            >
+              Load Test Data
             </Button>
             <Button onClick={() => window.print()} className="bg-[#df2681] hover:bg-[#c01f6e] text-white gap-2">
               <FileDown className="h-4 w-4" />

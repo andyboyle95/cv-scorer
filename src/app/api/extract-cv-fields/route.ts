@@ -13,7 +13,7 @@ const extractionSchema = {
       type: "string",
       description: "A 2–3 paragraph third-person executive summary of the candidate, written in the style of a recruitment consultant introducing them to a client. Highlight key achievements, sector expertise, and what makes them stand out.",
     },
-    profile: { type: "string", description: "The candidate's own profile or personal statement, verbatim or lightly tidied" },
+    profile: { type: "string", description: "The candidate's profile statement, lightly edited to weave in their key strengths and one or two notable achievements from their experience. Keep the same length and first-person tone as the original — do not add bullet points or headers, just a flowing paragraph." },
     skills: {
       type: "array",
       items: { type: "string" },
