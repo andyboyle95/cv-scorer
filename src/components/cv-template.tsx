@@ -61,7 +61,7 @@ export function CvTemplate({ data, printRef }: CvTemplateProps) {
         }
       `}</style>
 
-      <div ref={printRef} className="font-sans text-[11px] text-gray-900">
+      <div ref={printRef as React.RefObject<HTMLDivElement>} className="font-sans text-[11px] text-gray-900">
 
         {/* ── COVER PAGE ── */}
         <div className="cv-page bg-white shadow-md rounded mx-auto"
