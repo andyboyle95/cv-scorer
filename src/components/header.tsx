@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-export function Header() {
+export function Header({ title = "CV Scoring Tool" }: { title?: string }) {
   return (
     <header className="bg-[#1a3668] text-white px-6 py-3 flex items-center gap-4 shadow-md">
       <div className="flex items-center gap-3">
@@ -16,9 +16,7 @@ export function Header() {
           />
         </div>
         <div className="h-7 w-px bg-white/30" />
-        <span className="text-lg font-semibold tracking-tight">
-          CV Scoring Tool
-        </span>
+        <span className="text-lg font-semibold tracking-tight">{title}</span>
       </div>
     </header>
   );
