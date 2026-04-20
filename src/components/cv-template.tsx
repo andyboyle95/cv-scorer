@@ -33,7 +33,7 @@ export interface CandidateData {
 
 interface CvTemplateProps {
   data: CandidateData
-  printRef?: React.RefObject<HTMLDivElement | null>
+  printRef?: React.RefObject<HTMLDivElement>
 }
 
 const AW_TEL = '01908 061400'
