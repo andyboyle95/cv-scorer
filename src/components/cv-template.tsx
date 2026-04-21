@@ -259,9 +259,8 @@ export function CvTemplate({ data, printRef }: CvTemplateProps) {
           {/* Footer disclaimer */}
           <div className="mt-6 pt-3" style={{ borderTop: '1px solid #e5e7eb' }}>
             <p className="text-[8px] leading-tight" style={{ color: '#9ca3af' }}>
-              Aaron Wallis and Aaron Wallis Sales Recruitment are trading styles of Aaron Wallis Recruitment and Training Limited.
-              Registered Address: 25-33 The Stable Yard, Vicarage Road, Milton Keynes, Buckinghamshire, MK11BN.
-              Aaron Wallis is an Employment Business registered in the UK No. 6356563. All information relating to an Applicant is confidential and subject to the Data Protection Laws.
+              Aaron Wallis and Aaron Wallis Sales Recruitment are trading names of Aaron Wallis Recruitment and Training Limited (Registered in the UK, No. 6356563). Our registered office is located at 25-33 The Stable Yard, Vicarage Road, Milton Keynes, MK11 1BN. All candidate information provided is confidential and protected under current Data Protection Laws. By opening this attachment, you acknowledge a formal Applicant Introduction as defined by our Terms of Business. This data is provided exclusively for the purpose of work-finding services for your organisation. For detailed privacy information, please refer to Clause 10 ("Confidentiality and Data Protection") of our terms of business, available for download{' '}
+              <a href="https://www.aaronwallis.co.uk/employer/terms-of-business.aspx" style={{ color: '#9ca3af', textDecoration: 'underline' }}>here</a>.
             </p>
           </div>
         </div>
