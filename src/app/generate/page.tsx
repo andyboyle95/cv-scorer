@@ -9,7 +9,7 @@ import { Input } from '@/ui/input'
 import { Textarea } from '@/ui/textarea'
 import { Label } from '@/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/tabs'
-import { Plus, Trash2, FileDown, ArrowLeft, Upload, ClipboardPaste, Loader2, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Trash2, FileDown, ArrowLeft, Upload, ClipboardPaste, Loader2, CheckCircle2, ChevronDown, ChevronUp, Wand2 } from 'lucide-react'
 
 const BLANK_DATA: CandidateData = {
   consultant: 'Rob Scott',
@@ -165,6 +165,8 @@ type ImportStatus = 'idle' | 'parsing' | 'extracting' | 'done' | 'error'
 export default function GeneratePage() {
   const [data, setData] = useState<CandidateData>({ ...BLANK_DATA, dateSubmitted: new Date().toLocaleDateString('en-GB') })
   const printRef = useRef<HTMLDivElement>(null)
+  const [rewriting, setRewriting] = useState(false)
+  const [rewriteError, setRewriteError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Import state
@@ -177,6 +179,33 @@ export default function GeneratePage() {
   const set = useCallback(<K extends keyof CandidateData>(key: K, value: CandidateData[K]) => {
     setData((prev) => ({ ...prev, [key]: value }))
   }, [])
+
+  // ── Rewrite summary ───────────────────────────────────────────
+
+  const handleRewrite = async () => {
+    if (!data.executiveSummary.trim()) return
+    setRewriting(true)
+    setRewriteError('')
+    try {
+      const res = await fetch('/api/rewrite-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roughNotes: data.executiveSummary,
+          candidateName: data.candidateName,
+          roleAppliedFor: data.roleAppliedFor,
+        }),
+      })
+      let json: Record<string, unknown>
+      try { json = await res.json() } catch { throw new Error(`Server error (${res.status})`) }
+      if (!res.ok) throw new Error((json as { error?: string }).error ?? 'Rewrite failed')
+      set('executiveSummary', (json as { summary: string }).summary)
+    } catch (err) {
+      setRewriteError(err instanceof Error ? err.message : 'Rewrite failed')
+    } finally {
+      setRewriting(false)
+    }
+  }
 
   // ── Import logic ──────────────────────────────────────────────
 
@@ -308,7 +337,14 @@ export default function GeneratePage() {
             >
               Load Test Data
             </Button>
-            <Button onClick={() => window.print()} className="bg-[#df2681] hover:bg-[#c01f6e] text-white gap-2">
+            <Button onClick={() => {
+              const slug = (data.candidateName || 'cv')
+                .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+              const prev = document.title
+              document.title = slug
+              window.print()
+              setTimeout(() => { document.title = prev }, 1500)
+            }} className="bg-[#df2681] hover:bg-[#c01f6e] text-white gap-2">
               <FileDown className="h-4 w-4" />
               Download PDF
             </Button>
@@ -435,9 +471,32 @@ export default function GeneratePage() {
                   <Field label="LinkedIn URL"><Input value={data.linkedIn} onChange={(e) => set('linkedIn', e.target.value)} /></Field>
 
                   <SectionHeading>Executive Summary</SectionHeading>
-                  <Field label="Cover Page Summary (AI-generated or write your own)">
-                    <Textarea value={data.executiveSummary} onChange={(e) => set('executiveSummary', e.target.value)} className="min-h-[200px] text-xs" />
-                  </Field>
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                      Cover Page Summary
+                    </Label>
+                    <p className="text-[10px] text-gray-400">
+                      Type rough notes (reasons for leaving, aspirations, achievements) and hit Auto Rewrite — AI will polish them into the Aaron Wallis voice.
+                    </p>
+                    <Textarea
+                      value={data.executiveSummary}
+                      onChange={(e) => set('executiveSummary', e.target.value)}
+                      className="min-h-[200px] text-xs"
+                      placeholder="e.g. Leaving Moody's due to lack of progression. Wants a more entrepreneurial environment. Strong performer — hit 120% quota last year. Loves working with hedge funds and asset managers..."
+                      disabled={rewriting}
+                    />
+                    <Button
+                      onClick={handleRewrite}
+                      disabled={!data.executiveSummary.trim() || rewriting}
+                      size="sm"
+                      className="w-full gap-1.5 bg-[#1a3668] hover:bg-[#12274d] text-white"
+                    >
+                      {rewriting
+                        ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Rewriting…</>
+                        : <><Wand2 className="h-3.5 w-3.5" /> Auto Rewrite</>}
+                    </Button>
+                    {rewriteError && <p className="text-xs text-red-500">{rewriteError}</p>}
+                  </div>
                 </TabsContent>
 
                 {/* Profile & Skills */}
