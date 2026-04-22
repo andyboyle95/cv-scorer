@@ -167,6 +167,7 @@ export default function GeneratePage() {
   const printRef = useRef<HTMLDivElement>(null)
   const [rewriting, setRewriting] = useState(false)
   const [rewriteError, setRewriteError] = useState('')
+  const [downloading, setDownloading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Import state
@@ -204,6 +205,53 @@ export default function GeneratePage() {
       setRewriteError(err instanceof Error ? err.message : 'Rewrite failed')
     } finally {
       setRewriting(false)
+    }
+  }
+
+  // ── PDF download ─────────────────────────────────────────────
+
+  const handleDownload = async () => {
+    setDownloading(true)
+    try {
+      const wrapper = document.getElementById('pdf-capture-wrapper') as HTMLElement
+      if (!wrapper) return
+
+      // Temporarily reveal the print template off-screen so html2canvas can read it
+      const prev = wrapper.getAttribute('style') ?? ''
+      wrapper.style.cssText = 'display:block;position:fixed;left:-10000px;top:0;z-index:-1;'
+
+      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+        import('jspdf'),
+        import('html2canvas'),
+      ])
+
+      const pages = wrapper.querySelectorAll<HTMLElement>('.cv-page')
+      const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
+
+      for (let i = 0; i < pages.length; i++) {
+        const canvas = await html2canvas(pages[i], {
+          scale: 2,
+          allowTaint: true,
+          useCORS: true,
+          logging: false,
+          width: pages[i].scrollWidth,
+          height: pages[i].scrollHeight,
+        })
+        const img = canvas.toDataURL('image/jpeg', 0.95)
+        if (i > 0) pdf.addPage()
+        pdf.addImage(img, 'JPEG', 0, 0, 210, 297)
+      }
+
+      // Restore hidden state
+      wrapper.setAttribute('style', prev)
+
+      const slug = (data.candidateName || 'cv')
+        .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+      pdf.save(`${slug}.pdf`)
+    } catch (err) {
+      console.error('PDF download failed:', err)
+    } finally {
+      setDownloading(false)
     }
   }
 
@@ -337,16 +385,30 @@ export default function GeneratePage() {
             >
               Load Test Data
             </Button>
-            <Button onClick={() => {
-              const slug = (data.candidateName || 'cv')
-                .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-              const prev = document.title
-              document.title = slug
-              window.print()
-              setTimeout(() => { document.title = prev }, 1500)
-            }} className="bg-[#df2681] hover:bg-[#c01f6e] text-white gap-2">
-              <FileDown className="h-4 w-4" />
-              Download PDF
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const slug = (data.candidateName || 'cv')
+                  .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+                const prev = document.title
+                document.title = slug
+                window.print()
+                setTimeout(() => { document.title = prev }, 1500)
+              }}
+              className="text-xs gap-1.5"
+            >
+              <FileDown className="h-3.5 w-3.5" />
+              Print to PDF
+            </Button>
+            <Button
+              onClick={handleDownload}
+              disabled={downloading}
+              className="bg-[#df2681] hover:bg-[#c01f6e] text-white gap-2"
+            >
+              {downloading
+                ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating…</>
+                : <><FileDown className="h-4 w-4" /> Download PDF</>}
             </Button>
           </div>
         </div>
@@ -574,7 +636,7 @@ export default function GeneratePage() {
       </div>
 
       {/* ── Print-only CV (full fidelity, no scaling) ── */}
-      <div className="hidden print:block">
+      <div id="pdf-capture-wrapper" className="hidden print:block">
         <CvTemplate data={data} printRef={printRef} />
       </div>
     </>
