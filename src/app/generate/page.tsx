@@ -216,7 +216,6 @@ export default function GeneratePage() {
       const wrapper = document.getElementById('pdf-capture-wrapper') as HTMLElement
       if (!wrapper) return
 
-      // Temporarily reveal the print template off-screen so html2canvas can read it
       const prev = wrapper.getAttribute('style') ?? ''
       wrapper.style.cssText = 'display:block;position:fixed;left:-10000px;top:0;z-index:-1;'
 
@@ -225,29 +224,54 @@ export default function GeneratePage() {
         import('html2canvas'),
       ])
 
-      const pages = wrapper.querySelectorAll<HTMLElement>('.cv-page')
-      const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
+      const cvPages = wrapper.querySelectorAll<HTMLElement>('.cv-page')
+      const pdfWidth = 210  // A4 width mm
+      const pdfHeight = 297 // A4 height mm
+      let pdf: InstanceType<typeof jsPDF> | null = null
+      let firstPage = true
 
-      for (let i = 0; i < pages.length; i++) {
-        const canvas = await html2canvas(pages[i], {
+      for (let i = 0; i < cvPages.length; i++) {
+        const canvas = await html2canvas(cvPages[i], {
           scale: 2,
           allowTaint: true,
           useCORS: true,
           logging: false,
-          width: pages[i].scrollWidth,
-          height: pages[i].scrollHeight,
         })
-        const img = canvas.toDataURL('image/jpeg', 0.95)
-        if (i > 0) pdf.addPage()
-        pdf.addImage(img, 'JPEG', 0, 0, 210, 297)
+
+        // A4 height in canvas pixels
+        const a4HeightPx = Math.round(canvas.width * (pdfHeight / pdfWidth))
+        let yOffset = 0
+
+        while (yOffset < canvas.height) {
+          const slicePx = Math.min(a4HeightPx, canvas.height - yOffset)
+
+          // Draw slice onto an A4-sized canvas (pad with white if last slice is short)
+          const slice = document.createElement('canvas')
+          slice.width = canvas.width
+          slice.height = a4HeightPx
+          const ctx = slice.getContext('2d')!
+          ctx.fillStyle = '#ffffff'
+          ctx.fillRect(0, 0, slice.width, slice.height)
+          ctx.drawImage(canvas, 0, yOffset, canvas.width, slicePx, 0, 0, canvas.width, slicePx)
+
+          const img = slice.toDataURL('image/jpeg', 0.95)
+
+          if (firstPage) {
+            pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
+            firstPage = false
+          } else {
+            pdf!.addPage('a4', 'p')
+          }
+          pdf!.addImage(img, 'JPEG', 0, 0, pdfWidth, pdfHeight)
+          yOffset += a4HeightPx
+        }
       }
 
-      // Restore hidden state
       wrapper.setAttribute('style', prev)
 
       const slug = (data.candidateName || 'cv')
         .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-      pdf.save(`${slug}.pdf`)
+      pdf!.save(`${slug}.pdf`)
     } catch (err) {
       console.error('PDF download failed:', err)
     } finally {
