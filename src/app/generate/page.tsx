@@ -9,7 +9,61 @@ import { Input } from '@/ui/input'
 import { Textarea } from '@/ui/textarea'
 import { Label } from '@/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/tabs'
-import { Plus, Trash2, FileDown, ArrowLeft, Upload, ClipboardPaste, Loader2, CheckCircle2, ChevronDown, ChevronUp, Wand2 } from 'lucide-react'
+import { Plus, Trash2, FileDown, ArrowLeft, Upload, ClipboardPaste, Loader2, CheckCircle2, ChevronDown, ChevronUp, Wand2, Sparkles } from 'lucide-react'
+import Image from 'next/image'
+
+interface InterviewQuestion {
+  theme: string
+  question: string
+  followUp: string
+  rationale: string
+}
+
+const IQ_DEFAULT_THEMES = [
+  'Sales Ability & Commercial Acumen',
+  'Communication & Presentation Skills',
+  'Client Relationship Management',
+  'Negotiation & Influencing',
+  'Target & Results Orientation',
+  'Leadership & People Management',
+  'Problem Solving & Critical Thinking',
+  'Resilience & Handling Rejection',
+  'Planning & Organisation',
+  'Customer Focus',
+  'Teamwork & Collaboration',
+  'Adaptability & Change',
+  'Strategic Thinking',
+]
+
+const IQ_ADDITIONAL_THEMES = [
+  'Innovation & Creativity',
+  'Coaching & Developing Others',
+  'Data Analysis & Decision Making',
+  'Digital Literacy & Technology Adoption',
+  'Cross-functional Collaboration',
+  'Values & Cultural Fit',
+  'Risk Awareness & Management',
+  'Business Development & New Business',
+  'Emotional Intelligence',
+  'Time Management & Prioritisation',
+]
+
+function buildCvText(data: CandidateData): string {
+  const parts: string[] = []
+  if (data.candidateName) parts.push(data.candidateName)
+  if (data.roleAppliedFor) parts.push(`Role applied for: ${data.roleAppliedFor}`)
+  if (data.profile) parts.push(`\nProfile\n${data.profile}`)
+  const skills = data.skills.filter(Boolean)
+  if (skills.length) parts.push(`\nSkills\n${skills.join(', ')}`)
+  for (const exp of data.experience.filter(e => e.company || e.role)) {
+    parts.push(`\n${exp.company} — ${exp.role} (${[exp.dateFrom, exp.dateTo].filter(Boolean).join(' - ')})`)
+    if (exp.description) parts.push(exp.description)
+    for (const b of exp.bullets.filter(Boolean)) parts.push(`• ${b}`)
+  }
+  const quals = data.qualifications.filter(Boolean)
+  if (quals.length) parts.push(`\nQualifications\n${quals.join('\n')}`)
+  return parts.join('\n')
+}
 
 const BLANK_DATA: CandidateData = {
   consultant: 'Rob Scott',
@@ -176,6 +230,14 @@ export default function GeneratePage() {
   const [importStatus, setImportStatus] = useState<ImportStatus>('idle')
   const [importError, setImportError] = useState('')
   const [dragOver, setDragOver] = useState(false)
+
+  // Interview questions state
+  const [interviewEnabled, setInterviewEnabled] = useState(false)
+  const [interviewCount, setInterviewCount] = useState(10)
+  const [interviewThemes, setInterviewThemes] = useState<Set<string>>(new Set(IQ_DEFAULT_THEMES))
+  const [interviewQuestions, setInterviewQuestions] = useState<InterviewQuestion[]>([])
+  const [generatingQuestions, setGeneratingQuestions] = useState(false)
+  const [questionGenError, setQuestionGenError] = useState('')
 
   const set = useCallback(<K extends keyof CandidateData>(key: K, value: CandidateData[K]) => {
     setData((prev) => ({ ...prev, [key]: value }))
@@ -377,6 +439,42 @@ export default function GeneratePage() {
   const langsText = data.languages.join('\n')
   const setLangsText = (raw: string) => set('languages', raw.split('\n'))
 
+  const toggleInterviewTheme = (theme: string) => {
+    setInterviewThemes((prev) => {
+      const next = new Set(prev)
+      if (next.has(theme)) next.delete(theme)
+      else next.add(theme)
+      return next
+    })
+  }
+
+  const handleGenerateQuestions = async () => {
+    if (interviewThemes.size === 0) return
+    setGeneratingQuestions(true)
+    setQuestionGenError('')
+    try {
+      const cvText = buildCvText(data)
+      const res = await fetch('/api/generate-interview-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cvText,
+          themes: Array.from(interviewThemes),
+          questionCount: interviewCount,
+        }),
+      })
+      let json: Record<string, unknown>
+      try { json = await res.json() } catch { throw new Error(`Server error (${res.status})`) }
+      if (!res.ok) throw new Error((json as { error?: string }).error ?? 'Generation failed')
+      setInterviewQuestions((json as { questions: InterviewQuestion[] }).questions ?? [])
+      setInterviewEnabled(true)
+    } catch (err) {
+      setQuestionGenError(err instanceof Error ? err.message : 'Generation failed')
+    } finally {
+      setGeneratingQuestions(false)
+    }
+  }
+
   const busy = importStatus === 'parsing' || importStatus === 'extracting'
 
   return (
@@ -533,11 +631,12 @@ export default function GeneratePage() {
             {/* ── Editable form ── */}
             <div className="p-5">
               <Tabs defaultValue="cover">
-                <TabsList className="grid grid-cols-4 w-full text-xs">
+                <TabsList className="grid grid-cols-5 w-full text-[10px]">
                   <TabsTrigger value="cover">Cover</TabsTrigger>
                   <TabsTrigger value="profile">Profile</TabsTrigger>
                   <TabsTrigger value="experience">Experience</TabsTrigger>
                   <TabsTrigger value="education">Education</TabsTrigger>
+                  <TabsTrigger value="interview">Interview Qs</TabsTrigger>
                 </TabsList>
 
                 {/* Cover Sheet */}
@@ -641,6 +740,111 @@ export default function GeneratePage() {
                   <p className="text-xs text-gray-500">One language per line</p>
                   <Textarea value={langsText} onChange={(e) => setLangsText(e.target.value)} className="min-h-[100px] text-xs font-mono" placeholder="English - Fluent&#10;French - Conversational" />
                 </TabsContent>
+
+                {/* Interview Questions */}
+                <TabsContent value="interview" className="space-y-4 pt-4">
+                  <div className="flex items-center justify-between">
+                    <SectionHeading>Interview Questions</SectionHeading>
+                    <label className="flex items-center gap-2 cursor-pointer mb-1">
+                      <input
+                        type="checkbox"
+                        checked={interviewEnabled}
+                        onChange={(e) => setInterviewEnabled(e.target.checked)}
+                        className="w-4 h-4 rounded"
+                        style={{ accentColor: '#1a3668' }}
+                      />
+                      <span className="text-xs text-gray-600 font-medium">Include in PDF</span>
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500 -mt-2">
+                    Generate competency-based questions tailored to this candidate and append them to the exported PDF.
+                  </p>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Number of Questions</Label>
+                    <div className="flex gap-2">
+                      {[5, 10, 15, 20].map((n) => (
+                        <button
+                          key={n}
+                          onClick={() => setInterviewCount(n)}
+                          className={`flex-1 py-2 rounded-lg border text-xs font-semibold transition-colors ${
+                            interviewCount === n
+                              ? 'bg-[#1a3668] text-white border-[#1a3668]'
+                              : 'bg-white text-gray-600 border-gray-200 hover:border-[#1a3668]/40'
+                          }`}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Default themes</p>
+                    {IQ_DEFAULT_THEMES.map((theme) => (
+                      <label key={theme} className="flex items-center gap-2 cursor-pointer group">
+                        <input
+                          type="checkbox"
+                          checked={interviewThemes.has(theme)}
+                          onChange={() => toggleInterviewTheme(theme)}
+                          className="w-3.5 h-3.5 rounded flex-shrink-0"
+                          style={{ accentColor: '#1a3668' }}
+                        />
+                        <span className="text-xs text-gray-700 group-hover:text-[#1a3668] transition-colors">{theme}</span>
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Additional themes</p>
+                    {IQ_ADDITIONAL_THEMES.map((theme) => (
+                      <label key={theme} className="flex items-center gap-2 cursor-pointer group">
+                        <input
+                          type="checkbox"
+                          checked={interviewThemes.has(theme)}
+                          onChange={() => toggleInterviewTheme(theme)}
+                          className="w-3.5 h-3.5 rounded flex-shrink-0"
+                          style={{ accentColor: '#1a3668' }}
+                        />
+                        <span className="text-xs text-gray-700 group-hover:text-[#1a3668] transition-colors">{theme}</span>
+                      </label>
+                    ))}
+                  </div>
+
+                  <Button
+                    onClick={handleGenerateQuestions}
+                    disabled={generatingQuestions || interviewThemes.size === 0}
+                    size="sm"
+                    className="w-full gap-1.5 bg-[#1a3668] hover:bg-[#12274d] text-white"
+                  >
+                    {generatingQuestions ? (
+                      <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating…</>
+                    ) : (
+                      <><Sparkles className="h-3.5 w-3.5" /> Generate Questions</>
+                    )}
+                  </Button>
+                  {questionGenError && <p className="text-xs text-red-500">{questionGenError}</p>}
+
+                  {interviewQuestions.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs text-green-600">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        {interviewQuestions.length} questions ready
+                        {interviewEnabled
+                          ? ' — will be included in PDF'
+                          : ' — tick "Include in PDF" above to add'}
+                      </div>
+                      <div className="space-y-1.5 max-h-[260px] overflow-y-auto pr-1">
+                        {interviewQuestions.map((q, i) => (
+                          <div key={i} className="text-[10px] bg-gray-50 rounded p-2 border border-gray-100 leading-relaxed">
+                            <span className="font-bold text-[#1a3668]">Q{i + 1}: </span>
+                            {q.question}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
               </Tabs>
             </div>
           </div>
@@ -662,6 +866,83 @@ export default function GeneratePage() {
       {/* ── Print-only CV (full fidelity, no scaling) ── */}
       <div id="pdf-capture-wrapper" className="hidden print:block">
         <CvTemplate data={data} printRef={printRef} />
+
+        {/* Interview questions page — appended when enabled */}
+        {interviewEnabled && interviewQuestions.length > 0 && (
+          <div className="cv-page bg-white"
+            style={{ width: '210mm', minHeight: '297mm', padding: '0 14mm 10mm', fontFamily: 'Arial, Helvetica, sans-serif' }}>
+
+            {/* Brand strip */}
+            <div style={{ margin: '0 -14mm' }}>
+              <div style={{ background: '#1a3668', height: '7mm' }} />
+              <div style={{ background: '#df2681', height: '2.5px' }} />
+            </div>
+
+            {/* Logo row */}
+            <div className="flex items-end justify-between mt-4 mb-4 pb-2" style={{ borderBottom: '2px solid #1a3668' }}>
+              <Image
+                src="https://www.aaronwallis.co.uk/media/chgpaiwp/aaron-wallis-logo.png"
+                alt="Aaron Wallis"
+                width={130}
+                height={42}
+                className="h-10 w-auto object-contain"
+                unoptimized
+              />
+              <span style={{ color: '#df2681', fontSize: '9px', fontWeight: 'bold', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+                Aaron Wallis Sales Recruitment
+              </span>
+            </div>
+
+            {/* Title */}
+            <h2 className="text-center font-bold mb-1" style={{ fontSize: '13px', color: '#1a3668' }}>
+              Competency Based Interview Questions
+            </h2>
+            {data.candidateName && (
+              <p className="text-center mb-5 text-[10.5px]" style={{ color: '#555' }}>{data.candidateName}</p>
+            )}
+
+            {/* Questions */}
+            <div>
+              {interviewQuestions.map((q, i) => (
+                <div key={i} style={{ marginBottom: '4mm', padding: '3mm 4mm', border: '1px solid #e5e7eb', borderRadius: '4px' }}>
+                  <div style={{ display: 'flex', gap: '3mm', alignItems: 'flex-start', marginBottom: '2mm' }}>
+                    <span style={{ background: '#1a3668', color: 'white', borderRadius: '50%', minWidth: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '7px', fontWeight: 'bold', flexShrink: 0 }}>
+                      {i + 1}
+                    </span>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ display: 'inline-block', background: '#eef1f7', color: '#1a3668', fontSize: '7px', fontWeight: 'bold', padding: '1px 4px', borderRadius: '2px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2mm' }}>
+                        {q.theme}
+                      </span>
+                      <p style={{ fontSize: '10px', fontWeight: '600', color: '#111827', margin: 0, lineHeight: '1.4' }}>
+                        {q.question}
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{ marginLeft: '19px', background: '#f8f9fc', borderLeft: '2px solid #1a3668', padding: '2mm 3mm', borderRadius: '0 3px 3px 0' }}>
+                    <p style={{ fontSize: '7px', fontWeight: 'bold', color: '#1a3668', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 1.5px 0' }}>
+                      Follow-up probe
+                    </p>
+                    <p style={{ fontSize: '9px', color: '#374151', margin: 0, lineHeight: '1.35' }}>
+                      {q.followUp}
+                    </p>
+                  </div>
+                  {q.rationale && (
+                    <p style={{ fontSize: '7.5px', color: '#9ca3af', fontStyle: 'italic', margin: '1.5mm 0 0 19px' }}>
+                      {q.rationale}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Footer */}
+            <div style={{ marginTop: '6mm', paddingTop: '3mm', borderTop: '1px solid #e5e7eb' }}>
+              <p style={{ fontSize: '8px', color: '#9ca3af', lineHeight: '1.4', margin: 0 }}>
+                Aaron Wallis and Aaron Wallis Sales Recruitment are trading names of Aaron Wallis Recruitment and Training Limited (Registered in the UK, No. 6356563). All candidate information provided is confidential and protected under current Data Protection Laws.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </>
   )
