@@ -22,6 +22,18 @@ interface Question {
   question: string
   followUp: string
   rationale: string
+  pageBreakAfter?: boolean
+}
+
+function groupByPageBreak(items: Question[]): Question[][] {
+  const groups: Question[][] = []
+  let current: Question[] = []
+  for (const item of items) {
+    current.push(item)
+    if (item.pageBreakAfter) { groups.push(current); current = [] }
+  }
+  if (current.length > 0) groups.push(current)
+  return groups
 }
 
 const DEFAULT_THEMES = [
@@ -200,46 +212,49 @@ export default function InterviewPage() {
       if (!wrapper) return
 
       const prev = wrapper.getAttribute('style') ?? ''
-      wrapper.style.cssText = 'display:block;position:fixed;left:-10000px;top:0;z-index:-1;width:794px;'
+      wrapper.style.cssText = 'display:block;position:fixed;left:-10000px;top:0;z-index:-1;'
 
       const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
         import('jspdf'),
         import('html2canvas'),
       ])
 
-      const canvas = await html2canvas(wrapper, {
-        scale: 2,
-        allowTaint: true,
-        useCORS: true,
-        logging: false,
-        width: 794,
-      })
-
+      const pages = wrapper.querySelectorAll<HTMLElement>('.iq-pdf-page')
       const pdfWidth = 210
       const pdfHeight = 297
-      const a4HeightPx = Math.round(canvas.width * (pdfHeight / pdfWidth))
-      let yOffset = 0
-      let firstPage = true
       let pdf: InstanceType<typeof jsPDF> | null = null
+      let firstPdfPage = true
 
-      while (yOffset < canvas.height) {
-        const slicePx = Math.min(a4HeightPx, canvas.height - yOffset)
-        const slice = document.createElement('canvas')
-        slice.width = canvas.width
-        slice.height = a4HeightPx
-        const ctx = slice.getContext('2d')!
-        ctx.fillStyle = '#ffffff'
-        ctx.fillRect(0, 0, slice.width, slice.height)
-        ctx.drawImage(canvas, 0, yOffset, canvas.width, slicePx, 0, 0, canvas.width, slicePx)
-        const img = slice.toDataURL('image/jpeg', 0.95)
-        if (firstPage) {
-          pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
-          firstPage = false
-        } else {
-          pdf!.addPage('a4', 'p')
+      for (let p = 0; p < pages.length; p++) {
+        const canvas = await html2canvas(pages[p], {
+          scale: 2,
+          allowTaint: true,
+          useCORS: true,
+          logging: false,
+        })
+
+        const a4HeightPx = Math.round(canvas.width * (pdfHeight / pdfWidth))
+        let yOffset = 0
+
+        while (yOffset < canvas.height) {
+          const slicePx = Math.min(a4HeightPx, canvas.height - yOffset)
+          const slice = document.createElement('canvas')
+          slice.width = canvas.width
+          slice.height = a4HeightPx
+          const ctx = slice.getContext('2d')!
+          ctx.fillStyle = '#ffffff'
+          ctx.fillRect(0, 0, slice.width, slice.height)
+          ctx.drawImage(canvas, 0, yOffset, canvas.width, slicePx, 0, 0, canvas.width, slicePx)
+          const img = slice.toDataURL('image/jpeg', 0.95)
+          if (firstPdfPage) {
+            pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
+            firstPdfPage = false
+          } else {
+            pdf!.addPage('a4', 'p')
+          }
+          pdf!.addImage(img, 'JPEG', 0, 0, pdfWidth, pdfHeight)
+          yOffset += a4HeightPx
         }
-        pdf!.addImage(img, 'JPEG', 0, 0, pdfWidth, pdfHeight)
-        yOffset += a4HeightPx
       }
 
       wrapper.setAttribute('style', prev)
@@ -395,6 +410,24 @@ export default function InterviewPage() {
                         <p className="text-[10px] text-gray-400 italic">{q.rationale}</p>
                       )}
                     </div>
+                    {i < questions.length - 1 && (
+                      <div className="pt-2 border-t border-gray-100">
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={q.pageBreakAfter ?? false}
+                            onChange={(e) => setQuestions((prev) =>
+                              prev.map((item, idx) => idx === i ? { ...item, pageBreakAfter: e.target.checked } : item)
+                            )}
+                            className="w-3.5 h-3.5 rounded flex-shrink-0"
+                            style={{ accentColor: '#1a3668' }}
+                          />
+                          <span className="text-[10px] text-gray-400 group-hover:text-gray-600">
+                            Start next question on a new page
+                          </span>
+                        </label>
+                      </div>
+                    )}
                   </div>
                 )
               )}
@@ -402,67 +435,82 @@ export default function InterviewPage() {
           </div>
         </div>
 
-        {/* Hidden PDF capture div */}
-        <div
-          id="interview-pdf-wrapper"
-          style={{ display: 'none', fontFamily: 'Arial, Helvetica, sans-serif', background: '#ffffff' }}
-        >
-          {/* Brand strip */}
-          <div style={{ background: '#1a3668', height: '10mm', width: '100%' }} />
-          <div style={{ background: '#df2681', height: '3px', width: '100%' }} />
-
-          <div style={{ padding: '8mm 14mm 12mm' }}>
-            {/* Header row */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6mm' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="https://www.aaronwallis.co.uk/media/chgpaiwp/aaron-wallis-logo.png"
-                alt="Aaron Wallis"
-                style={{ height: '35px', width: 'auto' }}
-                crossOrigin="anonymous"
-              />
-              <div style={{ textAlign: 'right', fontSize: '9px', color: '#1a3668', lineHeight: '1.5' }}>
-                <p style={{ fontWeight: 'bold', margin: 0 }}>Competency Based Interview Questions</p>
-                <p style={{ margin: 0 }}>Prepared by Aaron Wallis Sales Recruitment</p>
-                <p style={{ margin: 0 }}>{new Date().toLocaleDateString('en-GB')}</p>
-              </div>
-            </div>
-
-            {/* Candidate name */}
-            {candidateName && (
-              <h1 style={{ fontSize: '15px', fontWeight: 'bold', color: '#1a3668', textAlign: 'center', margin: '0 0 5mm 0', paddingBottom: '3mm', borderBottom: '2px solid #1a3668' }}>
-                {candidateName}
-              </h1>
-            )}
-
-            {/* Questions */}
-            {questions.map((q, i) => (
-              <div key={i} style={{ borderLeft: '3px solid #1a3668', paddingLeft: '4mm', marginBottom: '5mm' }}>
-                <p style={{ fontSize: '7.5px', fontWeight: 'bold', color: '#1a3668', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 2mm 0' }}>
-                  {i + 1}.&nbsp;&nbsp;{q.theme}
-                </p>
-                <p style={{ fontSize: '10px', fontWeight: '600', color: '#111827', margin: '0 0 2.5mm 0', lineHeight: '1.45' }}>
-                  {q.question}
-                </p>
-                <div style={{ background: '#f0f2f5', padding: '2mm 3mm', marginBottom: '1.5mm' }}>
-                  <span style={{ fontSize: '7.5px', fontWeight: 'bold', color: '#1a3668', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Follow-up: </span>
-                  <span style={{ fontSize: '9px', color: '#374151', lineHeight: '1.4' }}>{q.followUp}</span>
+        {/* Hidden PDF capture div — split into .iq-pdf-page sections at page breaks */}
+        <div id="interview-pdf-wrapper" style={{ display: 'none', fontFamily: 'Arial, Helvetica, sans-serif' }}>
+          {groupByPageBreak(questions).map((group, gIdx, allGroups) => {
+            const isFirst = gIdx === 0
+            const isLast = gIdx === allGroups.length - 1
+            // running question number offset for this group
+            const qOffset = allGroups.slice(0, gIdx).reduce((sum, g) => sum + g.length, 0)
+            return (
+              <div
+                key={gIdx}
+                className="iq-pdf-page"
+                style={{ width: '210mm', minHeight: '297mm', background: '#ffffff', padding: '0 14mm 10mm' }}
+              >
+                {/* Brand strip */}
+                <div style={{ margin: '0 -14mm' }}>
+                  <div style={{ background: '#1a3668', height: '10mm' }} />
+                  <div style={{ background: '#df2681', height: '3px' }} />
                 </div>
-                {q.rationale && (
-                  <p style={{ fontSize: '7.5px', color: '#9ca3af', fontStyle: 'italic', margin: 0 }}>
-                    {q.rationale}
-                  </p>
-                )}
-              </div>
-            ))}
 
-            {/* Footer */}
-            <div style={{ marginTop: '6mm', paddingTop: '3mm', borderTop: '1px solid #e5e7eb' }}>
-              <p style={{ fontSize: '7.5px', color: '#9ca3af', margin: 0, lineHeight: '1.4' }}>
-                Aaron Wallis and Aaron Wallis Sales Recruitment are trading names of Aaron Wallis Recruitment and Training Limited (Registered in the UK, No. 6356563). All candidate information provided is confidential and protected under current Data Protection Laws.
-              </p>
-            </div>
-          </div>
+                <div style={{ paddingTop: '6mm' }}>
+                  {/* Header row — every page */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5mm' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="https://www.aaronwallis.co.uk/media/chgpaiwp/aaron-wallis-logo.png"
+                      alt="Aaron Wallis"
+                      style={{ height: '32px', width: 'auto' }}
+                      crossOrigin="anonymous"
+                    />
+                    <div style={{ textAlign: 'right', fontSize: '9px', color: '#1a3668', lineHeight: '1.5' }}>
+                      <p style={{ fontWeight: 'bold', margin: 0 }}>Competency Based Interview Questions</p>
+                      <p style={{ margin: 0 }}>Prepared by Aaron Wallis Sales Recruitment</p>
+                      {isFirst && <p style={{ margin: 0 }}>{new Date().toLocaleDateString('en-GB')}</p>}
+                    </div>
+                  </div>
+
+                  {/* Candidate name — first page only */}
+                  {isFirst && candidateName && (
+                    <h1 style={{ fontSize: '15px', fontWeight: 'bold', color: '#1a3668', textAlign: 'center', margin: '0 0 5mm 0', paddingBottom: '3mm', borderBottom: '2px solid #1a3668' }}>
+                      {candidateName}
+                    </h1>
+                  )}
+
+                  {/* Questions for this group */}
+                  {group.map((q, i) => (
+                    <div key={i} style={{ borderLeft: '3px solid #1a3668', paddingLeft: '4mm', marginBottom: '5mm' }}>
+                      <p style={{ fontSize: '7.5px', fontWeight: 'bold', color: '#1a3668', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 2mm 0' }}>
+                        {qOffset + i + 1}.&nbsp;&nbsp;{q.theme}
+                      </p>
+                      <p style={{ fontSize: '10px', fontWeight: '600', color: '#111827', margin: '0 0 2.5mm 0', lineHeight: '1.45' }}>
+                        {q.question}
+                      </p>
+                      <div style={{ background: '#f0f2f5', padding: '2mm 3mm', marginBottom: '1.5mm' }}>
+                        <span style={{ fontSize: '7.5px', fontWeight: 'bold', color: '#1a3668', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Follow-up: </span>
+                        <span style={{ fontSize: '9px', color: '#374151', lineHeight: '1.4' }}>{q.followUp}</span>
+                      </div>
+                      {q.rationale && (
+                        <p style={{ fontSize: '7.5px', color: '#9ca3af', fontStyle: 'italic', margin: 0 }}>
+                          {q.rationale}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Footer — last page only */}
+                  {isLast && (
+                    <div style={{ marginTop: '6mm', paddingTop: '3mm', borderTop: '1px solid #e5e7eb' }}>
+                      <p style={{ fontSize: '7.5px', color: '#9ca3af', margin: 0, lineHeight: '1.4' }}>
+                        Aaron Wallis and Aaron Wallis Sales Recruitment are trading names of Aaron Wallis Recruitment and Training Limited (Registered in the UK, No. 6356563). All candidate information provided is confidential and protected under current Data Protection Laws.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
         </div>
       </>
     )
