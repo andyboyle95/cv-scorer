@@ -50,7 +50,7 @@ const BrandStrip = () => (
 const LogoRow = () => (
   <div className="flex items-end justify-between mt-4 mb-5 pb-2" style={{ borderBottom: '2px solid #1a3668' }}>
     <Image
-      src="https://www.aaronwallis.co.uk/media/chgpaiwp/aaron-wallis-logo.png"
+      src="/aaron-wallis-logo.png"
       alt="Aaron Wallis"
       width={130}
       height={42}
@@ -181,7 +181,7 @@ export function CvTemplate({ data, printRef }: CvTemplateProps) {
 
           <div className="flex items-start justify-between mt-5 mb-8">
             <Image
-              src="https://www.aaronwallis.co.uk/media/chgpaiwp/aaron-wallis-logo.png"
+              src="/aaron-wallis-logo.png"
               alt="Aaron Wallis"
               width={160}
               height={50}
@@ -240,7 +240,7 @@ export function CvTemplate({ data, printRef }: CvTemplateProps) {
 
           <div className="flex justify-center mt-8 pt-4" style={{ borderTop: '1px solid #e5e7eb' }}>
             <Image
-              src="https://www.aaronwallis.co.uk/media/chgpaiwp/aaron-wallis-logo.png"
+              src="/aaron-wallis-logo.png"
               alt="Aaron Wallis"
               width={90}
               height={30}

@@ -6,7 +6,7 @@ export function Header({ title = "CV Scoring Tool" }: { title?: string }) {
       <div className="flex items-center gap-3">
         <div className="bg-white rounded px-2 py-1">
           <Image
-            src="https://www.aaronwallis.co.uk/media/chgpaiwp/aaron-wallis-logo.png"
+            src="/aaron-wallis-logo.png"
             alt="Aaron Wallis"
             height={40}
             width={160}

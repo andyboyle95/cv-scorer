@@ -23,7 +23,7 @@ export default function Home() {
       <header className="bg-[#1a3668] text-white px-6 py-3 flex items-center gap-4 shadow-md">
         <div className="bg-white rounded px-2 py-1">
           <Image
-            src="https://www.aaronwallis.co.uk/media/chgpaiwp/aaron-wallis-logo.png"
+            src="/aaron-wallis-logo.png"
             alt="Aaron Wallis"
             height={40}
             width={160}

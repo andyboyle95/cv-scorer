@@ -471,7 +471,7 @@ export default function InterviewPage() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5mm' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src="https://www.aaronwallis.co.uk/media/chgpaiwp/aaron-wallis-logo.png"
+                      src="/aaron-wallis-logo.png"
                       alt="Aaron Wallis"
                       style={{ height: '32px', width: 'auto' }}
                       crossOrigin="anonymous"

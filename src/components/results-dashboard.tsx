@@ -275,7 +275,7 @@ export function ResultsDashboard({
 </div>
 <div class="header">
   <div class="header-logo">
-    <img src="https://www.aaronwallis.co.uk/media/chgpaiwp/aaron-wallis-logo.png" alt="Aaron Wallis" />
+    <img src="/aaron-wallis-logo.png" alt="Aaron Wallis" />
   </div>
   <div class="header-title">
     <h1>Candidate Shortlist Report</h1>

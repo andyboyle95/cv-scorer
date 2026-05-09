@@ -991,7 +991,7 @@ export default function GeneratePage() {
             {/* Logo row */}
             <div className="flex items-end justify-between mt-4 mb-4 pb-2" style={{ borderBottom: '2px solid #1a3668' }}>
               <Image
-                src="https://www.aaronwallis.co.uk/media/chgpaiwp/aaron-wallis-logo.png"
+                src="/aaron-wallis-logo.png"
                 alt="Aaron Wallis"
                 width={130}
                 height={42}

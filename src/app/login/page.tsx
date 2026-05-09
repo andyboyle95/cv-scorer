@@ -40,7 +40,7 @@ export default function LoginPage() {
         <CardHeader className="text-center pb-2 pt-8">
           <div className="flex justify-center mb-4">
             <Image
-              src="https://www.aaronwallis.co.uk/media/chgpaiwp/aaron-wallis-logo.png"
+              src="/aaron-wallis-logo.png"
               alt="Aaron Wallis"
               height={48}
               width={200}
