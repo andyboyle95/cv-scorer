@@ -918,30 +918,19 @@ export default function GeneratePage() {
             {/* Questions */}
             <div>
               {interviewQuestions.map((q, i) => (
-                <div key={i} style={{ marginBottom: '4mm', padding: '3mm 4mm', border: '1px solid #e5e7eb', borderRadius: '4px' }}>
-                  <div style={{ display: 'flex', gap: '3mm', alignItems: 'flex-start', marginBottom: '2mm' }}>
-                    <span style={{ background: '#1a3668', color: 'white', borderRadius: '50%', minWidth: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '7px', fontWeight: 'bold', flexShrink: 0 }}>
-                      {i + 1}
-                    </span>
-                    <div style={{ flex: 1 }}>
-                      <span style={{ display: 'inline-block', background: '#eef1f7', color: '#1a3668', fontSize: '7px', fontWeight: 'bold', padding: '1px 4px', borderRadius: '2px', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2mm' }}>
-                        {q.theme}
-                      </span>
-                      <p style={{ fontSize: '10px', fontWeight: '600', color: '#111827', margin: 0, lineHeight: '1.4' }}>
-                        {q.question}
-                      </p>
-                    </div>
-                  </div>
-                  <div style={{ marginLeft: '19px', background: '#f8f9fc', borderLeft: '2px solid #1a3668', padding: '2mm 3mm', borderRadius: '0 3px 3px 0' }}>
-                    <p style={{ fontSize: '7px', fontWeight: 'bold', color: '#1a3668', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 1.5px 0' }}>
-                      Follow-up probe
-                    </p>
-                    <p style={{ fontSize: '9px', color: '#374151', margin: 0, lineHeight: '1.35' }}>
-                      {q.followUp}
-                    </p>
+                <div key={i} style={{ borderLeft: '3px solid #1a3668', paddingLeft: '4mm', marginBottom: '4mm' }}>
+                  <p style={{ fontSize: '7.5px', fontWeight: 'bold', color: '#1a3668', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 2mm 0' }}>
+                    {i + 1}.&nbsp;&nbsp;{q.theme}
+                  </p>
+                  <p style={{ fontSize: '10px', fontWeight: '600', color: '#111827', margin: '0 0 2mm 0', lineHeight: '1.4' }}>
+                    {q.question}
+                  </p>
+                  <div style={{ background: '#f0f2f5', padding: '2mm 3mm', marginBottom: '1.5mm' }}>
+                    <span style={{ fontSize: '7.5px', fontWeight: 'bold', color: '#1a3668', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Follow-up: </span>
+                    <span style={{ fontSize: '9px', color: '#374151', lineHeight: '1.35' }}>{q.followUp}</span>
                   </div>
                   {q.rationale && (
-                    <p style={{ fontSize: '7.5px', color: '#9ca3af', fontStyle: 'italic', margin: '1.5mm 0 0 19px' }}>
+                    <p style={{ fontSize: '7.5px', color: '#9ca3af', fontStyle: 'italic', margin: 0 }}>
                       {q.rationale}
                     </p>
                   )}
