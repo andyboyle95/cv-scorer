@@ -337,9 +337,21 @@ export default function InterviewPage() {
                       <span className="w-7 h-7 rounded-full bg-[#1a3668] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
                         {i + 1}
                       </span>
-                      <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded" style={{ background: '#eef1f7', color: '#1a3668' }}>
-                        {q.theme}
-                      </span>
+                      <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Theme</span>
+                    </div>
+                    <div>
+                      <select
+                        value={editDraft.theme}
+                        onChange={(e) => setEditDraft((d) => ({ ...d, theme: e.target.value }))}
+                        className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#1a3668] cursor-pointer"
+                      >
+                        <optgroup label="Default themes">
+                          {DEFAULT_THEMES.map((t) => <option key={t} value={t}>{t}</option>)}
+                        </optgroup>
+                        <optgroup label="Additional themes">
+                          {ADDITIONAL_THEMES.map((t) => <option key={t} value={t}>{t}</option>)}
+                        </optgroup>
+                      </select>
                     </div>
                     <div>
                       <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Question</p>
