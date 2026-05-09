@@ -30,9 +30,9 @@ const outputSchema = {
 };
 
 export async function POST(req: NextRequest) {
-  let cvText: string, themes: string[], questionCount: number;
+  let cvText: string, themes: string[], questionCount: number, avoidQuestion: string | undefined;
   try {
-    ({ cvText, themes, questionCount } = await req.json());
+    ({ cvText, themes, questionCount, avoidQuestion } = await req.json());
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
@@ -68,7 +68,7 @@ For each question also provide:
 - A concise one-sentence rationale explaining why this question is relevant to this specific candidate
 
 Themes available: ${themes.join("; ")}
-
+${avoidQuestion ? `\nImportant: generate a DIFFERENT question from this one (which has already been used): "${avoidQuestion}"` : ''}
 Candidate CV:
 ${cvText.slice(0, 12000)}`,
         },

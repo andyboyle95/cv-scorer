@@ -9,7 +9,7 @@ import { Input } from '@/ui/input'
 import { Textarea } from '@/ui/textarea'
 import { Label } from '@/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/tabs'
-import { Plus, Trash2, FileDown, ArrowLeft, Upload, ClipboardPaste, Loader2, CheckCircle2, ChevronDown, ChevronUp, Wand2, Sparkles } from 'lucide-react'
+import { Plus, Trash2, FileDown, ArrowLeft, Upload, ClipboardPaste, Loader2, CheckCircle2, ChevronDown, ChevronUp, Wand2, Sparkles, Pencil, RefreshCw } from 'lucide-react'
 import Image from 'next/image'
 
 interface InterviewQuestion {
@@ -238,6 +238,11 @@ export default function GeneratePage() {
   const [interviewQuestions, setInterviewQuestions] = useState<InterviewQuestion[]>([])
   const [generatingQuestions, setGeneratingQuestions] = useState(false)
   const [questionGenError, setQuestionGenError] = useState('')
+
+  // Per-question edit / regenerate state (interview tab)
+  const [iqEditingIdx, setIqEditingIdx] = useState<number | null>(null)
+  const [iqEditDraft, setIqEditDraft] = useState<InterviewQuestion>({ theme: '', question: '', followUp: '', rationale: '' })
+  const [iqRegeneratingIdxs, setIqRegeneratingIdxs] = useState<Set<number>>(new Set())
 
   const set = useCallback(<K extends keyof CandidateData>(key: K, value: CandidateData[K]) => {
     setData((prev) => ({ ...prev, [key]: value }))
@@ -472,6 +477,45 @@ export default function GeneratePage() {
       setQuestionGenError(err instanceof Error ? err.message : 'Generation failed')
     } finally {
       setGeneratingQuestions(false)
+    }
+  }
+
+  const iqStartEdit = (idx: number) => {
+    setIqEditingIdx(idx)
+    setIqEditDraft({ ...interviewQuestions[idx] })
+  }
+
+  const iqSaveEdit = () => {
+    if (iqEditingIdx === null) return
+    setInterviewQuestions((prev) => prev.map((q, i) => i === iqEditingIdx ? { ...iqEditDraft } : q))
+    setIqEditingIdx(null)
+  }
+
+  const iqRegenerateQuestion = async (idx: number) => {
+    setIqRegeneratingIdxs((prev) => new Set([...prev, idx]))
+    try {
+      const cvText = buildCvText(data)
+      const res = await fetch('/api/generate-interview-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cvText,
+          themes: [interviewQuestions[idx].theme],
+          questionCount: 1,
+          avoidQuestion: interviewQuestions[idx].question,
+        }),
+      })
+      let json: Record<string, unknown>
+      try { json = await res.json() } catch { throw new Error(`Server error (${res.status})`) }
+      if (!res.ok) throw new Error((json as { error?: string }).error ?? 'Regeneration failed')
+      const newQs = (json as { questions: InterviewQuestion[] }).questions
+      if (newQs?.[0]) {
+        setInterviewQuestions((prev) => prev.map((q, i) => i === idx ? { ...newQs[0], theme: q.theme } : q))
+      }
+    } catch (err) {
+      console.error('Regenerate failed:', err)
+    } finally {
+      setIqRegeneratingIdxs((prev) => { const s = new Set(prev); s.delete(idx); return s })
     }
   }
 
@@ -848,13 +892,65 @@ export default function GeneratePage() {
                           ? ' — will be included in PDF'
                           : ' — tick "Include in PDF" above to add'}
                       </div>
-                      <div className="space-y-1.5 max-h-[260px] overflow-y-auto pr-1">
-                        {interviewQuestions.map((q, i) => (
-                          <div key={i} className="text-[10px] bg-gray-50 rounded p-2 border border-gray-100 leading-relaxed">
-                            <span className="font-bold text-[#1a3668]">Q{i + 1}: </span>
-                            {q.question}
-                          </div>
-                        ))}
+                      <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                        {interviewQuestions.map((q, i) =>
+                          iqEditingIdx === i ? (
+                            // ── Edit mode (compact) ──
+                            <div key={i} className="bg-white rounded-lg border-2 p-3 space-y-2" style={{ borderColor: '#1a3668' }}>
+                              <p className="text-[10px] font-bold" style={{ color: '#1a3668' }}>Q{i + 1} · {q.theme}</p>
+                              <div>
+                                <p className="text-[9px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Question</p>
+                                <Textarea
+                                  value={iqEditDraft.question}
+                                  onChange={(e) => setIqEditDraft((d) => ({ ...d, question: e.target.value }))}
+                                  className="text-xs min-h-[60px] resize-y"
+                                />
+                              </div>
+                              <div>
+                                <p className="text-[9px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Follow-up</p>
+                                <Textarea
+                                  value={iqEditDraft.followUp}
+                                  onChange={(e) => setIqEditDraft((d) => ({ ...d, followUp: e.target.value }))}
+                                  className="text-xs min-h-[40px] resize-y"
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                <Button size="sm" onClick={iqSaveEdit} className="text-[10px] h-7 px-2 bg-[#1a3668] hover:bg-[#12274d] text-white">Save</Button>
+                                <Button size="sm" variant="outline" onClick={() => setIqEditingIdx(null)} className="text-[10px] h-7 px-2">Cancel</Button>
+                              </div>
+                            </div>
+                          ) : (
+                            // ── View mode (compact) ──
+                            <div key={i} className="bg-gray-50 rounded-lg border border-gray-100 p-2.5">
+                              <div className="flex items-start justify-between gap-1.5 mb-1.5">
+                                <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: '#1a3668' }}>{q.theme}</span>
+                                <div className="flex gap-0.5 flex-shrink-0">
+                                  <button
+                                    onClick={() => iqStartEdit(i)}
+                                    title="Edit"
+                                    className="p-1 rounded text-gray-400 hover:text-[#1a3668] hover:bg-white transition-colors"
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    onClick={() => iqRegenerateQuestion(i)}
+                                    disabled={iqRegeneratingIdxs.has(i)}
+                                    title="Regenerate with AI"
+                                    className="p-1 rounded text-gray-400 hover:text-[#df2681] hover:bg-white transition-colors disabled:opacity-40"
+                                  >
+                                    {iqRegeneratingIdxs.has(i)
+                                      ? <Loader2 className="h-3 w-3 animate-spin" />
+                                      : <RefreshCw className="h-3 w-3" />}
+                                  </button>
+                                </div>
+                              </div>
+                              <p className="text-[10px] text-gray-800 leading-relaxed font-medium">{q.question}</p>
+                              <p className="text-[9px] text-gray-400 mt-1.5 leading-relaxed">
+                                <span className="font-semibold" style={{ color: '#1a3668' }}>↳ </span>{q.followUp}
+                              </p>
+                            </div>
+                          )
+                        )}
                       </div>
                     </div>
                   )}

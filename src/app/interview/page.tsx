@@ -13,6 +13,8 @@ import {
   CheckCircle2,
   FileDown,
   Sparkles,
+  Pencil,
+  RefreshCw,
 } from 'lucide-react'
 
 interface Question {
@@ -69,6 +71,11 @@ export default function InterviewPage() {
   const [candidateName, setCandidateName] = useState('')
   const [generateError, setGenerateError] = useState('')
   const [downloading, setDownloading] = useState(false)
+
+  // Per-question edit / regenerate state
+  const [editingIdx, setEditingIdx] = useState<number | null>(null)
+  const [editDraft, setEditDraft] = useState<Question>({ theme: '', question: '', followUp: '', rationale: '' })
+  const [regeneratingIdxs, setRegeneratingIdxs] = useState<Set<number>>(new Set())
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -145,6 +152,44 @@ export default function InterviewPage() {
     } catch (err) {
       setGenerateError(err instanceof Error ? err.message : 'Generation failed')
       setStep('setup')
+    }
+  }
+
+  const startEdit = (idx: number) => {
+    setEditingIdx(idx)
+    setEditDraft({ ...questions[idx] })
+  }
+
+  const saveEdit = () => {
+    if (editingIdx === null) return
+    setQuestions((prev) => prev.map((q, i) => i === editingIdx ? { ...editDraft } : q))
+    setEditingIdx(null)
+  }
+
+  const regenerateQuestion = async (idx: number) => {
+    setRegeneratingIdxs((prev) => new Set([...prev, idx]))
+    try {
+      const res = await fetch('/api/generate-interview-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cvText,
+          themes: [questions[idx].theme],
+          questionCount: 1,
+          avoidQuestion: questions[idx].question,
+        }),
+      })
+      let json: Record<string, unknown>
+      try { json = await res.json() } catch { throw new Error(`Server error (${res.status})`) }
+      if (!res.ok) throw new Error((json as { error?: string }).error ?? 'Regeneration failed')
+      const newQs = (json as { questions: Question[] }).questions
+      if (newQs?.[0]) {
+        setQuestions((prev) => prev.map((q, i) => i === idx ? { ...newQs[0], theme: q.theme } : q))
+      }
+    } catch (err) {
+      console.error('Regenerate failed:', err)
+    } finally {
+      setRegeneratingIdxs((prev) => { const s = new Set(prev); s.delete(idx); return s })
     }
   }
 
@@ -269,46 +314,90 @@ export default function InterviewPage() {
           {/* Questions list */}
           <div className="flex-1 overflow-auto px-6 py-6">
             <div className="max-w-3xl mx-auto space-y-4">
-              {questions.map((q, i) => (
-                <div
-                  key={i}
-                  className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-3"
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="w-7 h-7 rounded-full bg-[#1a3668] text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
-                      {i + 1}
-                    </span>
-                    <div className="flex-1 space-y-2">
-                      <span
-                        className="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded"
-                        style={{ background: '#eef1f7', color: '#1a3668' }}
-                      >
+              {questions.map((q, i) =>
+                editingIdx === i ? (
+                  // ── Edit mode ──────────────────────────────────────────
+                  <div key={i} className="bg-white rounded-xl border-2 shadow-sm p-5 space-y-3" style={{ borderColor: '#1a3668' }}>
+                    <div className="flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-full bg-[#1a3668] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
+                        {i + 1}
+                      </span>
+                      <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded" style={{ background: '#eef1f7', color: '#1a3668' }}>
                         {q.theme}
                       </span>
-                      <p className="text-sm font-semibold text-gray-900 leading-relaxed">
-                        {q.question}
-                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Question</p>
+                      <Textarea
+                        value={editDraft.question}
+                        onChange={(e) => setEditDraft((d) => ({ ...d, question: e.target.value }))}
+                        className="text-sm min-h-[80px] resize-y"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Follow-up probe</p>
+                      <Textarea
+                        value={editDraft.followUp}
+                        onChange={(e) => setEditDraft((d) => ({ ...d, followUp: e.target.value }))}
+                        className="text-sm min-h-[60px] resize-y"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={saveEdit} className="bg-[#1a3668] hover:bg-[#12274d] text-white">
+                        Save changes
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditingIdx(null)}>
+                        Cancel
+                      </Button>
                     </div>
                   </div>
-                  <div className="pl-10 space-y-2">
-                    <div
-                      className="rounded-lg p-3"
-                      style={{
-                        background: '#f8f9fc',
-                        borderLeft: '2px solid #1a3668',
-                      }}
-                    >
-                      <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: '#1a3668' }}>
-                        Follow-up probe
-                      </p>
-                      <p className="text-xs text-gray-700">{q.followUp}</p>
+                ) : (
+                  // ── View mode ───────────────────────────────────────────
+                  <div key={i} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <span className="w-7 h-7 rounded-full bg-[#1a3668] text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                        {i + 1}
+                      </span>
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded" style={{ background: '#eef1f7', color: '#1a3668' }}>
+                            {q.theme}
+                          </span>
+                          <div className="flex gap-0.5 flex-shrink-0">
+                            <button
+                              onClick={() => startEdit(i)}
+                              title="Edit question"
+                              className="p-1.5 rounded text-gray-400 hover:text-[#1a3668] hover:bg-gray-100 transition-colors"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => regenerateQuestion(i)}
+                              disabled={regeneratingIdxs.has(i)}
+                              title="Regenerate with AI"
+                              className="p-1.5 rounded text-gray-400 hover:text-[#df2681] hover:bg-gray-100 transition-colors disabled:opacity-40"
+                            >
+                              {regeneratingIdxs.has(i)
+                                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                : <RefreshCw className="h-3.5 w-3.5" />}
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-sm font-semibold text-gray-900 leading-relaxed">{q.question}</p>
+                      </div>
                     </div>
-                    {q.rationale && (
-                      <p className="text-[10px] text-gray-400 italic">{q.rationale}</p>
-                    )}
+                    <div className="pl-10 space-y-2">
+                      <div className="rounded-lg p-3" style={{ background: '#f8f9fc', borderLeft: '2px solid #1a3668' }}>
+                        <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: '#1a3668' }}>Follow-up probe</p>
+                        <p className="text-xs text-gray-700">{q.followUp}</p>
+                      </div>
+                      {q.rationale && (
+                        <p className="text-[10px] text-gray-400 italic">{q.rationale}</p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              )}
             </div>
           </div>
         </div>
