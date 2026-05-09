@@ -237,6 +237,17 @@ export function CvTemplate({ data, printRef }: CvTemplateProps) {
               ))}
             </div>
           )}
+
+          <div className="flex justify-center mt-8 pt-4" style={{ borderTop: '1px solid #e5e7eb' }}>
+            <Image
+              src="https://www.aaronwallis.co.uk/media/chgpaiwp/aaron-wallis-logo.png"
+              alt="Aaron Wallis"
+              width={90}
+              height={30}
+              className="h-6 w-auto object-contain opacity-40"
+              unoptimized
+            />
+          </div>
         </div>
 
         {/* ── MAIN CV PAGE ── */}
