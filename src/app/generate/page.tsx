@@ -420,7 +420,7 @@ export default function GeneratePage() {
   }
 
   // ── Experience helpers ──
-  const updateExp = (id: string, field: keyof ExperienceEntry, value: string | string[]) => {
+  const updateExp = (id: string, field: keyof ExperienceEntry, value: string | string[] | boolean) => {
     setData((prev) => ({
       ...prev,
       experience: prev.experience.map((e) => (e.id === id ? { ...e, [field]: value } : e)),
@@ -723,6 +723,20 @@ export default function GeneratePage() {
                       <Field label="Bullet Points (one per line)">
                         <Textarea value={getBullets(exp)} onChange={(e) => updateBullets(exp.id, e.target.value)} className="text-xs min-h-[100px] font-mono" />
                       </Field>
+                      <div className="pt-2 border-t border-gray-100">
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={exp.pageBreakAfter ?? false}
+                            onChange={(e) => updateExp(exp.id, 'pageBreakAfter', e.target.checked)}
+                            className="w-3.5 h-3.5 rounded flex-shrink-0"
+                            style={{ accentColor: '#1a3668' }}
+                          />
+                          <span className="text-[10px] text-gray-500 group-hover:text-[#1a3668]">
+                            Start next role on a new page
+                          </span>
+                        </label>
+                      </div>
                     </div>
                   ))}
                   <Button variant="outline" size="sm" onClick={addExp} className="w-full gap-1.5 text-xs">
