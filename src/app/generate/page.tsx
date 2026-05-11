@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, Fragment } from 'react'
 import Link from 'next/link'
 import { Header } from '@/components/header'
 import { CvTemplate, CandidateData, ExperienceEntry } from '@/components/cv-template'
@@ -17,6 +17,18 @@ interface InterviewQuestion {
   question: string
   followUp: string
   rationale: string
+  pageBreakAfter?: boolean
+}
+
+function groupIqByPageBreak(items: InterviewQuestion[]): InterviewQuestion[][] {
+  const groups: InterviewQuestion[][] = []
+  let current: InterviewQuestion[] = []
+  for (const item of items) {
+    current.push(item)
+    if (item.pageBreakAfter) { groups.push(current); current = [] }
+  }
+  if (current.length > 0) groups.push(current)
+  return groups
 }
 
 const IQ_DEFAULT_THEMES = [
@@ -519,6 +531,10 @@ export default function GeneratePage() {
     }
   }
 
+  const iqTogglePageBreak = (idx: number) => {
+    setInterviewQuestions((prev) => prev.map((q, i) => i === idx ? { ...q, pageBreakAfter: !q.pageBreakAfter } : q))
+  }
+
   const busy = importStatus === 'parsing' || importStatus === 'extracting'
 
   return (
@@ -893,64 +909,85 @@ export default function GeneratePage() {
                           : ' — tick "Include in PDF" above to add'}
                       </div>
                       <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
-                        {interviewQuestions.map((q, i) =>
-                          iqEditingIdx === i ? (
-                            // ── Edit mode (compact) ──
-                            <div key={i} className="bg-white rounded-lg border-2 p-3 space-y-2" style={{ borderColor: '#1a3668' }}>
-                              <p className="text-[10px] font-bold" style={{ color: '#1a3668' }}>Q{i + 1} · {q.theme}</p>
-                              <div>
-                                <p className="text-[9px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Question</p>
-                                <Textarea
-                                  value={iqEditDraft.question}
-                                  onChange={(e) => setIqEditDraft((d) => ({ ...d, question: e.target.value }))}
-                                  className="text-xs min-h-[60px] resize-y"
-                                />
-                              </div>
-                              <div>
-                                <p className="text-[9px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Follow-up</p>
-                                <Textarea
-                                  value={iqEditDraft.followUp}
-                                  onChange={(e) => setIqEditDraft((d) => ({ ...d, followUp: e.target.value }))}
-                                  className="text-xs min-h-[40px] resize-y"
-                                />
-                              </div>
-                              <div className="flex gap-2">
-                                <Button size="sm" onClick={iqSaveEdit} className="text-[10px] h-7 px-2 bg-[#1a3668] hover:bg-[#12274d] text-white">Save</Button>
-                                <Button size="sm" variant="outline" onClick={() => setIqEditingIdx(null)} className="text-[10px] h-7 px-2">Cancel</Button>
-                              </div>
-                            </div>
-                          ) : (
-                            // ── View mode (compact) ──
-                            <div key={i} className="bg-gray-50 rounded-lg border border-gray-100 p-2.5">
-                              <div className="flex items-start justify-between gap-1.5 mb-1.5">
-                                <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: '#1a3668' }}>{q.theme}</span>
-                                <div className="flex gap-0.5 flex-shrink-0">
-                                  <button
-                                    onClick={() => iqStartEdit(i)}
-                                    title="Edit"
-                                    className="p-1 rounded text-gray-400 hover:text-[#1a3668] hover:bg-white transition-colors"
-                                  >
-                                    <Pencil className="h-3 w-3" />
-                                  </button>
-                                  <button
-                                    onClick={() => iqRegenerateQuestion(i)}
-                                    disabled={iqRegeneratingIdxs.has(i)}
-                                    title="Regenerate with AI"
-                                    className="p-1 rounded text-gray-400 hover:text-[#df2681] hover:bg-white transition-colors disabled:opacity-40"
-                                  >
-                                    {iqRegeneratingIdxs.has(i)
-                                      ? <Loader2 className="h-3 w-3 animate-spin" />
-                                      : <RefreshCw className="h-3 w-3" />}
-                                  </button>
+                        {interviewQuestions.map((q, i) => (
+                          <Fragment key={i}>
+                            {iqEditingIdx === i ? (
+                              // ── Edit mode (compact) ──
+                              <div className="bg-white rounded-lg border-2 p-3 space-y-2" style={{ borderColor: '#1a3668' }}>
+                                <p className="text-[10px] font-bold" style={{ color: '#1a3668' }}>Q{i + 1} · {q.theme}</p>
+                                <div>
+                                  <p className="text-[9px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Question</p>
+                                  <Textarea
+                                    value={iqEditDraft.question}
+                                    onChange={(e) => setIqEditDraft((d) => ({ ...d, question: e.target.value }))}
+                                    className="text-xs min-h-[60px] resize-y"
+                                  />
+                                </div>
+                                <div>
+                                  <p className="text-[9px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Follow-up</p>
+                                  <Textarea
+                                    value={iqEditDraft.followUp}
+                                    onChange={(e) => setIqEditDraft((d) => ({ ...d, followUp: e.target.value }))}
+                                    className="text-xs min-h-[40px] resize-y"
+                                  />
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button size="sm" onClick={iqSaveEdit} className="text-[10px] h-7 px-2 bg-[#1a3668] hover:bg-[#12274d] text-white">Save</Button>
+                                  <Button size="sm" variant="outline" onClick={() => setIqEditingIdx(null)} className="text-[10px] h-7 px-2">Cancel</Button>
                                 </div>
                               </div>
-                              <p className="text-[10px] text-gray-800 leading-relaxed font-medium">{q.question}</p>
-                              <p className="text-[9px] text-gray-400 mt-1.5 leading-relaxed">
-                                <span className="font-semibold" style={{ color: '#1a3668' }}>↳ </span>{q.followUp}
-                              </p>
-                            </div>
-                          )
-                        )}
+                            ) : (
+                              // ── View mode (compact) ──
+                              <div className="bg-gray-50 rounded-lg border border-gray-100 p-2.5">
+                                <div className="flex items-start justify-between gap-1.5 mb-1.5">
+                                  <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: '#1a3668' }}>{q.theme}</span>
+                                  <div className="flex gap-0.5 flex-shrink-0">
+                                    <button
+                                      onClick={() => iqStartEdit(i)}
+                                      title="Edit"
+                                      className="p-1 rounded text-gray-400 hover:text-[#1a3668] hover:bg-white transition-colors"
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                    </button>
+                                    <button
+                                      onClick={() => iqRegenerateQuestion(i)}
+                                      disabled={iqRegeneratingIdxs.has(i)}
+                                      title="Regenerate with AI"
+                                      className="p-1 rounded text-gray-400 hover:text-[#df2681] hover:bg-white transition-colors disabled:opacity-40"
+                                    >
+                                      {iqRegeneratingIdxs.has(i)
+                                        ? <Loader2 className="h-3 w-3 animate-spin" />
+                                        : <RefreshCw className="h-3 w-3" />}
+                                    </button>
+                                  </div>
+                                </div>
+                                <p className="text-[10px] text-gray-800 leading-relaxed font-medium">{q.question}</p>
+                                <p className="text-[9px] text-gray-400 mt-1.5 leading-relaxed">
+                                  <span className="font-semibold" style={{ color: '#1a3668' }}>↳ </span>{q.followUp}
+                                </p>
+                                {i < interviewQuestions.length - 1 && (
+                                  <label className="flex items-center gap-1.5 mt-2 pt-1.5 border-t border-gray-200 cursor-pointer select-none">
+                                    <input
+                                      type="checkbox"
+                                      checked={!!q.pageBreakAfter}
+                                      onChange={() => iqTogglePageBreak(i)}
+                                      className="h-2.5 w-2.5 flex-shrink-0"
+                                      style={{ accentColor: '#1a3668' }}
+                                    />
+                                    <span className="text-[9px] text-gray-400 hover:text-[#1a3668]">Start next question on a new page</span>
+                                  </label>
+                                )}
+                              </div>
+                            )}
+                            {q.pageBreakAfter && i < interviewQuestions.length - 1 && (
+                              <div className="flex items-center gap-2 py-0.5">
+                                <div className="flex-1 border-t-2 border-dashed" style={{ borderColor: '#1a3668', opacity: 0.35 }} />
+                                <span className="text-[8px] font-bold uppercase tracking-widest px-1" style={{ color: '#1a3668', opacity: 0.5 }}>Page break</span>
+                                <div className="flex-1 border-t-2 border-dashed" style={{ borderColor: '#1a3668', opacity: 0.35 }} />
+                              </div>
+                            )}
+                          </Fragment>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -977,71 +1014,87 @@ export default function GeneratePage() {
       <div id="pdf-capture-wrapper" className="hidden print:block">
         <CvTemplate data={data} printRef={printRef} />
 
-        {/* Interview questions page — appended when enabled */}
-        {interviewEnabled && interviewQuestions.length > 0 && (
-          <div className="cv-page bg-white"
-            style={{ width: '210mm', minHeight: '297mm', padding: '0 14mm 10mm', fontFamily: 'Arial, Helvetica, sans-serif' }}>
+        {/* Interview questions pages — one .cv-page per page-break group */}
+        {interviewEnabled && interviewQuestions.length > 0 && (() => {
+          const groups = groupIqByPageBreak(interviewQuestions)
+          let qOffset = 0
+          return groups.map((group, gIdx) => {
+            const isFirst = gIdx === 0
+            const isLast = gIdx === groups.length - 1
+            const startNum = qOffset
+            qOffset += group.length
+            return (
+              <div key={gIdx} className="cv-page bg-white"
+                style={{ width: '210mm', minHeight: '297mm', padding: '0 14mm 10mm', fontFamily: 'Arial, Helvetica, sans-serif' }}>
 
-            {/* Brand strip */}
-            <div style={{ margin: '0 -14mm' }}>
-              <div style={{ background: '#1a3668', height: '7mm' }} />
-              <div style={{ background: '#df2681', height: '2.5px' }} />
-            </div>
-
-            {/* Logo row */}
-            <div className="flex items-end justify-between mt-4 mb-4 pb-2" style={{ borderBottom: '2px solid #1a3668' }}>
-              <Image
-                src="/aaron-wallis-logo.png"
-                alt="Aaron Wallis"
-                width={130}
-                height={42}
-                className="h-10 w-auto object-contain"
-                unoptimized
-              />
-              <span style={{ color: '#df2681', fontSize: '9px', fontWeight: 'bold', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-                Aaron Wallis Sales Recruitment
-              </span>
-            </div>
-
-            {/* Title */}
-            <h2 className="text-center font-bold mb-1" style={{ fontSize: '13px', color: '#1a3668' }}>
-              Competency Based Interview Questions
-            </h2>
-            {data.candidateName && (
-              <p className="text-center mb-5 text-[10.5px]" style={{ color: '#555' }}>{data.candidateName}</p>
-            )}
-
-            {/* Questions */}
-            <div>
-              {interviewQuestions.map((q, i) => (
-                <div key={i} style={{ borderLeft: '3px solid #1a3668', paddingLeft: '4mm', marginBottom: '4mm' }}>
-                  <p style={{ fontSize: '7.5px', fontWeight: 'bold', color: '#1a3668', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 2mm 0' }}>
-                    {i + 1}.&nbsp;&nbsp;{q.theme}
-                  </p>
-                  <p style={{ fontSize: '10px', fontWeight: '600', color: '#111827', margin: '0 0 2mm 0', lineHeight: '1.4' }}>
-                    {q.question}
-                  </p>
-                  <div style={{ background: '#f0f2f5', padding: '2mm 3mm', marginBottom: '1.5mm' }}>
-                    <span style={{ fontSize: '7.5px', fontWeight: 'bold', color: '#1a3668', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Follow-up: </span>
-                    <span style={{ fontSize: '9px', color: '#374151', lineHeight: '1.35' }}>{q.followUp}</span>
-                  </div>
-                  {q.rationale && (
-                    <p style={{ fontSize: '7.5px', color: '#9ca3af', fontStyle: 'italic', margin: 0 }}>
-                      {q.rationale}
-                    </p>
-                  )}
+                {/* Brand strip */}
+                <div style={{ margin: '0 -14mm' }}>
+                  <div style={{ background: '#1a3668', height: '7mm' }} />
+                  <div style={{ background: '#df2681', height: '2.5px' }} />
                 </div>
-              ))}
-            </div>
 
-            {/* Footer */}
-            <div style={{ marginTop: '6mm', paddingTop: '3mm', borderTop: '1px solid #e5e7eb' }}>
-              <p style={{ fontSize: '8px', color: '#9ca3af', lineHeight: '1.4', margin: 0 }}>
-                Aaron Wallis and Aaron Wallis Sales Recruitment are trading names of Aaron Wallis Recruitment and Training Limited (Registered in the UK, No. 6356563). All candidate information provided is confidential and protected under current Data Protection Laws.
-              </p>
-            </div>
-          </div>
-        )}
+                {/* Logo row */}
+                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: '4mm', marginBottom: '4mm', paddingBottom: '2mm', borderBottom: '2px solid #1a3668' }}>
+                  <Image
+                    src="/aaron-wallis-logo.png"
+                    alt="Aaron Wallis"
+                    width={130}
+                    height={42}
+                    style={{ height: '10mm', width: 'auto', objectFit: 'contain' }}
+                    unoptimized
+                  />
+                  <span style={{ color: '#df2681', fontSize: '9px', fontWeight: 'bold', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+                    Aaron Wallis Sales Recruitment
+                  </span>
+                </div>
+
+                {/* Title — first page only */}
+                {isFirst && (
+                  <>
+                    <h2 style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '13px', color: '#1a3668', margin: '0 0 1mm 0' }}>
+                      Competency Based Interview Questions
+                    </h2>
+                    {data.candidateName && (
+                      <p style={{ textAlign: 'center', fontSize: '10.5px', color: '#555', margin: '0 0 5mm 0' }}>{data.candidateName}</p>
+                    )}
+                  </>
+                )}
+
+                {/* Questions */}
+                <div>
+                  {group.map((q, i) => (
+                    <div key={i} style={{ borderLeft: '3px solid #1a3668', paddingLeft: '4mm', marginBottom: '4mm' }}>
+                      <p style={{ fontSize: '7.5px', fontWeight: 'bold', color: '#1a3668', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 2mm 0' }}>
+                        {startNum + i + 1}.&nbsp;&nbsp;{q.theme}
+                      </p>
+                      <p style={{ fontSize: '10px', fontWeight: '600', color: '#111827', margin: '0 0 2mm 0', lineHeight: '1.4' }}>
+                        {q.question}
+                      </p>
+                      <div style={{ background: '#f0f2f5', padding: '2mm 3mm', marginBottom: '1.5mm' }}>
+                        <span style={{ fontSize: '7.5px', fontWeight: 'bold', color: '#1a3668', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Follow-up: </span>
+                        <span style={{ fontSize: '9px', color: '#374151', lineHeight: '1.35' }}>{q.followUp}</span>
+                      </div>
+                      {q.rationale && (
+                        <p style={{ fontSize: '7.5px', color: '#9ca3af', fontStyle: 'italic', margin: 0 }}>
+                          {q.rationale}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Footer — last page only */}
+                {isLast && (
+                  <div style={{ marginTop: '6mm', paddingTop: '3mm', borderTop: '1px solid #e5e7eb' }}>
+                    <p style={{ fontSize: '8px', color: '#9ca3af', lineHeight: '1.4', margin: 0 }}>
+                      Aaron Wallis and Aaron Wallis Sales Recruitment are trading names of Aaron Wallis Recruitment and Training Limited (Registered in the UK, No. 6356563). All candidate information provided is confidential and protected under current Data Protection Laws.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )
+          })
+        })()}
       </div>
     </>
   )
