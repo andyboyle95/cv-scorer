@@ -535,6 +535,88 @@ export default function GeneratePage() {
     setInterviewQuestions((prev) => prev.map((q, i) => i === idx ? { ...q, pageBreakAfter: !q.pageBreakAfter } : q))
   }
 
+  const renderIqPages = () => {
+    if (!interviewQuestions.length) return null
+    const groups = groupIqByPageBreak(interviewQuestions)
+    let qOffset = 0
+    return groups.map((group, gIdx) => {
+      const isFirst = gIdx === 0
+      const isLast = gIdx === groups.length - 1
+      const startNum = qOffset
+      qOffset += group.length
+      return (
+        <div key={gIdx} className="cv-page bg-white shadow-md rounded mx-auto mt-4 print:mt-0"
+          style={{ width: '210mm', minHeight: '297mm', padding: '0 14mm 10mm', fontFamily: 'Arial, Helvetica, sans-serif' }}>
+
+          {/* Brand strip */}
+          <div style={{ margin: '0 -14mm' }}>
+            <div style={{ background: '#1a3668', height: '7mm' }} />
+            <div style={{ background: '#df2681', height: '2.5px' }} />
+          </div>
+
+          {/* Logo row */}
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: '4mm', marginBottom: '4mm', paddingBottom: '2mm', borderBottom: '2px solid #1a3668' }}>
+            <Image
+              src="/aaron-wallis-logo.png"
+              alt="Aaron Wallis"
+              width={130}
+              height={42}
+              style={{ height: '10mm', width: 'auto', objectFit: 'contain' }}
+              unoptimized
+            />
+            <span style={{ color: '#df2681', fontSize: '9px', fontWeight: 'bold', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+              Aaron Wallis Sales Recruitment
+            </span>
+          </div>
+
+          {/* Title — first page only */}
+          {isFirst && (
+            <>
+              <h2 style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '13px', color: '#1a3668', margin: '0 0 1mm 0' }}>
+                Competency Based Interview Questions
+              </h2>
+              {data.candidateName && (
+                <p style={{ textAlign: 'center', fontSize: '10.5px', color: '#555', margin: '0 0 5mm 0' }}>{data.candidateName}</p>
+              )}
+            </>
+          )}
+
+          {/* Questions */}
+          <div>
+            {group.map((q, i) => (
+              <div key={i} style={{ borderLeft: '3px solid #1a3668', paddingLeft: '4mm', marginBottom: '4mm' }}>
+                <p style={{ fontSize: '7.5px', fontWeight: 'bold', color: '#1a3668', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 2mm 0' }}>
+                  {startNum + i + 1}.&nbsp;&nbsp;{q.theme}
+                </p>
+                <p style={{ fontSize: '10px', fontWeight: '600', color: '#111827', margin: '0 0 2mm 0', lineHeight: '1.4' }}>
+                  {q.question}
+                </p>
+                <div style={{ background: '#f0f2f5', padding: '2mm 3mm', marginBottom: '1.5mm' }}>
+                  <span style={{ fontSize: '7.5px', fontWeight: 'bold', color: '#1a3668', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Follow-up: </span>
+                  <span style={{ fontSize: '9px', color: '#374151', lineHeight: '1.35' }}>{q.followUp}</span>
+                </div>
+                {q.rationale && (
+                  <p style={{ fontSize: '7.5px', color: '#9ca3af', fontStyle: 'italic', margin: 0 }}>
+                    {q.rationale}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Footer — last page only */}
+          {isLast && (
+            <div style={{ marginTop: '6mm', paddingTop: '3mm', borderTop: '1px solid #e5e7eb' }}>
+              <p style={{ fontSize: '8px', color: '#9ca3af', lineHeight: '1.4', margin: 0 }}>
+                Aaron Wallis and Aaron Wallis Sales Recruitment are trading names of Aaron Wallis Recruitment and Training Limited (Registered in the UK, No. 6356563). All candidate information provided is confidential and protected under current Data Protection Laws.
+              </p>
+            </div>
+          )}
+        </div>
+      )
+    })
+  }
+
   const busy = importStatus === 'parsing' || importStatus === 'extracting'
 
   return (
@@ -1005,6 +1087,7 @@ export default function GeneratePage() {
             </div>
             <div style={{ transform: 'scale(0.72)', transformOrigin: 'top center' }}>
               <CvTemplate data={data} />
+              {interviewEnabled && renderIqPages()}
             </div>
           </div>
         </div>
@@ -1014,87 +1097,8 @@ export default function GeneratePage() {
       <div id="pdf-capture-wrapper" className="hidden print:block">
         <CvTemplate data={data} printRef={printRef} />
 
-        {/* Interview questions pages — one .cv-page per page-break group */}
-        {interviewEnabled && interviewQuestions.length > 0 && (() => {
-          const groups = groupIqByPageBreak(interviewQuestions)
-          let qOffset = 0
-          return groups.map((group, gIdx) => {
-            const isFirst = gIdx === 0
-            const isLast = gIdx === groups.length - 1
-            const startNum = qOffset
-            qOffset += group.length
-            return (
-              <div key={gIdx} className="cv-page bg-white"
-                style={{ width: '210mm', minHeight: '297mm', padding: '0 14mm 10mm', fontFamily: 'Arial, Helvetica, sans-serif' }}>
-
-                {/* Brand strip */}
-                <div style={{ margin: '0 -14mm' }}>
-                  <div style={{ background: '#1a3668', height: '7mm' }} />
-                  <div style={{ background: '#df2681', height: '2.5px' }} />
-                </div>
-
-                {/* Logo row */}
-                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: '4mm', marginBottom: '4mm', paddingBottom: '2mm', borderBottom: '2px solid #1a3668' }}>
-                  <Image
-                    src="/aaron-wallis-logo.png"
-                    alt="Aaron Wallis"
-                    width={130}
-                    height={42}
-                    style={{ height: '10mm', width: 'auto', objectFit: 'contain' }}
-                    unoptimized
-                  />
-                  <span style={{ color: '#df2681', fontSize: '9px', fontWeight: 'bold', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-                    Aaron Wallis Sales Recruitment
-                  </span>
-                </div>
-
-                {/* Title — first page only */}
-                {isFirst && (
-                  <>
-                    <h2 style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '13px', color: '#1a3668', margin: '0 0 1mm 0' }}>
-                      Competency Based Interview Questions
-                    </h2>
-                    {data.candidateName && (
-                      <p style={{ textAlign: 'center', fontSize: '10.5px', color: '#555', margin: '0 0 5mm 0' }}>{data.candidateName}</p>
-                    )}
-                  </>
-                )}
-
-                {/* Questions */}
-                <div>
-                  {group.map((q, i) => (
-                    <div key={i} style={{ borderLeft: '3px solid #1a3668', paddingLeft: '4mm', marginBottom: '4mm' }}>
-                      <p style={{ fontSize: '7.5px', fontWeight: 'bold', color: '#1a3668', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 2mm 0' }}>
-                        {startNum + i + 1}.&nbsp;&nbsp;{q.theme}
-                      </p>
-                      <p style={{ fontSize: '10px', fontWeight: '600', color: '#111827', margin: '0 0 2mm 0', lineHeight: '1.4' }}>
-                        {q.question}
-                      </p>
-                      <div style={{ background: '#f0f2f5', padding: '2mm 3mm', marginBottom: '1.5mm' }}>
-                        <span style={{ fontSize: '7.5px', fontWeight: 'bold', color: '#1a3668', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Follow-up: </span>
-                        <span style={{ fontSize: '9px', color: '#374151', lineHeight: '1.35' }}>{q.followUp}</span>
-                      </div>
-                      {q.rationale && (
-                        <p style={{ fontSize: '7.5px', color: '#9ca3af', fontStyle: 'italic', margin: 0 }}>
-                          {q.rationale}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Footer — last page only */}
-                {isLast && (
-                  <div style={{ marginTop: '6mm', paddingTop: '3mm', borderTop: '1px solid #e5e7eb' }}>
-                    <p style={{ fontSize: '8px', color: '#9ca3af', lineHeight: '1.4', margin: 0 }}>
-                      Aaron Wallis and Aaron Wallis Sales Recruitment are trading names of Aaron Wallis Recruitment and Training Limited (Registered in the UK, No. 6356563). All candidate information provided is confidential and protected under current Data Protection Laws.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )
-          })
-        })()}
+        {/* Interview questions pages — rendered via shared renderIqPages() */}
+        {interviewEnabled && renderIqPages()}
       </div>
     </>
   )
