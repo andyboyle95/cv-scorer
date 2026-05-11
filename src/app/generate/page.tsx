@@ -535,7 +535,7 @@ export default function GeneratePage() {
     setInterviewQuestions((prev) => prev.map((q, i) => i === idx ? { ...q, pageBreakAfter: !q.pageBreakAfter } : q))
   }
 
-  const renderIqPages = () => {
+  const renderIqPages = (showPageCutLine = false) => {
     if (!interviewQuestions.length) return null
     const groups = groupIqByPageBreak(interviewQuestions)
     let qOffset = 0
@@ -546,7 +546,16 @@ export default function GeneratePage() {
       qOffset += group.length
       return (
         <div key={gIdx} className="cv-page bg-white shadow-md rounded mx-auto mt-4 print:mt-0"
-          style={{ width: '210mm', minHeight: '297mm', padding: '0 14mm 10mm', fontFamily: 'Arial, Helvetica, sans-serif' }}>
+          style={{ width: '210mm', minHeight: '297mm', padding: '0 14mm 10mm', fontFamily: 'Arial, Helvetica, sans-serif', position: 'relative' }}>
+
+          {/* A4 page-cut guide — preview only, not captured into PDF */}
+          {showPageCutLine && (
+            <div style={{ position: 'absolute', left: 0, right: 0, top: '297mm', borderTop: '2px dashed rgba(239,68,68,0.55)', pointerEvents: 'none', zIndex: 10 }}>
+              <span style={{ position: 'absolute', right: '14mm', top: '-11px', fontSize: '8px', color: 'rgba(239,68,68,0.75)', background: 'white', padding: '0 5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                ✂ page cut
+              </span>
+            </div>
+          )}
 
           {/* Brand strip */}
           <div style={{ margin: '0 -14mm' }}>
@@ -1087,7 +1096,7 @@ export default function GeneratePage() {
             </div>
             <div style={{ transform: 'scale(0.72)', transformOrigin: 'top center' }}>
               <CvTemplate data={data} />
-              {interviewEnabled && renderIqPages()}
+              {interviewEnabled && renderIqPages(true)}
             </div>
           </div>
         </div>
