@@ -1,0 +1,14 @@
+{
+  "petrolPricePerLitre": 1.52,
+  "dieselPricePerLitre": 1.57,
+  "electricityPricePerKwh": 0.245,
+  "lastUpdated": "2025-05-31",
+  "sources": {
+    "fuel": "DESNZ Weekly Road Fuel Prices (gov.uk)",
+    "electricity": "Ofgem Electricity Price Cap Q2 2025"
+  },
+  "comparison": {
+    "petrol": { "make": "Mini", "model": "Cooper 1.5", "label": "Mini Cooper (petrol)", "mpg": 47.9 },
+    "ev": { "make": "Tesla", "model": "Model Y", "label": "Tesla Model Y (electric)", "whpm": 227 }
+  }
+}

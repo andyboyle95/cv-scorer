@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { FileSearch, FileText, MessageSquare, ArrowRight } from "lucide-react";
+import { FileSearch, FileText, MessageSquare, Car, ArrowRight } from "lucide-react";
 
 export default function Home() {
   const router = useRouter();
@@ -14,6 +14,7 @@ export default function Home() {
     router.prefetch('/score');
     router.prefetch('/generate');
     router.prefetch('/interview');
+    router.prefetch('/commute');
   }, [router]);
 
   return (
@@ -38,12 +39,12 @@ export default function Home() {
 
       {/* Main */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-16">
-        <div className="max-w-4xl w-full text-center mb-12">
+        <div className="max-w-6xl w-full text-center mb-12">
           <h1 className="text-3xl font-bold text-[#1a3668] mb-3">What would you like to do?</h1>
           <p className="text-gray-500 text-base">Choose a tool to get started</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-4xl">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl">
 
           {/* CV Scorer */}
           <Link
@@ -102,6 +103,26 @@ export default function Home() {
               </p>
             </div>
             <span className="mt-auto flex items-center gap-1 text-sm font-semibold text-green-600 group-hover:gap-2 transition-all">
+              Open tool <ArrowRight className="w-4 h-4" />
+            </span>
+          </Link>
+
+          {/* Commute Calculator */}
+          <Link
+            href="/commute"
+            prefetch={true}
+            className="group bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-orange-500/40 transition-all p-8 flex flex-col items-start gap-4 text-left"
+          >
+            <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center group-hover:bg-orange-500/20 transition-colors">
+              <Car className="w-6 h-6 text-orange-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-[#1a3668] mb-1">Commute Calculator</h2>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                Calculate the real cost of commuting by car. Compare your vehicle against petrol and EV alternatives.
+              </p>
+            </div>
+            <span className="mt-auto flex items-center gap-1 text-sm font-semibold text-orange-600 group-hover:gap-2 transition-all">
               Open tool <ArrowRight className="w-4 h-4" />
             </span>
           </Link>
