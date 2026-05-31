@@ -1,115 +1,1910 @@
 [
-  { "make": "Ford", "model": "Fiesta", "variant": "1.0 EcoBoost 95", "fuel": "Petrol", "mpg": 55.4, "whpm": null },
-  { "make": "Ford", "model": "Focus", "variant": "1.0 EcoBoost 125", "fuel": "Petrol", "mpg": 49.6, "whpm": null },
-  { "make": "Ford", "model": "Puma", "variant": "1.0 EcoBoost Hybrid 125", "fuel": "Petrol", "mpg": 53.3, "whpm": null },
-  { "make": "Ford", "model": "Kuga", "variant": "1.5 EcoBoost", "fuel": "Petrol", "mpg": 35.3, "whpm": null },
-  { "make": "Vauxhall", "model": "Corsa", "variant": "1.2 Turbo", "fuel": "Petrol", "mpg": 47.1, "whpm": null },
-  { "make": "Vauxhall", "model": "Astra", "variant": "1.2 Turbo 130", "fuel": "Petrol", "mpg": 44.1, "whpm": null },
-  { "make": "Vauxhall", "model": "Mokka", "variant": "1.2 Turbo", "fuel": "Petrol", "mpg": 40.9, "whpm": null },
-  { "make": "Toyota", "model": "Yaris", "variant": "1.5 Hybrid", "fuel": "Petrol", "mpg": 68.9, "whpm": null },
-  { "make": "Toyota", "model": "Corolla", "variant": "1.8 Hybrid", "fuel": "Petrol", "mpg": 62.8, "whpm": null },
-  { "make": "Toyota", "model": "RAV4", "variant": "2.5 Hybrid", "fuel": "Petrol", "mpg": 47.1, "whpm": null },
-  { "make": "Toyota", "model": "C-HR", "variant": "1.8 Hybrid", "fuel": "Petrol", "mpg": 52.3, "whpm": null },
-  { "make": "Toyota", "model": "Prius", "variant": "1.8 Hybrid", "fuel": "Petrol", "mpg": 67.3, "whpm": null },
-  { "make": "VW", "model": "Polo", "variant": "1.0 TSI 95", "fuel": "Petrol", "mpg": 51.4, "whpm": null },
-  { "make": "VW", "model": "Golf", "variant": "1.5 TSI 130", "fuel": "Petrol", "mpg": 47.9, "whpm": null },
-  { "make": "VW", "model": "Tiguan", "variant": "1.5 TSI 150", "fuel": "Petrol", "mpg": 40.9, "whpm": null },
-  { "make": "VW", "model": "Passat", "variant": "1.5 TSI 150", "fuel": "Petrol", "mpg": 44.1, "whpm": null },
-  { "make": "BMW", "model": "1 Series", "variant": "118i", "fuel": "Petrol", "mpg": 42.8, "whpm": null },
-  { "make": "BMW", "model": "3 Series", "variant": "320i", "fuel": "Petrol", "mpg": 40.9, "whpm": null },
-  { "make": "BMW", "model": "5 Series", "variant": "530i", "fuel": "Petrol", "mpg": 38.7, "whpm": null },
-  { "make": "Audi", "model": "A3", "variant": "35 TFSI", "fuel": "Petrol", "mpg": 45.6, "whpm": null },
-  { "make": "Audi", "model": "A4", "variant": "35 TFSI", "fuel": "Petrol", "mpg": 40.9, "whpm": null },
-  { "make": "Audi", "model": "Q3", "variant": "35 TFSI", "fuel": "Petrol", "mpg": 40.9, "whpm": null },
-  { "make": "Mercedes", "model": "A-Class", "variant": "A180", "fuel": "Petrol", "mpg": 42.2, "whpm": null },
-  { "make": "Mercedes", "model": "C-Class", "variant": "C200", "fuel": "Petrol", "mpg": 40.4, "whpm": null },
-  { "make": "Hyundai", "model": "i10", "variant": "1.0", "fuel": "Petrol", "mpg": 55.4, "whpm": null },
-  { "make": "Hyundai", "model": "i20", "variant": "1.0 T-GDi 100", "fuel": "Petrol", "mpg": 47.9, "whpm": null },
-  { "make": "Hyundai", "model": "i30", "variant": "1.5 T-GDi", "fuel": "Petrol", "mpg": 40.4, "whpm": null },
-  { "make": "Hyundai", "model": "Tucson", "variant": "1.6 T-GDi MHEV", "fuel": "Petrol", "mpg": 36.7, "whpm": null },
-  { "make": "Kia", "model": "Picanto", "variant": "1.0", "fuel": "Petrol", "mpg": 56.5, "whpm": null },
-  { "make": "Kia", "model": "Ceed", "variant": "1.4 T-GDi", "fuel": "Petrol", "mpg": 40.9, "whpm": null },
-  { "make": "Kia", "model": "Sportage", "variant": "1.6 T-GDi MHEV", "fuel": "Petrol", "mpg": 40.4, "whpm": null },
-  { "make": "Nissan", "model": "Micra", "variant": "1.0 IG-T 92", "fuel": "Petrol", "mpg": 47.1, "whpm": null },
-  { "make": "Nissan", "model": "Juke", "variant": "1.0 DiG-T 114", "fuel": "Petrol", "mpg": 44.1, "whpm": null },
-  { "make": "Nissan", "model": "Qashqai", "variant": "1.3 DiG-T MHEV", "fuel": "Petrol", "mpg": 40.9, "whpm": null },
-  { "make": "Peugeot", "model": "208", "variant": "1.2 PureTech 75", "fuel": "Petrol", "mpg": 47.9, "whpm": null },
-  { "make": "Peugeot", "model": "308", "variant": "1.2 PureTech 130", "fuel": "Petrol", "mpg": 47.1, "whpm": null },
-  { "make": "Peugeot", "model": "3008", "variant": "1.2 PureTech 130", "fuel": "Petrol", "mpg": 40.9, "whpm": null },
-  { "make": "Renault", "model": "Clio", "variant": "1.0 TCe 90", "fuel": "Petrol", "mpg": 47.9, "whpm": null },
-  { "make": "Renault", "model": "Captur", "variant": "1.0 TCe 90", "fuel": "Petrol", "mpg": 44.1, "whpm": null },
-  { "make": "SEAT", "model": "Ibiza", "variant": "1.0 TSI 95", "fuel": "Petrol", "mpg": 49.6, "whpm": null },
-  { "make": "SEAT", "model": "Leon", "variant": "1.5 TSI 150", "fuel": "Petrol", "mpg": 44.8, "whpm": null },
-  { "make": "SEAT", "model": "Arona", "variant": "1.0 TSI 110", "fuel": "Petrol", "mpg": 45.6, "whpm": null },
-  { "make": "Skoda", "model": "Fabia", "variant": "1.0 TSI 95", "fuel": "Petrol", "mpg": 49.6, "whpm": null },
-  { "make": "Skoda", "model": "Octavia", "variant": "1.5 TSI 150", "fuel": "Petrol", "mpg": 44.1, "whpm": null },
-  { "make": "Skoda", "model": "Kodiaq", "variant": "1.5 TSI 150", "fuel": "Petrol", "mpg": 38.7, "whpm": null },
-  { "make": "Mini", "model": "Cooper", "variant": "1.5", "fuel": "Petrol", "mpg": 47.9, "whpm": null },
-  { "make": "Mini", "model": "Cooper S", "variant": "2.0", "fuel": "Petrol", "mpg": 40.9, "whpm": null },
-  { "make": "Honda", "model": "Jazz", "variant": "1.5 i-MMD", "fuel": "Petrol", "mpg": 62.8, "whpm": null },
-  { "make": "Honda", "model": "Civic", "variant": "1.5 VTEC Turbo", "fuel": "Petrol", "mpg": 40.9, "whpm": null },
-  { "make": "Honda", "model": "HR-V", "variant": "1.5 i-MMD", "fuel": "Petrol", "mpg": 52.3, "whpm": null },
-  { "make": "Mazda", "model": "Mazda3", "variant": "2.0 Skyactiv-G 122", "fuel": "Petrol", "mpg": 45.6, "whpm": null },
-  { "make": "Mazda", "model": "CX-5", "variant": "2.0 Skyactiv-G 165", "fuel": "Petrol", "mpg": 37.7, "whpm": null },
-  { "make": "Volvo", "model": "XC40", "variant": "B3 MHEV", "fuel": "Petrol", "mpg": 40.9, "whpm": null },
-  { "make": "Volvo", "model": "XC60", "variant": "B4 MHEV", "fuel": "Petrol", "mpg": 38.7, "whpm": null },
-  { "make": "Land Rover", "model": "Discovery Sport", "variant": "P200 MHEV", "fuel": "Petrol", "mpg": 31.7, "whpm": null },
-  { "make": "Land Rover", "model": "Range Rover Evoque", "variant": "P200 MHEV", "fuel": "Petrol", "mpg": 33.6, "whpm": null },
-  { "make": "Jaguar", "model": "F-Pace", "variant": "P250 MHEV", "fuel": "Petrol", "mpg": 31.4, "whpm": null },
-  { "make": "Fiat", "model": "500", "variant": "1.0 Mild Hybrid", "fuel": "Petrol", "mpg": 47.9, "whpm": null },
-  { "make": "Fiat", "model": "Panda", "variant": "1.2", "fuel": "Petrol", "mpg": 44.8, "whpm": null },
-  { "make": "Citroen", "model": "C3", "variant": "PureTech 83", "fuel": "Petrol", "mpg": 49.6, "whpm": null },
-  { "make": "MG", "model": "HS", "variant": "1.5 T-GDi", "fuel": "Petrol", "mpg": 36.7, "whpm": null },
-  { "make": "Dacia", "model": "Sandero", "variant": "0.9 TCe 90", "fuel": "Petrol", "mpg": 47.9, "whpm": null },
-  { "make": "Dacia", "model": "Duster", "variant": "1.3 TCe 130", "fuel": "Petrol", "mpg": 37.7, "whpm": null },
-  { "make": "DS", "model": "3 Crossback", "variant": "PureTech 130", "fuel": "Petrol", "mpg": 40.9, "whpm": null },
-  { "make": "Ford", "model": "Mondeo", "variant": "2.0 EcoBlue", "fuel": "Diesel", "mpg": 52.3, "whpm": null },
-  { "make": "Vauxhall", "model": "Insignia", "variant": "2.0 CDTi", "fuel": "Diesel", "mpg": 52.3, "whpm": null },
-  { "make": "VW", "model": "Golf", "variant": "2.0 TDI 115", "fuel": "Diesel", "mpg": 56.5, "whpm": null },
-  { "make": "VW", "model": "Passat", "variant": "2.0 TDI 150", "fuel": "Diesel", "mpg": 55.4, "whpm": null },
-  { "make": "BMW", "model": "3 Series", "variant": "320d", "fuel": "Diesel", "mpg": 56.5, "whpm": null },
-  { "make": "BMW", "model": "5 Series", "variant": "520d", "fuel": "Diesel", "mpg": 50.4, "whpm": null },
-  { "make": "BMW", "model": "X3", "variant": "xDrive20d", "fuel": "Diesel", "mpg": 42.8, "whpm": null },
-  { "make": "Audi", "model": "A4", "variant": "35 TDI", "fuel": "Diesel", "mpg": 52.3, "whpm": null },
-  { "make": "Audi", "model": "Q5", "variant": "40 TDI", "fuel": "Diesel", "mpg": 43.5, "whpm": null },
-  { "make": "Mercedes", "model": "C-Class", "variant": "C220d", "fuel": "Diesel", "mpg": 52.3, "whpm": null },
-  { "make": "Mercedes", "model": "E-Class", "variant": "E220d", "fuel": "Diesel", "mpg": 52.3, "whpm": null },
-  { "make": "Skoda", "model": "Octavia", "variant": "2.0 TDI 115", "fuel": "Diesel", "mpg": 52.3, "whpm": null },
-  { "make": "Land Rover", "model": "Defender 110", "variant": "D200", "fuel": "Diesel", "mpg": 35.8, "whpm": null },
-  { "make": "Volvo", "model": "XC90", "variant": "D5 AWD", "fuel": "Diesel", "mpg": 37.7, "whpm": null },
-  { "make": "Mini", "model": "Cooper D", "variant": "", "fuel": "Diesel", "mpg": 64.2, "whpm": null },
-  { "make": "Mazda", "model": "CX-5", "variant": "2.2 Skyactiv-D 150", "fuel": "Diesel", "mpg": 44.8, "whpm": null },
-  { "make": "Tesla", "model": "Model 3", "variant": "Standard Range", "fuel": "Electric", "mpg": null, "whpm": 253 },
-  { "make": "Tesla", "model": "Model 3", "variant": "Long Range", "fuel": "Electric", "mpg": null, "whpm": 238 },
-  { "make": "Tesla", "model": "Model Y", "variant": "Long Range", "fuel": "Electric", "mpg": null, "whpm": 227 },
-  { "make": "Tesla", "model": "Model Y", "variant": "Standard Range", "fuel": "Electric", "mpg": null, "whpm": 238 },
-  { "make": "VW", "model": "ID.3", "variant": "58kWh", "fuel": "Electric", "mpg": null, "whpm": 261 },
-  { "make": "VW", "model": "ID.4", "variant": "77kWh", "fuel": "Electric", "mpg": null, "whpm": 261 },
-  { "make": "Nissan", "model": "Leaf", "variant": "40kWh", "fuel": "Electric", "mpg": null, "whpm": 249 },
-  { "make": "Nissan", "model": "Ariya", "variant": "", "fuel": "Electric", "mpg": null, "whpm": 261 },
-  { "make": "Hyundai", "model": "IONIQ 5", "variant": "", "fuel": "Electric", "mpg": null, "whpm": 253 },
-  { "make": "Hyundai", "model": "IONIQ 6", "variant": "", "fuel": "Electric", "mpg": null, "whpm": 230 },
-  { "make": "Kia", "model": "EV6", "variant": "", "fuel": "Electric", "mpg": null, "whpm": 253 },
-  { "make": "Kia", "model": "Niro EV", "variant": "", "fuel": "Electric", "mpg": null, "whpm": 253 },
-  { "make": "BMW", "model": "i4", "variant": "eDrive40", "fuel": "Electric", "mpg": null, "whpm": 253 },
-  { "make": "BMW", "model": "i3", "variant": "", "fuel": "Electric", "mpg": null, "whpm": 253 },
-  { "make": "Audi", "model": "e-tron", "variant": "55 quattro", "fuel": "Electric", "mpg": null, "whpm": 300 },
-  { "make": "Mercedes", "model": "EQC 400", "variant": "", "fuel": "Electric", "mpg": null, "whpm": 300 },
-  { "make": "Volvo", "model": "XC40 Recharge", "variant": "", "fuel": "Electric", "mpg": null, "whpm": 261 },
-  { "make": "Volvo", "model": "C40 Recharge", "variant": "", "fuel": "Electric", "mpg": null, "whpm": 269 },
-  { "make": "Peugeot", "model": "e-208", "variant": "", "fuel": "Electric", "mpg": null, "whpm": 261 },
-  { "make": "Renault", "model": "Zoe", "variant": "", "fuel": "Electric", "mpg": null, "whpm": 249 },
-  { "make": "Renault", "model": "Megane E-Tech", "variant": "", "fuel": "Electric", "mpg": null, "whpm": 261 },
-  { "make": "Mini", "model": "Cooper SE", "variant": "", "fuel": "Electric", "mpg": null, "whpm": 261 },
-  { "make": "Vauxhall", "model": "Mokka-e", "variant": "", "fuel": "Electric", "mpg": null, "whpm": 280 },
-  { "make": "Skoda", "model": "Enyaq iV", "variant": "", "fuel": "Electric", "mpg": null, "whpm": 261 },
-  { "make": "MG", "model": "MG4", "variant": "64kWh", "fuel": "Electric", "mpg": null, "whpm": 253 },
-  { "make": "MG", "model": "ZS EV", "variant": "", "fuel": "Electric", "mpg": null, "whpm": 272 },
-  { "make": "Jaguar", "model": "I-PACE", "variant": "", "fuel": "Electric", "mpg": null, "whpm": 307 },
-  { "make": "Fiat", "model": "500 Electric", "variant": "", "fuel": "Electric", "mpg": null, "whpm": 261 },
-  { "make": "Dacia", "model": "Spring Electric", "variant": "", "fuel": "Electric", "mpg": null, "whpm": 249 },
-  { "make": "DS", "model": "3 E-Tense", "variant": "", "fuel": "Electric", "mpg": null, "whpm": 269 },
-  { "make": "Honda", "model": "e:Ny1", "variant": "", "fuel": "Electric", "mpg": null, "whpm": 261 },
-  { "make": "Mazda", "model": "MX-30", "variant": "", "fuel": "Electric", "mpg": null, "whpm": 261 },
-  { "make": "Toyota", "model": "bZ4X", "variant": "", "fuel": "Electric", "mpg": null, "whpm": 272 }
+  {
+    "make": "Ford",
+    "model": "Fiesta",
+    "variant": "1.0 EcoBoost 95",
+    "fuel": "Petrol",
+    "mpg": 55.4,
+    "whpm": null,
+    "co2gkm": 114
+  },
+  {
+    "make": "Ford",
+    "model": "Focus",
+    "variant": "1.0 EcoBoost 125",
+    "fuel": "Petrol",
+    "mpg": 49.6,
+    "whpm": null,
+    "co2gkm": 118
+  },
+  {
+    "make": "Ford",
+    "model": "Puma",
+    "variant": "1.0 EcoBoost Hybrid 125",
+    "fuel": "Petrol",
+    "mpg": 53.3,
+    "whpm": null,
+    "co2gkm": 114
+  },
+  {
+    "make": "Ford",
+    "model": "Kuga",
+    "variant": "1.5 EcoBoost 150",
+    "fuel": "Petrol",
+    "mpg": 35.3,
+    "whpm": null,
+    "co2gkm": 158
+  },
+  {
+    "make": "Ford",
+    "model": "Galaxy",
+    "variant": "2.0 EcoBoost 190",
+    "fuel": "Petrol",
+    "mpg": 32.5,
+    "whpm": null,
+    "co2gkm": 174
+  },
+  {
+    "make": "Ford",
+    "model": "Edge",
+    "variant": "2.0 EcoBoost 250",
+    "fuel": "Petrol",
+    "mpg": 30.4,
+    "whpm": null,
+    "co2gkm": 188
+  },
+  {
+    "make": "Vauxhall",
+    "model": "Corsa",
+    "variant": "1.2 Turbo 100",
+    "fuel": "Petrol",
+    "mpg": 47.1,
+    "whpm": null,
+    "co2gkm": 116
+  },
+  {
+    "make": "Vauxhall",
+    "model": "Astra",
+    "variant": "1.2 Turbo 130",
+    "fuel": "Petrol",
+    "mpg": 44.1,
+    "whpm": null,
+    "co2gkm": 126
+  },
+  {
+    "make": "Vauxhall",
+    "model": "Mokka",
+    "variant": "1.2 Turbo 130",
+    "fuel": "Petrol",
+    "mpg": 40.9,
+    "whpm": null,
+    "co2gkm": 134
+  },
+  {
+    "make": "Vauxhall",
+    "model": "Grandland",
+    "variant": "1.2 Turbo 130",
+    "fuel": "Petrol",
+    "mpg": 40.9,
+    "whpm": null,
+    "co2gkm": 138
+  },
+  {
+    "make": "Toyota",
+    "model": "Yaris",
+    "variant": "1.5 Hybrid",
+    "fuel": "Petrol",
+    "mpg": 68.9,
+    "whpm": null,
+    "co2gkm": 92
+  },
+  {
+    "make": "Toyota",
+    "model": "Corolla",
+    "variant": "1.8 Hybrid",
+    "fuel": "Petrol",
+    "mpg": 62.8,
+    "whpm": null,
+    "co2gkm": 101
+  },
+  {
+    "make": "Toyota",
+    "model": "Corolla",
+    "variant": "2.0 Hybrid",
+    "fuel": "Petrol",
+    "mpg": 57.6,
+    "whpm": null,
+    "co2gkm": 109
+  },
+  {
+    "make": "Toyota",
+    "model": "RAV4",
+    "variant": "2.5 Hybrid",
+    "fuel": "Petrol",
+    "mpg": 47.1,
+    "whpm": null,
+    "co2gkm": 134
+  },
+  {
+    "make": "Toyota",
+    "model": "C-HR",
+    "variant": "1.8 Hybrid",
+    "fuel": "Petrol",
+    "mpg": 52.3,
+    "whpm": null,
+    "co2gkm": 106
+  },
+  {
+    "make": "Toyota",
+    "model": "Prius",
+    "variant": "1.8 Hybrid",
+    "fuel": "Petrol",
+    "mpg": 67.3,
+    "whpm": null,
+    "co2gkm": 92
+  },
+  {
+    "make": "Toyota",
+    "model": "Yaris Cross",
+    "variant": "1.5 Hybrid",
+    "fuel": "Petrol",
+    "mpg": 57.6,
+    "whpm": null,
+    "co2gkm": 109
+  },
+  {
+    "make": "VW",
+    "model": "Polo",
+    "variant": "1.0 TSI 95",
+    "fuel": "Petrol",
+    "mpg": 51.4,
+    "whpm": null,
+    "co2gkm": 109
+  },
+  {
+    "make": "VW",
+    "model": "Golf",
+    "variant": "1.5 TSI 130",
+    "fuel": "Petrol",
+    "mpg": 47.9,
+    "whpm": null,
+    "co2gkm": 118
+  },
+  {
+    "make": "VW",
+    "model": "Golf",
+    "variant": "1.5 eTSI 150 Mild Hybrid",
+    "fuel": "Petrol",
+    "mpg": 52.3,
+    "whpm": null,
+    "co2gkm": 122
+  },
+  {
+    "make": "VW",
+    "model": "Tiguan",
+    "variant": "1.5 TSI 150",
+    "fuel": "Petrol",
+    "mpg": 40.9,
+    "whpm": null,
+    "co2gkm": 151
+  },
+  {
+    "make": "VW",
+    "model": "Passat",
+    "variant": "1.5 TSI 150",
+    "fuel": "Petrol",
+    "mpg": 44.1,
+    "whpm": null,
+    "co2gkm": 126
+  },
+  {
+    "make": "VW",
+    "model": "T-Roc",
+    "variant": "1.5 TSI 150",
+    "fuel": "Petrol",
+    "mpg": 40.9,
+    "whpm": null,
+    "co2gkm": 134
+  },
+  {
+    "make": "VW",
+    "model": "T-Cross",
+    "variant": "1.0 TSI 110",
+    "fuel": "Petrol",
+    "mpg": 44.8,
+    "whpm": null,
+    "co2gkm": 126
+  },
+  {
+    "make": "BMW",
+    "model": "1 Series",
+    "variant": "118i",
+    "fuel": "Petrol",
+    "mpg": 42.8,
+    "whpm": null,
+    "co2gkm": 134
+  },
+  {
+    "make": "BMW",
+    "model": "2 Series",
+    "variant": "220i",
+    "fuel": "Petrol",
+    "mpg": 38.7,
+    "whpm": null,
+    "co2gkm": 148
+  },
+  {
+    "make": "BMW",
+    "model": "3 Series",
+    "variant": "320i",
+    "fuel": "Petrol",
+    "mpg": 40.9,
+    "whpm": null,
+    "co2gkm": 142
+  },
+  {
+    "make": "BMW",
+    "model": "5 Series",
+    "variant": "530i",
+    "fuel": "Petrol",
+    "mpg": 38.7,
+    "whpm": null,
+    "co2gkm": 161
+  },
+  {
+    "make": "BMW",
+    "model": "X1",
+    "variant": "xDrive20i",
+    "fuel": "Petrol",
+    "mpg": 36.7,
+    "whpm": null,
+    "co2gkm": 172
+  },
+  {
+    "make": "BMW",
+    "model": "X3",
+    "variant": "xDrive20i",
+    "fuel": "Petrol",
+    "mpg": 33.6,
+    "whpm": null,
+    "co2gkm": 188
+  },
+  {
+    "make": "Audi",
+    "model": "A3",
+    "variant": "35 TFSI 150",
+    "fuel": "Petrol",
+    "mpg": 45.6,
+    "whpm": null,
+    "co2gkm": 126
+  },
+  {
+    "make": "Audi",
+    "model": "A4",
+    "variant": "35 TFSI 150",
+    "fuel": "Petrol",
+    "mpg": 40.9,
+    "whpm": null,
+    "co2gkm": 134
+  },
+  {
+    "make": "Audi",
+    "model": "A6",
+    "variant": "45 TFSI 245",
+    "fuel": "Petrol",
+    "mpg": 35.3,
+    "whpm": null,
+    "co2gkm": 148
+  },
+  {
+    "make": "Audi",
+    "model": "Q3",
+    "variant": "35 TFSI 150",
+    "fuel": "Petrol",
+    "mpg": 40.9,
+    "whpm": null,
+    "co2gkm": 151
+  },
+  {
+    "make": "Audi",
+    "model": "Q5",
+    "variant": "45 TFSI 265",
+    "fuel": "Petrol",
+    "mpg": 32.5,
+    "whpm": null,
+    "co2gkm": 174
+  },
+  {
+    "make": "Mercedes",
+    "model": "A-Class",
+    "variant": "A180",
+    "fuel": "Petrol",
+    "mpg": 42.2,
+    "whpm": null,
+    "co2gkm": 124
+  },
+  {
+    "make": "Mercedes",
+    "model": "B-Class",
+    "variant": "B200",
+    "fuel": "Petrol",
+    "mpg": 40.4,
+    "whpm": null,
+    "co2gkm": 130
+  },
+  {
+    "make": "Mercedes",
+    "model": "C-Class",
+    "variant": "C200",
+    "fuel": "Petrol",
+    "mpg": 40.4,
+    "whpm": null,
+    "co2gkm": 138
+  },
+  {
+    "make": "Mercedes",
+    "model": "E-Class",
+    "variant": "E200",
+    "fuel": "Petrol",
+    "mpg": 36.7,
+    "whpm": null,
+    "co2gkm": 152
+  },
+  {
+    "make": "Mercedes",
+    "model": "GLA",
+    "variant": "GLA200",
+    "fuel": "Petrol",
+    "mpg": 38.7,
+    "whpm": null,
+    "co2gkm": 142
+  },
+  {
+    "make": "Mercedes",
+    "model": "GLC",
+    "variant": "GLC300",
+    "fuel": "Petrol",
+    "mpg": 32.5,
+    "whpm": null,
+    "co2gkm": 188
+  },
+  {
+    "make": "Hyundai",
+    "model": "i10",
+    "variant": "1.0",
+    "fuel": "Petrol",
+    "mpg": 55.4,
+    "whpm": null,
+    "co2gkm": 114
+  },
+  {
+    "make": "Hyundai",
+    "model": "i20",
+    "variant": "1.0 T-GDi 100",
+    "fuel": "Petrol",
+    "mpg": 47.9,
+    "whpm": null,
+    "co2gkm": 118
+  },
+  {
+    "make": "Hyundai",
+    "model": "i30",
+    "variant": "1.5 T-GDi 160",
+    "fuel": "Petrol",
+    "mpg": 40.4,
+    "whpm": null,
+    "co2gkm": 129
+  },
+  {
+    "make": "Hyundai",
+    "model": "Tucson",
+    "variant": "1.6 T-GDi MHEV 150",
+    "fuel": "Petrol",
+    "mpg": 36.7,
+    "whpm": null,
+    "co2gkm": 156
+  },
+  {
+    "make": "Kia",
+    "model": "Picanto",
+    "variant": "1.0",
+    "fuel": "Petrol",
+    "mpg": 56.5,
+    "whpm": null,
+    "co2gkm": 107
+  },
+  {
+    "make": "Kia",
+    "model": "Rio",
+    "variant": "1.0 T-GDi 100",
+    "fuel": "Petrol",
+    "mpg": 47.9,
+    "whpm": null,
+    "co2gkm": 118
+  },
+  {
+    "make": "Kia",
+    "model": "Ceed",
+    "variant": "1.4 T-GDi 140",
+    "fuel": "Petrol",
+    "mpg": 40.9,
+    "whpm": null,
+    "co2gkm": 134
+  },
+  {
+    "make": "Kia",
+    "model": "Sportage",
+    "variant": "1.6 T-GDi MHEV 150",
+    "fuel": "Petrol",
+    "mpg": 40.4,
+    "whpm": null,
+    "co2gkm": 151
+  },
+  {
+    "make": "Kia",
+    "model": "Sorento",
+    "variant": "1.6 T-GDi MHEV 180",
+    "fuel": "Petrol",
+    "mpg": 33.6,
+    "whpm": null,
+    "co2gkm": 188
+  },
+  {
+    "make": "Nissan",
+    "model": "Micra",
+    "variant": "1.0 IG-T 92",
+    "fuel": "Petrol",
+    "mpg": 47.1,
+    "whpm": null,
+    "co2gkm": 116
+  },
+  {
+    "make": "Nissan",
+    "model": "Juke",
+    "variant": "1.0 DiG-T 114",
+    "fuel": "Petrol",
+    "mpg": 44.1,
+    "whpm": null,
+    "co2gkm": 134
+  },
+  {
+    "make": "Nissan",
+    "model": "Qashqai",
+    "variant": "1.3 DiG-T MHEV 158",
+    "fuel": "Petrol",
+    "mpg": 40.9,
+    "whpm": null,
+    "co2gkm": 149
+  },
+  {
+    "make": "Nissan",
+    "model": "X-Trail",
+    "variant": "1.5 VC-T e-POWER",
+    "fuel": "Petrol",
+    "mpg": 44.8,
+    "whpm": null,
+    "co2gkm": 141
+  },
+  {
+    "make": "Peugeot",
+    "model": "208",
+    "variant": "1.2 PureTech 75",
+    "fuel": "Petrol",
+    "mpg": 47.9,
+    "whpm": null,
+    "co2gkm": 117
+  },
+  {
+    "make": "Peugeot",
+    "model": "308",
+    "variant": "1.2 PureTech 130",
+    "fuel": "Petrol",
+    "mpg": 47.1,
+    "whpm": null,
+    "co2gkm": 118
+  },
+  {
+    "make": "Peugeot",
+    "model": "3008",
+    "variant": "1.2 PureTech 130",
+    "fuel": "Petrol",
+    "mpg": 40.9,
+    "whpm": null,
+    "co2gkm": 134
+  },
+  {
+    "make": "Renault",
+    "model": "Clio",
+    "variant": "1.0 TCe 90",
+    "fuel": "Petrol",
+    "mpg": 47.9,
+    "whpm": null,
+    "co2gkm": 118
+  },
+  {
+    "make": "Renault",
+    "model": "Captur",
+    "variant": "1.0 TCe 90",
+    "fuel": "Petrol",
+    "mpg": 44.1,
+    "whpm": null,
+    "co2gkm": 126
+  },
+  {
+    "make": "Renault",
+    "model": "Arkana",
+    "variant": "1.3 TCe 140",
+    "fuel": "Petrol",
+    "mpg": 40.9,
+    "whpm": null,
+    "co2gkm": 134
+  },
+  {
+    "make": "SEAT",
+    "model": "Ibiza",
+    "variant": "1.0 TSI 95",
+    "fuel": "Petrol",
+    "mpg": 49.6,
+    "whpm": null,
+    "co2gkm": 106
+  },
+  {
+    "make": "SEAT",
+    "model": "Leon",
+    "variant": "1.5 TSI 150",
+    "fuel": "Petrol",
+    "mpg": 44.8,
+    "whpm": null,
+    "co2gkm": 118
+  },
+  {
+    "make": "SEAT",
+    "model": "Arona",
+    "variant": "1.0 TSI 110",
+    "fuel": "Petrol",
+    "mpg": 45.6,
+    "whpm": null,
+    "co2gkm": 109
+  },
+  {
+    "make": "SEAT",
+    "model": "Ateca",
+    "variant": "1.5 TSI 150",
+    "fuel": "Petrol",
+    "mpg": 40.9,
+    "whpm": null,
+    "co2gkm": 134
+  },
+  {
+    "make": "Skoda",
+    "model": "Fabia",
+    "variant": "1.0 TSI 95",
+    "fuel": "Petrol",
+    "mpg": 49.6,
+    "whpm": null,
+    "co2gkm": 106
+  },
+  {
+    "make": "Skoda",
+    "model": "Octavia",
+    "variant": "1.5 TSI 150",
+    "fuel": "Petrol",
+    "mpg": 44.1,
+    "whpm": null,
+    "co2gkm": 126
+  },
+  {
+    "make": "Skoda",
+    "model": "Karoq",
+    "variant": "1.5 TSI 150",
+    "fuel": "Petrol",
+    "mpg": 40.9,
+    "whpm": null,
+    "co2gkm": 134
+  },
+  {
+    "make": "Skoda",
+    "model": "Kodiaq",
+    "variant": "1.5 TSI 150",
+    "fuel": "Petrol",
+    "mpg": 38.7,
+    "whpm": null,
+    "co2gkm": 151
+  },
+  {
+    "make": "Mini",
+    "model": "Cooper",
+    "variant": "1.5",
+    "fuel": "Petrol",
+    "mpg": 47.9,
+    "whpm": null,
+    "co2gkm": 118
+  },
+  {
+    "make": "Mini",
+    "model": "Cooper S",
+    "variant": "2.0",
+    "fuel": "Petrol",
+    "mpg": 40.9,
+    "whpm": null,
+    "co2gkm": 138
+  },
+  {
+    "make": "Mini",
+    "model": "Countryman",
+    "variant": "1.5",
+    "fuel": "Petrol",
+    "mpg": 44.1,
+    "whpm": null,
+    "co2gkm": 126
+  },
+  {
+    "make": "Honda",
+    "model": "Jazz",
+    "variant": "1.5 i-MMD",
+    "fuel": "Petrol",
+    "mpg": 62.8,
+    "whpm": null,
+    "co2gkm": 101
+  },
+  {
+    "make": "Honda",
+    "model": "Civic",
+    "variant": "1.5 VTEC Turbo 182",
+    "fuel": "Petrol",
+    "mpg": 40.9,
+    "whpm": null,
+    "co2gkm": 140
+  },
+  {
+    "make": "Honda",
+    "model": "HR-V",
+    "variant": "1.5 i-MMD",
+    "fuel": "Petrol",
+    "mpg": 52.3,
+    "whpm": null,
+    "co2gkm": 106
+  },
+  {
+    "make": "Honda",
+    "model": "CR-V",
+    "variant": "1.5 VTEC Turbo",
+    "fuel": "Petrol",
+    "mpg": 35.3,
+    "whpm": null,
+    "co2gkm": 169
+  },
+  {
+    "make": "Mazda",
+    "model": "Mazda2",
+    "variant": "1.5 Skyactiv-G 75",
+    "fuel": "Petrol",
+    "mpg": 50.4,
+    "whpm": null,
+    "co2gkm": 126
+  },
+  {
+    "make": "Mazda",
+    "model": "Mazda3",
+    "variant": "2.0 Skyactiv-G 122",
+    "fuel": "Petrol",
+    "mpg": 45.6,
+    "whpm": null,
+    "co2gkm": 134
+  },
+  {
+    "make": "Mazda",
+    "model": "Mazda6",
+    "variant": "2.0 Skyactiv-G 165",
+    "fuel": "Petrol",
+    "mpg": 42.2,
+    "whpm": null,
+    "co2gkm": 151
+  },
+  {
+    "make": "Mazda",
+    "model": "CX-3",
+    "variant": "2.0 Skyactiv-G 121",
+    "fuel": "Petrol",
+    "mpg": 44.8,
+    "whpm": null,
+    "co2gkm": 134
+  },
+  {
+    "make": "Mazda",
+    "model": "CX-5",
+    "variant": "2.0 Skyactiv-G 165",
+    "fuel": "Petrol",
+    "mpg": 37.7,
+    "whpm": null,
+    "co2gkm": 174
+  },
+  {
+    "make": "Volvo",
+    "model": "XC40",
+    "variant": "B3 MHEV",
+    "fuel": "Petrol",
+    "mpg": 40.9,
+    "whpm": null,
+    "co2gkm": 151
+  },
+  {
+    "make": "Volvo",
+    "model": "XC60",
+    "variant": "B4 MHEV",
+    "fuel": "Petrol",
+    "mpg": 38.7,
+    "whpm": null,
+    "co2gkm": 161
+  },
+  {
+    "make": "Land Rover",
+    "model": "Discovery Sport",
+    "variant": "P200 MHEV",
+    "fuel": "Petrol",
+    "mpg": 31.7,
+    "whpm": null,
+    "co2gkm": 188
+  },
+  {
+    "make": "Land Rover",
+    "model": "Range Rover Evoque",
+    "variant": "P200 MHEV",
+    "fuel": "Petrol",
+    "mpg": 33.6,
+    "whpm": null,
+    "co2gkm": 174
+  },
+  {
+    "make": "Land Rover",
+    "model": "Range Rover Sport",
+    "variant": "P400 MHEV",
+    "fuel": "Petrol",
+    "mpg": 25.2,
+    "whpm": null,
+    "co2gkm": 218
+  },
+  {
+    "make": "Jaguar",
+    "model": "F-Pace",
+    "variant": "P250 MHEV",
+    "fuel": "Petrol",
+    "mpg": 31.4,
+    "whpm": null,
+    "co2gkm": 188
+  },
+  {
+    "make": "Jaguar",
+    "model": "XE",
+    "variant": "P200",
+    "fuel": "Petrol",
+    "mpg": 38.7,
+    "whpm": null,
+    "co2gkm": 158
+  },
+  {
+    "make": "Fiat",
+    "model": "500",
+    "variant": "1.0 Mild Hybrid 70",
+    "fuel": "Petrol",
+    "mpg": 47.9,
+    "whpm": null,
+    "co2gkm": 117
+  },
+  {
+    "make": "Fiat",
+    "model": "Panda",
+    "variant": "1.2 69",
+    "fuel": "Petrol",
+    "mpg": 44.8,
+    "whpm": null,
+    "co2gkm": 134
+  },
+  {
+    "make": "Fiat",
+    "model": "Tipo",
+    "variant": "1.0 100",
+    "fuel": "Petrol",
+    "mpg": 44.8,
+    "whpm": null,
+    "co2gkm": 134
+  },
+  {
+    "make": "Citroen",
+    "model": "C3",
+    "variant": "PureTech 83",
+    "fuel": "Petrol",
+    "mpg": 49.6,
+    "whpm": null,
+    "co2gkm": 109
+  },
+  {
+    "make": "Citroen",
+    "model": "C5 Aircross",
+    "variant": "PureTech 130",
+    "fuel": "Petrol",
+    "mpg": 40.9,
+    "whpm": null,
+    "co2gkm": 134
+  },
+  {
+    "make": "MG",
+    "model": "HS",
+    "variant": "1.5 T-GDi 162",
+    "fuel": "Petrol",
+    "mpg": 36.7,
+    "whpm": null,
+    "co2gkm": 156
+  },
+  {
+    "make": "Dacia",
+    "model": "Sandero",
+    "variant": "0.9 TCe 90",
+    "fuel": "Petrol",
+    "mpg": 47.9,
+    "whpm": null,
+    "co2gkm": 118
+  },
+  {
+    "make": "Dacia",
+    "model": "Duster",
+    "variant": "1.3 TCe 130",
+    "fuel": "Petrol",
+    "mpg": 37.7,
+    "whpm": null,
+    "co2gkm": 174
+  },
+  {
+    "make": "Dacia",
+    "model": "Logan",
+    "variant": "0.9 TCe 90",
+    "fuel": "Petrol",
+    "mpg": 47.9,
+    "whpm": null,
+    "co2gkm": 118
+  },
+  {
+    "make": "DS",
+    "model": "3 Crossback",
+    "variant": "PureTech 130",
+    "fuel": "Petrol",
+    "mpg": 40.9,
+    "whpm": null,
+    "co2gkm": 134
+  },
+  {
+    "make": "Alfa Romeo",
+    "model": "Giulia",
+    "variant": "2.0 Turbo 200",
+    "fuel": "Petrol",
+    "mpg": 35.8,
+    "whpm": null,
+    "co2gkm": 158
+  },
+  {
+    "make": "Alfa Romeo",
+    "model": "Stelvio",
+    "variant": "2.0 Turbo 200",
+    "fuel": "Petrol",
+    "mpg": 31.7,
+    "whpm": null,
+    "co2gkm": 188
+  },
+  {
+    "make": "Porsche",
+    "model": "Macan",
+    "variant": "2.0 T",
+    "fuel": "Petrol",
+    "mpg": 29.4,
+    "whpm": null,
+    "co2gkm": 218
+  },
+  {
+    "make": "Porsche",
+    "model": "Cayenne",
+    "variant": "3.0 V6",
+    "fuel": "Petrol",
+    "mpg": 25.7,
+    "whpm": null,
+    "co2gkm": 249
+  },
+  {
+    "make": "Ford",
+    "model": "Focus",
+    "variant": "1.5 EcoBlue 120",
+    "fuel": "Diesel",
+    "mpg": 56.5,
+    "whpm": null,
+    "co2gkm": 114
+  },
+  {
+    "make": "Ford",
+    "model": "Kuga",
+    "variant": "2.0 EcoBlue 120",
+    "fuel": "Diesel",
+    "mpg": 44.8,
+    "whpm": null,
+    "co2gkm": 149
+  },
+  {
+    "make": "Ford",
+    "model": "Mondeo",
+    "variant": "2.0 EcoBlue 150",
+    "fuel": "Diesel",
+    "mpg": 52.3,
+    "whpm": null,
+    "co2gkm": 118
+  },
+  {
+    "make": "Ford",
+    "model": "Galaxy",
+    "variant": "2.0 EcoBlue 120",
+    "fuel": "Diesel",
+    "mpg": 44.8,
+    "whpm": null,
+    "co2gkm": 149
+  },
+  {
+    "make": "Vauxhall",
+    "model": "Astra",
+    "variant": "1.5 Turbo D 105",
+    "fuel": "Diesel",
+    "mpg": 56.5,
+    "whpm": null,
+    "co2gkm": 114
+  },
+  {
+    "make": "Vauxhall",
+    "model": "Insignia",
+    "variant": "2.0 CDTi 110",
+    "fuel": "Diesel",
+    "mpg": 52.3,
+    "whpm": null,
+    "co2gkm": 118
+  },
+  {
+    "make": "Vauxhall",
+    "model": "Grandland",
+    "variant": "1.5 Turbo D 130",
+    "fuel": "Diesel",
+    "mpg": 44.8,
+    "whpm": null,
+    "co2gkm": 149
+  },
+  {
+    "make": "VW",
+    "model": "Golf",
+    "variant": "2.0 TDI 115",
+    "fuel": "Diesel",
+    "mpg": 56.5,
+    "whpm": null,
+    "co2gkm": 118
+  },
+  {
+    "make": "VW",
+    "model": "Passat",
+    "variant": "2.0 TDI 150",
+    "fuel": "Diesel",
+    "mpg": 55.4,
+    "whpm": null,
+    "co2gkm": 118
+  },
+  {
+    "make": "VW",
+    "model": "Tiguan",
+    "variant": "2.0 TDI 150",
+    "fuel": "Diesel",
+    "mpg": 44.8,
+    "whpm": null,
+    "co2gkm": 149
+  },
+  {
+    "make": "BMW",
+    "model": "1 Series",
+    "variant": "116d",
+    "fuel": "Diesel",
+    "mpg": 62.8,
+    "whpm": null,
+    "co2gkm": 101
+  },
+  {
+    "make": "BMW",
+    "model": "3 Series",
+    "variant": "320d",
+    "fuel": "Diesel",
+    "mpg": 56.5,
+    "whpm": null,
+    "co2gkm": 118
+  },
+  {
+    "make": "BMW",
+    "model": "5 Series",
+    "variant": "520d",
+    "fuel": "Diesel",
+    "mpg": 50.4,
+    "whpm": null,
+    "co2gkm": 129
+  },
+  {
+    "make": "BMW",
+    "model": "7 Series",
+    "variant": "730d",
+    "fuel": "Diesel",
+    "mpg": 44.8,
+    "whpm": null,
+    "co2gkm": 151
+  },
+  {
+    "make": "BMW",
+    "model": "X3",
+    "variant": "xDrive20d",
+    "fuel": "Diesel",
+    "mpg": 42.8,
+    "whpm": null,
+    "co2gkm": 151
+  },
+  {
+    "make": "BMW",
+    "model": "X5",
+    "variant": "xDrive30d",
+    "fuel": "Diesel",
+    "mpg": 38.7,
+    "whpm": null,
+    "co2gkm": 174
+  },
+  {
+    "make": "Audi",
+    "model": "A3",
+    "variant": "35 TDI 150",
+    "fuel": "Diesel",
+    "mpg": 56.5,
+    "whpm": null,
+    "co2gkm": 118
+  },
+  {
+    "make": "Audi",
+    "model": "A4",
+    "variant": "35 TDI 163",
+    "fuel": "Diesel",
+    "mpg": 52.3,
+    "whpm": null,
+    "co2gkm": 126
+  },
+  {
+    "make": "Audi",
+    "model": "A6",
+    "variant": "40 TDI 204",
+    "fuel": "Diesel",
+    "mpg": 44.8,
+    "whpm": null,
+    "co2gkm": 149
+  },
+  {
+    "make": "Audi",
+    "model": "Q5",
+    "variant": "40 TDI 204",
+    "fuel": "Diesel",
+    "mpg": 43.5,
+    "whpm": null,
+    "co2gkm": 151
+  },
+  {
+    "make": "Audi",
+    "model": "Q7",
+    "variant": "45 TDI 231",
+    "fuel": "Diesel",
+    "mpg": 36.7,
+    "whpm": null,
+    "co2gkm": 188
+  },
+  {
+    "make": "Mercedes",
+    "model": "C-Class",
+    "variant": "C220d",
+    "fuel": "Diesel",
+    "mpg": 52.3,
+    "whpm": null,
+    "co2gkm": 118
+  },
+  {
+    "make": "Mercedes",
+    "model": "E-Class",
+    "variant": "E220d",
+    "fuel": "Diesel",
+    "mpg": 52.3,
+    "whpm": null,
+    "co2gkm": 126
+  },
+  {
+    "make": "Mercedes",
+    "model": "GLE",
+    "variant": "350d",
+    "fuel": "Diesel",
+    "mpg": 35.8,
+    "whpm": null,
+    "co2gkm": 196
+  },
+  {
+    "make": "Skoda",
+    "model": "Octavia",
+    "variant": "2.0 TDI 115",
+    "fuel": "Diesel",
+    "mpg": 52.3,
+    "whpm": null,
+    "co2gkm": 118
+  },
+  {
+    "make": "Skoda",
+    "model": "Kodiaq",
+    "variant": "2.0 TDI 150",
+    "fuel": "Diesel",
+    "mpg": 42.8,
+    "whpm": null,
+    "co2gkm": 151
+  },
+  {
+    "make": "Land Rover",
+    "model": "Defender 110",
+    "variant": "D200",
+    "fuel": "Diesel",
+    "mpg": 35.8,
+    "whpm": null,
+    "co2gkm": 218
+  },
+  {
+    "make": "Land Rover",
+    "model": "Discovery Sport",
+    "variant": "D180",
+    "fuel": "Diesel",
+    "mpg": 40.9,
+    "whpm": null,
+    "co2gkm": 174
+  },
+  {
+    "make": "Land Rover",
+    "model": "Range Rover Sport",
+    "variant": "D300",
+    "fuel": "Diesel",
+    "mpg": 35.3,
+    "whpm": null,
+    "co2gkm": 218
+  },
+  {
+    "make": "Volvo",
+    "model": "XC90",
+    "variant": "D5 AWD",
+    "fuel": "Diesel",
+    "mpg": 37.7,
+    "whpm": null,
+    "co2gkm": 196
+  },
+  {
+    "make": "Volvo",
+    "model": "XC60",
+    "variant": "D4",
+    "fuel": "Diesel",
+    "mpg": 42.8,
+    "whpm": null,
+    "co2gkm": 151
+  },
+  {
+    "make": "Mini",
+    "model": "Cooper D",
+    "variant": "",
+    "fuel": "Diesel",
+    "mpg": 64.2,
+    "whpm": null,
+    "co2gkm": 92
+  },
+  {
+    "make": "Mazda",
+    "model": "CX-5",
+    "variant": "2.2 Skyactiv-D 150",
+    "fuel": "Diesel",
+    "mpg": 44.8,
+    "whpm": null,
+    "co2gkm": 118
+  },
+  {
+    "make": "Toyota",
+    "model": "RAV4",
+    "variant": "2.0 D-4D 124",
+    "fuel": "Diesel",
+    "mpg": 44.1,
+    "whpm": null,
+    "co2gkm": 138
+  },
+  {
+    "make": "Hyundai",
+    "model": "Tucson",
+    "variant": "1.6 CRDi MHEV 136",
+    "fuel": "Diesel",
+    "mpg": 44.8,
+    "whpm": null,
+    "co2gkm": 149
+  },
+  {
+    "make": "Kia",
+    "model": "Sportage",
+    "variant": "1.6 CRDi MHEV 136",
+    "fuel": "Diesel",
+    "mpg": 44.1,
+    "whpm": null,
+    "co2gkm": 151
+  },
+  {
+    "make": "Nissan",
+    "model": "Qashqai",
+    "variant": "1.5 dCi 115",
+    "fuel": "Diesel",
+    "mpg": 57.7,
+    "whpm": null,
+    "co2gkm": 118
+  },
+  {
+    "make": "Jaguar",
+    "model": "XE",
+    "variant": "D200 AWD",
+    "fuel": "Diesel",
+    "mpg": 42.8,
+    "whpm": null,
+    "co2gkm": 156
+  },
+  {
+    "make": "Jaguar",
+    "model": "F-Pace",
+    "variant": "D200",
+    "fuel": "Diesel",
+    "mpg": 40.9,
+    "whpm": null,
+    "co2gkm": 158
+  },
+  {
+    "make": "Tesla",
+    "model": "Model 3",
+    "variant": "Standard Range",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 253,
+    "co2gkm": 0
+  },
+  {
+    "make": "Tesla",
+    "model": "Model 3",
+    "variant": "Long Range",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 238,
+    "co2gkm": 0
+  },
+  {
+    "make": "Tesla",
+    "model": "Model 3",
+    "variant": "Performance",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 275,
+    "co2gkm": 0
+  },
+  {
+    "make": "Tesla",
+    "model": "Model Y",
+    "variant": "Standard Range",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 238,
+    "co2gkm": 0
+  },
+  {
+    "make": "Tesla",
+    "model": "Model Y",
+    "variant": "Long Range",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 227,
+    "co2gkm": 0
+  },
+  {
+    "make": "Tesla",
+    "model": "Model Y",
+    "variant": "Performance",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 261,
+    "co2gkm": 0
+  },
+  {
+    "make": "Tesla",
+    "model": "Model S",
+    "variant": "Long Range",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 253,
+    "co2gkm": 0
+  },
+  {
+    "make": "Tesla",
+    "model": "Model X",
+    "variant": "Long Range",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 307,
+    "co2gkm": 0
+  },
+  {
+    "make": "VW",
+    "model": "ID.3",
+    "variant": "58kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 261,
+    "co2gkm": 0
+  },
+  {
+    "make": "VW",
+    "model": "ID.3",
+    "variant": "77kWh Pro S",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 238,
+    "co2gkm": 0
+  },
+  {
+    "make": "VW",
+    "model": "ID.4",
+    "variant": "77kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 261,
+    "co2gkm": 0
+  },
+  {
+    "make": "VW",
+    "model": "ID.5",
+    "variant": "77kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 261,
+    "co2gkm": 0
+  },
+  {
+    "make": "Nissan",
+    "model": "Leaf",
+    "variant": "40kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 249,
+    "co2gkm": 0
+  },
+  {
+    "make": "Nissan",
+    "model": "Leaf",
+    "variant": "62kWh e+",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 261,
+    "co2gkm": 0
+  },
+  {
+    "make": "Nissan",
+    "model": "Ariya",
+    "variant": "87kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 261,
+    "co2gkm": 0
+  },
+  {
+    "make": "Hyundai",
+    "model": "IONIQ 5",
+    "variant": "77.4kWh RWD",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 253,
+    "co2gkm": 0
+  },
+  {
+    "make": "Hyundai",
+    "model": "IONIQ 5",
+    "variant": "77.4kWh AWD",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 272,
+    "co2gkm": 0
+  },
+  {
+    "make": "Hyundai",
+    "model": "IONIQ 6",
+    "variant": "77.4kWh RWD",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 230,
+    "co2gkm": 0
+  },
+  {
+    "make": "Hyundai",
+    "model": "IONIQ 6",
+    "variant": "77.4kWh AWD",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 253,
+    "co2gkm": 0
+  },
+  {
+    "make": "Kia",
+    "model": "EV6",
+    "variant": "58kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 238,
+    "co2gkm": 0
+  },
+  {
+    "make": "Kia",
+    "model": "EV6",
+    "variant": "77.4kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 253,
+    "co2gkm": 0
+  },
+  {
+    "make": "Kia",
+    "model": "Niro EV",
+    "variant": "64.8kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 253,
+    "co2gkm": 0
+  },
+  {
+    "make": "Kia",
+    "model": "EV9",
+    "variant": "99.8kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 307,
+    "co2gkm": 0
+  },
+  {
+    "make": "BMW",
+    "model": "i4",
+    "variant": "eDrive40",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 253,
+    "co2gkm": 0
+  },
+  {
+    "make": "BMW",
+    "model": "i4",
+    "variant": "M50",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 307,
+    "co2gkm": 0
+  },
+  {
+    "make": "BMW",
+    "model": "i3",
+    "variant": "120Ah",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 253,
+    "co2gkm": 0
+  },
+  {
+    "make": "BMW",
+    "model": "iX1",
+    "variant": "xDrive30",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 261,
+    "co2gkm": 0
+  },
+  {
+    "make": "BMW",
+    "model": "iX3",
+    "variant": "Impressive",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 261,
+    "co2gkm": 0
+  },
+  {
+    "make": "BMW",
+    "model": "iX",
+    "variant": "xDrive50",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 307,
+    "co2gkm": 0
+  },
+  {
+    "make": "Audi",
+    "model": "e-tron",
+    "variant": "55 quattro",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 300,
+    "co2gkm": 0
+  },
+  {
+    "make": "Audi",
+    "model": "Q4 e-tron",
+    "variant": "40",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 261,
+    "co2gkm": 0
+  },
+  {
+    "make": "Audi",
+    "model": "Q8 e-tron",
+    "variant": "55 quattro",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 307,
+    "co2gkm": 0
+  },
+  {
+    "make": "Mercedes",
+    "model": "EQA",
+    "variant": "250",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 261,
+    "co2gkm": 0
+  },
+  {
+    "make": "Mercedes",
+    "model": "EQB",
+    "variant": "300 4MATIC",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 280,
+    "co2gkm": 0
+  },
+  {
+    "make": "Mercedes",
+    "model": "EQC 400",
+    "variant": "4MATIC",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 300,
+    "co2gkm": 0
+  },
+  {
+    "make": "Mercedes",
+    "model": "EQS",
+    "variant": "450+",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 253,
+    "co2gkm": 0
+  },
+  {
+    "make": "Volvo",
+    "model": "XC40 Recharge",
+    "variant": "P8 AWD",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 261,
+    "co2gkm": 0
+  },
+  {
+    "make": "Volvo",
+    "model": "C40 Recharge",
+    "variant": "P8 AWD",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 269,
+    "co2gkm": 0
+  },
+  {
+    "make": "Peugeot",
+    "model": "e-208",
+    "variant": "50kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 261,
+    "co2gkm": 0
+  },
+  {
+    "make": "Peugeot",
+    "model": "e-2008",
+    "variant": "50kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 272,
+    "co2gkm": 0
+  },
+  {
+    "make": "Renault",
+    "model": "Zoe",
+    "variant": "52kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 249,
+    "co2gkm": 0
+  },
+  {
+    "make": "Renault",
+    "model": "Megane E-Tech",
+    "variant": "60kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 238,
+    "co2gkm": 0
+  },
+  {
+    "make": "Mini",
+    "model": "Cooper SE",
+    "variant": "",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 261,
+    "co2gkm": 0
+  },
+  {
+    "make": "Mini",
+    "model": "Countryman Electric",
+    "variant": "",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 280,
+    "co2gkm": 0
+  },
+  {
+    "make": "Vauxhall",
+    "model": "Mokka-e",
+    "variant": "136",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 280,
+    "co2gkm": 0
+  },
+  {
+    "make": "Vauxhall",
+    "model": "Corsa-e",
+    "variant": "136",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 261,
+    "co2gkm": 0
+  },
+  {
+    "make": "Skoda",
+    "model": "Enyaq iV",
+    "variant": "60",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 261,
+    "co2gkm": 0
+  },
+  {
+    "make": "Skoda",
+    "model": "Enyaq iV",
+    "variant": "80",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 249,
+    "co2gkm": 0
+  },
+  {
+    "make": "MG",
+    "model": "MG4",
+    "variant": "51kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 261,
+    "co2gkm": 0
+  },
+  {
+    "make": "MG",
+    "model": "MG4",
+    "variant": "64kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 253,
+    "co2gkm": 0
+  },
+  {
+    "make": "MG",
+    "model": "ZS EV",
+    "variant": "51kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 272,
+    "co2gkm": 0
+  },
+  {
+    "make": "MG",
+    "model": "MG5 Long Range",
+    "variant": "EV",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 261,
+    "co2gkm": 0
+  },
+  {
+    "make": "Jaguar",
+    "model": "I-PACE",
+    "variant": "EV400",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 307,
+    "co2gkm": 0
+  },
+  {
+    "make": "Fiat",
+    "model": "500 Electric",
+    "variant": "42kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 261,
+    "co2gkm": 0
+  },
+  {
+    "make": "Dacia",
+    "model": "Spring Electric",
+    "variant": "45",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 249,
+    "co2gkm": 0
+  },
+  {
+    "make": "DS",
+    "model": "3 E-Tense",
+    "variant": "50kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 269,
+    "co2gkm": 0
+  },
+  {
+    "make": "Honda",
+    "model": "e:Ny1",
+    "variant": "",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 261,
+    "co2gkm": 0
+  },
+  {
+    "make": "Mazda",
+    "model": "MX-30",
+    "variant": "35.5kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 261,
+    "co2gkm": 0
+  },
+  {
+    "make": "Toyota",
+    "model": "bZ4X",
+    "variant": "71.4kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 272,
+    "co2gkm": 0
+  },
+  {
+    "make": "Porsche",
+    "model": "Taycan",
+    "variant": "RWD",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 307,
+    "co2gkm": 0
+  },
+  {
+    "make": "Porsche",
+    "model": "Taycan Cross Turismo",
+    "variant": "4S",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 338,
+    "co2gkm": 0
+  },
+  {
+    "make": "BYD",
+    "model": "Atto 3",
+    "variant": "60.5kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 261,
+    "co2gkm": 0
+  },
+  {
+    "make": "BYD",
+    "model": "Seal",
+    "variant": "82.56kWh AWD",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 280,
+    "co2gkm": 0
+  },
+  {
+    "make": "Citroen",
+    "model": "e-C4",
+    "variant": "54kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 280,
+    "co2gkm": 0
+  },
+  {
+    "make": "Polestar",
+    "model": "2",
+    "variant": "Long Range Single Motor",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 253,
+    "co2gkm": 0
+  },
+  {
+    "make": "Polestar",
+    "model": "2",
+    "variant": "Long Range Dual Motor",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 280,
+    "co2gkm": 0
+  },
+  {
+    "make": "Cupra",
+    "model": "Born",
+    "variant": "77kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 238,
+    "co2gkm": 0
+  },
+  {
+    "make": "Ford",
+    "model": "Mustang Mach-E",
+    "variant": "Standard Range RWD",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 261,
+    "co2gkm": 0
+  },
+  {
+    "make": "Ford",
+    "model": "Mustang Mach-E",
+    "variant": "Extended Range AWD",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 300,
+    "co2gkm": 0
+  },
+  {
+    "make": "Jeep",
+    "model": "Avenger",
+    "variant": "54kWh",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 272,
+    "co2gkm": 0
+  },
+  {
+    "make": "Land Rover",
+    "model": "Defender 110",
+    "variant": "P85 PHEV",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 307,
+    "co2gkm": 0
+  },
+  {
+    "make": "Lucid",
+    "model": "Air",
+    "variant": "Pure",
+    "fuel": "Electric",
+    "mpg": null,
+    "whpm": 211,
+    "co2gkm": 0
+  }
 ]

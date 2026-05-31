@@ -1,15 +1,20 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Loader2, Car, Zap, Fuel } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import dynamic from 'next/dynamic';
+import { Loader2, Car, Zap, Fuel, Link2, Leaf } from 'lucide-react';
+import { useSearchParams, useRouter } from 'next/navigation';
 
-interface Car {
+const CommuteMap = dynamic(() => import('@/components/commute-map'), { ssr: false });
+
+interface CarData {
   make: string;
   model: string;
   variant: string;
   fuel: 'Petrol' | 'Diesel' | 'Electric';
   mpg: number | null;
   whpm: number | null;
+  co2gkm: number | null;
 }
 
 interface CommuteData {
@@ -17,23 +22,34 @@ interface CommuteData {
   dieselPricePerLitre: number;
   electricityPricePerKwh: number;
   lastUpdated: string;
-  sources: {
-    fuel: string;
-    electricity: string;
-  };
   comparison: {
     petrol: { make: string; model: string; label: string; mpg: number };
     ev: { make: string; model: string; label: string; whpm: number };
   };
 }
 
+interface RouteGeometry {
+  type: 'LineString';
+  coordinates: [number, number][];
+}
+
 interface Results {
   distanceMiles: number;
+  durationMinutes: number;
   weeklyCost: number;
   monthlyCost: number;
   annualCost: number;
-  comparisonPetrol: { weeklyCost: number; monthlyCost: number; annualCost: number; label: string };
-  comparisonEV: { weeklyCost: number; monthlyCost: number; annualCost: number; label: string };
+  annualCO2kg: number | null;
+  homeLatLng: [number, number];
+  workLatLng: [number, number];
+  routeGeometry: RouteGeometry;
+  comparison: {
+    weeklyCost: number;
+    monthlyCost: number;
+    annualCost: number;
+    label: string;
+    isEV: boolean;
+  };
 }
 
 const LITRES_PER_GALLON = 4.54609;
@@ -47,25 +63,35 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
-export default function CommutePage() {
+function formatCO2(kg: number): string {
+  if (kg >= 1000) return `${(kg / 1000).toFixed(1)} tonnes CO₂`;
+  return `${Math.round(kg)} kg CO₂`;
+}
+
+function CommutePageInner() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [days, setDays] = useState<number | null>(null);
   const [fuelType, setFuelType] = useState<'Petrol' | 'Diesel' | 'Electric' | null>(null);
   const [fuelPrice, setFuelPrice] = useState<string>('');
   const [carSearch, setCarSearch] = useState<string>('');
-  const [suggestions, setSuggestions] = useState<Car[]>([]);
-  const [selectedCar, setSelectedCar] = useState<Car | null>(null);
+  const [suggestions, setSuggestions] = useState<CarData[]>([]);
+  const [selectedCar, setSelectedCar] = useState<CarData | null>(null);
   const [manualEfficiency, setManualEfficiency] = useState<string>('');
   const [homePostcode, setHomePostcode] = useState<string>('');
   const [workPostcode, setWorkPostcode] = useState<string>('');
   const [results, setResults] = useState<Results | null>(null);
   const [calculating, setCalculating] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const [cars, setCars] = useState<Car[]>([]);
+  const [cars, setCars] = useState<CarData[]>([]);
   const [commuteData, setCommuteData] = useState<CommuteData | null>(null);
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
+  const [copied, setCopied] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const dataLoadedRef = useRef(false);
 
-  // Load data on mount
+  // Load cars + commute data
   useEffect(() => {
     Promise.all([
       fetch('/data/cars.json').then((r) => r.json()),
@@ -73,42 +99,59 @@ export default function CommutePage() {
     ]).then(([carsData, commuteDataResult]) => {
       setCars(carsData);
       setCommuteData(commuteDataResult);
-    }).catch(() => {
-      // silently fail — user can still enter manually
-    });
+      dataLoadedRef.current = true;
+    }).catch(() => { dataLoadedRef.current = true; });
   }, []);
 
-  // Update fuel price when fuelType changes
+  // Pre-fill from URL params (shareable link)
+  useEffect(() => {
+    if (!dataLoadedRef.current && cars.length === 0) return;
+    const d = searchParams.get('days');
+    const ft = searchParams.get('fuel') as 'Petrol' | 'Diesel' | 'Electric' | null;
+    const hp = searchParams.get('home');
+    const wp = searchParams.get('work');
+    const cm = searchParams.get('make');
+    const cmo = searchParams.get('cmodel');
+    const cv = searchParams.get('variant');
+
+    if (d) setDays(parseInt(d));
+    if (ft && ['Petrol', 'Diesel', 'Electric'].includes(ft)) setFuelType(ft);
+    if (hp) setHomePostcode(hp.toUpperCase());
+    if (wp) setWorkPostcode(wp.toUpperCase());
+    if (cm && cmo && cars.length > 0) {
+      const match = cars.find(
+        (c) => c.make === cm && c.model === cmo && (!cv || c.variant === cv)
+      );
+      if (match) {
+        setSelectedCar(match);
+        setCarSearch(`${match.make} ${match.model} ${match.variant}`.trim());
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cars, searchParams]);
+
+  // Sync fuel price when fuelType changes
   useEffect(() => {
     if (!commuteData || !fuelType) return;
-    if (fuelType === 'Petrol') {
-      setFuelPrice(commuteData.petrolPricePerLitre.toString());
-    } else if (fuelType === 'Diesel') {
-      setFuelPrice(commuteData.dieselPricePerLitre.toString());
-    } else if (fuelType === 'Electric') {
-      setFuelPrice(commuteData.electricityPricePerKwh.toString());
-    }
+    if (fuelType === 'Petrol') setFuelPrice(commuteData.petrolPricePerLitre.toString());
+    else if (fuelType === 'Diesel') setFuelPrice(commuteData.dieselPricePerLitre.toString());
+    else if (fuelType === 'Electric') setFuelPrice(commuteData.electricityPricePerKwh.toString());
   }, [fuelType, commuteData]);
 
-  // Filter car suggestions
+  // Car suggestions
   useEffect(() => {
-    if (!carSearch.trim() || carSearch.length < 2) {
-      setSuggestions([]);
-      return;
-    }
+    if (!carSearch.trim() || carSearch.length < 2) { setSuggestions([]); return; }
     const query = carSearch.toLowerCase();
     const filtered = cars
       .filter((car) => {
         const fullName = `${car.make} ${car.model} ${car.variant}`.toLowerCase();
-        const matchesQuery = fullName.includes(query);
-        const matchesFuel = !fuelType || car.fuel === fuelType;
-        return matchesQuery && matchesFuel;
+        return fullName.includes(query) && (!fuelType || car.fuel === fuelType);
       })
       .slice(0, 8);
     setSuggestions(filtered);
   }, [carSearch, cars, fuelType]);
 
-  // Close suggestions on outside click
+  // Close dropdown on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
@@ -128,31 +171,18 @@ export default function CommutePage() {
       );
     }
   }, []);
+  useEffect(() => { notifyHeight(); });
 
-  useEffect(() => {
-    notifyHeight();
-  });
-
-  const handleCarSelect = (car: Car) => {
+  const handleCarSelect = (car: CarData) => {
     setSelectedCar(car);
     setCarSearch(`${car.make} ${car.model} ${car.variant}`.trim());
     setSuggestions([]);
     setShowSuggestions(false);
   };
 
-  const handleCarSearchChange = (value: string) => {
-    setCarSearch(value);
-    setSelectedCar(null);
-    setShowSuggestions(true);
-  };
-
   const handleFuelTypeChange = (type: 'Petrol' | 'Diesel' | 'Electric') => {
     setFuelType(type);
-    // Clear selected car if it doesn't match new fuel type
-    if (selectedCar && selectedCar.fuel !== type) {
-      setSelectedCar(null);
-      setCarSearch('');
-    }
+    if (selectedCar && selectedCar.fuel !== type) { setSelectedCar(null); setCarSearch(''); }
     setSuggestions([]);
   };
 
@@ -163,11 +193,10 @@ export default function CommutePage() {
     if (isNaN(priceNum) || priceNum <= 0) return 'Please enter a valid fuel price.';
     if (!selectedCar) {
       const effNum = parseFloat(manualEfficiency);
-      if (isNaN(effNum) || effNum <= 0) {
+      if (isNaN(effNum) || effNum <= 0)
         return fuelType === 'Electric'
-          ? 'Please select a car or enter your car\'s Wh/mi.'
-          : 'Please select a car or enter your car\'s MPG.';
-      }
+          ? "Please select a car or enter your car's Wh/mi."
+          : "Please select a car or enter your car's MPG.";
     }
     if (!homePostcode.trim()) return 'Please enter your home postcode.';
     if (!workPostcode.trim()) return 'Please enter your work postcode.';
@@ -176,10 +205,7 @@ export default function CommutePage() {
 
   const handleCalculate = async () => {
     const validationError = validate();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
+    if (validationError) { setError(validationError); return; }
 
     setError('');
     setCalculating(true);
@@ -193,56 +219,89 @@ export default function CommutePage() {
       });
 
       const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Failed to calculate distance.'); return; }
 
-      if (!res.ok) {
-        setError(data.error || 'Failed to calculate distance. Please check your postcodes.');
-        setCalculating(false);
-        return;
-      }
+      const { distanceMiles, durationMinutes, homeLatLng, workLatLng, routeGeometry } = data as {
+        distanceMiles: number;
+        durationMinutes: number;
+        homeLatLng: [number, number];
+        workLatLng: [number, number];
+        routeGeometry: RouteGeometry;
+      };
 
-      const { distanceMiles } = data as { distanceMiles: number; durationMinutes: number };
       const weeklyMiles = distanceMiles * 2 * (days as number);
       const priceNum = parseFloat(fuelPrice);
 
       let weeklyCost: number;
+      let annualCO2kg: number | null = null;
+
       if (fuelType === 'Electric') {
         const whpm = selectedCar ? selectedCar.whpm! : parseFloat(manualEfficiency);
         weeklyCost = (weeklyMiles * whpm / 1000) * priceNum;
+        annualCO2kg = 0;
       } else {
         const mpg = selectedCar ? selectedCar.mpg! : parseFloat(manualEfficiency);
         weeklyCost = (weeklyMiles / mpg) * LITRES_PER_GALLON * priceNum;
+        const co2gkm = selectedCar?.co2gkm ?? null;
+        if (co2gkm !== null) {
+          annualCO2kg = (weeklyMiles * 52 * 1.60934 * co2gkm) / 1000;
+        }
       }
 
       const monthlyCost = weeklyCost * 52 / 12;
       const annualCost = weeklyCost * 52;
 
-      // Comparison calculations (always use commuteData prices)
-      const petrolPrice = commuteData!.petrolPricePerLitre;
-      const evPrice = commuteData!.electricityPricePerKwh;
-      const petrolMpg = commuteData!.comparison.petrol.mpg;
-      const evWhpm = commuteData!.comparison.ev.whpm;
-
-      const petrolWeeklyCost = (weeklyMiles / petrolMpg) * LITRES_PER_GALLON * petrolPrice;
-      const evWeeklyCost = (weeklyMiles * evWhpm / 1000) * evPrice;
-
-      setResults({
-        distanceMiles,
-        weeklyCost,
-        monthlyCost,
-        annualCost,
-        comparisonPetrol: {
+      // Smart comparison: petrol/diesel users → show EV; EV users → show petrol
+      let comparison: Results['comparison'];
+      if (fuelType === 'Electric') {
+        const petrolPrice = commuteData!.petrolPricePerLitre;
+        const petrolMpg = commuteData!.comparison.petrol.mpg;
+        const petrolWeeklyCost = (weeklyMiles / petrolMpg) * LITRES_PER_GALLON * petrolPrice;
+        comparison = {
           weeklyCost: petrolWeeklyCost,
           monthlyCost: petrolWeeklyCost * 52 / 12,
           annualCost: petrolWeeklyCost * 52,
           label: commuteData!.comparison.petrol.label,
-        },
-        comparisonEV: {
+          isEV: false,
+        };
+      } else {
+        const evPrice = commuteData!.electricityPricePerKwh;
+        const evWhpm = commuteData!.comparison.ev.whpm;
+        const evWeeklyCost = (weeklyMiles * evWhpm / 1000) * evPrice;
+        comparison = {
           weeklyCost: evWeeklyCost,
           monthlyCost: evWeeklyCost * 52 / 12,
           annualCost: evWeeklyCost * 52,
           label: commuteData!.comparison.ev.label,
-        },
+          isEV: true,
+        };
+      }
+
+      setResults({
+        distanceMiles,
+        durationMinutes,
+        weeklyCost,
+        monthlyCost,
+        annualCost,
+        annualCO2kg,
+        homeLatLng,
+        workLatLng,
+        routeGeometry,
+        comparison,
       });
+
+      // Update URL with shareable params (replace so history stays clean)
+      const params = new URLSearchParams();
+      params.set('days', String(days));
+      params.set('fuel', fuelType!);
+      params.set('home', homePostcode.trim());
+      params.set('work', workPostcode.trim());
+      if (selectedCar) {
+        params.set('make', selectedCar.make);
+        params.set('cmodel', selectedCar.model);
+        params.set('variant', selectedCar.variant);
+      }
+      router.replace(`?${params.toString()}`, { scroll: false });
     } catch {
       setError('An unexpected error occurred. Please try again.');
     } finally {
@@ -250,242 +309,206 @@ export default function CommutePage() {
     }
   };
 
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch { /* ignore */ }
+  };
+
   const fuelUnit = fuelType === 'Electric' ? 'per kWh' : 'per litre';
   const efficiencyUnit = fuelType === 'Electric' ? 'Wh/mi' : 'MPG';
   const efficiencyLabel = fuelType === 'Electric' ? 'Wh per mile' : 'Miles per gallon (MPG)';
+  const userCarLabel = selectedCar ? `${selectedCar.make} ${selectedCar.model}` : 'Your car';
 
   const pillBase = 'px-4 py-2 rounded-full border text-sm font-medium transition-all cursor-pointer select-none';
-  const pillActive = 'bg-[#1a3668] text-white border-[#1a3668]';
-  const pillInactive = 'bg-white text-[#1a3668] border-[#1a3668] hover:bg-[#1a3668]/5';
+  const pillActive = 'bg-[#1a3668] text-white border-[#1a3668] shadow-sm';
+  const pillInactive = 'bg-white text-[#1a3668] border-[#1a3668]/40 hover:border-[#1a3668] hover:bg-[#1a3668]/5';
 
-  const userCarLabel = selectedCar
-    ? `${selectedCar.make} ${selectedCar.model}`
-    : 'Your car';
+  const stepLabel = (n: number, label: string) => (
+    <label className="flex items-center gap-2 text-sm font-semibold text-gray-800 mb-3">
+      <span
+        className="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold text-white shrink-0"
+        style={{ background: '#df2681' }}
+      >
+        {n}
+      </span>
+      {label}
+    </label>
+  );
 
   return (
-    <div className="min-h-screen bg-white font-sans">
+    <div className="min-h-screen bg-gray-50 font-sans">
+      {/* Pink top accent bar */}
+      <div style={{ height: 4, background: 'linear-gradient(90deg, #1a3668, #df2681)' }} />
+
       <div className="max-w-xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-[#1a3668] leading-tight">
-            Cost of Commuting Calculator {new Date().getFullYear()}
+            Cost of Commuting Calculator
           </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            See exactly what this commute will cost you — weekly, monthly and annually.
+          </p>
           {commuteData && (
-            <p className="text-sm text-gray-400 mt-1">
-              Fuel prices updated {commuteData.lastUpdated}
+            <p className="text-xs text-gray-400 mt-1">
+              Fuel prices last updated {commuteData.lastUpdated}
             </p>
           )}
         </div>
 
-        {/* Step 1 — Days */}
-        <div className="mb-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
-            How many days a week do you commute?
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {[1, 2, 3, 4, 5].map((d) => (
-              <button
-                key={d}
-                type="button"
-                onClick={() => setDays(d)}
-                className={`${pillBase} ${days === d ? pillActive : pillInactive}`}
-              >
-                {d}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* Form card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
 
-        {/* Step 2 — Fuel type */}
-        <div className="mb-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
-            What fuel does your car use?
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {(['Petrol', 'Diesel', 'Electric'] as const).map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => handleFuelTypeChange(type)}
-                className={`${pillBase} ${fuelType === type ? pillActive : pillInactive}`}
-              >
-                {type === 'Electric' ? (
-                  <span className="flex items-center gap-1">
-                    <Zap className="w-3.5 h-3.5" />
+          {/* Step 1 — Days */}
+          <div>
+            {stepLabel(1, 'How many days a week do you commute?')}
+            <div className="flex flex-wrap gap-2">
+              {[1, 2, 3, 4, 5].map((d) => (
+                <button key={d} type="button" onClick={() => setDays(d)}
+                  className={`${pillBase} ${days === d ? pillActive : pillInactive}`}>
+                  {d} {d === 1 ? 'day' : 'days'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Step 2 — Fuel type */}
+          <div>
+            {stepLabel(2, 'What fuel does your car use?')}
+            <div className="flex flex-wrap gap-2">
+              {(['Petrol', 'Diesel', 'Electric'] as const).map((type) => (
+                <button key={type} type="button" onClick={() => handleFuelTypeChange(type)}
+                  className={`${pillBase} ${fuelType === type ? pillActive : pillInactive}`}>
+                  <span className="flex items-center gap-1.5">
+                    {type === 'Electric' ? <Zap className="w-3.5 h-3.5" /> : <Fuel className="w-3.5 h-3.5" />}
                     {type}
                   </span>
-                ) : type === 'Petrol' ? (
-                  <span className="flex items-center gap-1">
-                    <Fuel className="w-3.5 h-3.5" />
-                    {type}
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <Fuel className="w-3.5 h-3.5" />
-                    {type}
-                  </span>
-                )}
-              </button>
-            ))}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Step 3 — Fuel price */}
-        <div className="mb-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            How much do you pay {fuelUnit}?
-          </label>
-          <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:border-[#1a3668] focus-within:ring-1 focus-within:ring-[#1a3668] max-w-xs">
-            <span className="px-3 py-2.5 bg-gray-50 text-gray-500 border-r border-gray-300 text-sm font-medium">
-              £
-            </span>
-            <input
-              type="number"
-              step="0.001"
-              min="0"
-              value={fuelPrice}
-              onChange={(e) => setFuelPrice(e.target.value)}
-              placeholder={fuelType === 'Electric' ? '0.245' : '1.52'}
-              className="flex-1 px-3 py-2.5 text-sm outline-none bg-white"
-            />
-          </div>
-        </div>
-
-        {/* Step 4 — Car */}
-        <div className="mb-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            What&apos;s the make and model of your car?
-          </label>
-          <div className="relative" ref={searchRef}>
-            <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:border-[#1a3668] focus-within:ring-1 focus-within:ring-[#1a3668]">
-              <Car className="ml-3 w-4 h-4 text-gray-400 shrink-0" />
+          {/* Step 3 — Fuel price */}
+          <div>
+            {stepLabel(3, `How much do you pay ${fuelUnit}?`)}
+            <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden focus-within:border-[#1a3668] focus-within:ring-2 focus-within:ring-[#1a3668]/10 max-w-xs bg-gray-50">
+              <span className="px-3 py-2.5 text-gray-500 border-r border-gray-200 text-sm font-medium bg-gray-50">£</span>
               <input
-                type="text"
-                value={carSearch}
-                onChange={(e) => handleCarSearchChange(e.target.value)}
-                onFocus={() => setShowSuggestions(true)}
-                placeholder={
-                  fuelType
-                    ? `Search ${fuelType.toLowerCase()} cars...`
-                    : 'Select fuel type first, then search...'
-                }
+                type="number" step="0.001" min="0" value={fuelPrice}
+                onChange={(e) => setFuelPrice(e.target.value)}
+                placeholder={fuelType === 'Electric' ? '0.245' : '1.52'}
                 className="flex-1 px-3 py-2.5 text-sm outline-none bg-white"
               />
-              {selectedCar && (
-                <button
-                  type="button"
-                  onClick={() => { setSelectedCar(null); setCarSearch(''); }}
-                  className="mr-3 text-gray-400 hover:text-gray-600 text-lg leading-none"
-                  aria-label="Clear selection"
-                >
-                  ×
-                </button>
+            </div>
+          </div>
+
+          {/* Step 4 — Car */}
+          <div>
+            {stepLabel(4, "What's the make and model of your car?")}
+            <div className="relative" ref={searchRef}>
+              <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden focus-within:border-[#1a3668] focus-within:ring-2 focus-within:ring-[#1a3668]/10 bg-white">
+                <Car className="ml-3 w-4 h-4 text-gray-400 shrink-0" />
+                <input
+                  type="text" value={carSearch}
+                  onChange={(e) => { setCarSearch(e.target.value); setSelectedCar(null); setShowSuggestions(true); }}
+                  onFocus={() => setShowSuggestions(true)}
+                  placeholder={fuelType ? `Search ${fuelType.toLowerCase()} cars…` : 'Select fuel type first…'}
+                  className="flex-1 px-3 py-2.5 text-sm outline-none"
+                />
+                {selectedCar && (
+                  <button type="button" onClick={() => { setSelectedCar(null); setCarSearch(''); }}
+                    className="mr-3 text-gray-400 hover:text-gray-600 text-lg leading-none" aria-label="Clear">×</button>
+                )}
+              </div>
+
+              {showSuggestions && suggestions.length > 0 && (
+                <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-56 overflow-y-auto">
+                  {suggestions.map((car, i) => (
+                    <li key={i}>
+                      <button type="button" onMouseDown={() => handleCarSelect(car)}
+                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-[#1a3668]/5 transition-colors">
+                        <span className="font-medium text-gray-900">{car.make} {car.model}</span>
+                        {car.variant && <span className="text-gray-500"> — {car.variant}</span>}
+                        <span className="ml-2 text-xs text-gray-400">
+                          {car.fuel === 'Electric' ? `${car.whpm} Wh/mi` : `${car.mpg} mpg`}
+                          {car.co2gkm !== null && car.co2gkm > 0 && (
+                            <span className="ml-1 text-green-600">· {car.co2gkm}g CO₂/km</span>
+                          )}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
 
-            {/* Suggestions dropdown */}
-            {showSuggestions && suggestions.length > 0 && (
-              <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-56 overflow-y-auto">
-                {suggestions.map((car, i) => (
-                  <li key={i}>
-                    <button
-                      type="button"
-                      onMouseDown={() => handleCarSelect(car)}
-                      className="w-full text-left px-4 py-2.5 text-sm hover:bg-[#1a3668]/5 transition-colors"
-                    >
-                      <span className="font-medium text-gray-900">
-                        {car.make} {car.model}
-                      </span>
-                      {car.variant && (
-                        <span className="text-gray-500"> — {car.variant}</span>
-                      )}
-                      <span className="ml-2 text-xs text-gray-400">
-                        {car.fuel === 'Electric' ? `${car.whpm} Wh/mi` : `${car.mpg} mpg`}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+            {selectedCar && (
+              <div className="mt-2 flex items-center gap-3 flex-wrap">
+                <span className="text-sm text-green-600 font-medium">
+                  {selectedCar.fuel === 'Electric' ? `${selectedCar.whpm} Wh/mi` : `${selectedCar.mpg} mpg`}
+                </span>
+                {selectedCar.co2gkm !== null && selectedCar.co2gkm > 0 && (
+                  <span className="text-sm text-gray-500 flex items-center gap-1">
+                    <Leaf className="w-3.5 h-3.5 text-green-500" />
+                    {selectedCar.co2gkm} g/km CO₂
+                  </span>
+                )}
+              </div>
             )}
-          </div>
 
-          {/* Selected car stats */}
-          {selectedCar && (
-            <p className="mt-2 text-sm text-green-600 font-medium">
-              {selectedCar.fuel === 'Electric'
-                ? `${selectedCar.whpm} Wh/mi efficiency`
-                : `${selectedCar.mpg} mpg efficiency`}
-            </p>
-          )}
-
-          {/* Manual fallback */}
-          <div className="mt-4">
-            <label className="block text-xs text-gray-500 mb-1">
-              My car isn&apos;t listed — enter manually ({efficiencyLabel}):
-            </label>
-            <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:border-[#1a3668] focus-within:ring-1 focus-within:ring-[#1a3668] max-w-xs">
-              <input
-                type="number"
-                step="0.1"
-                min="0"
-                value={manualEfficiency}
-                onChange={(e) => {
-                  setManualEfficiency(e.target.value);
-                  if (e.target.value) setSelectedCar(null);
-                }}
-                placeholder={fuelType === 'Electric' ? 'e.g. 250' : 'e.g. 45'}
-                className="flex-1 px-3 py-2 text-sm outline-none bg-white"
-              />
-              <span className="px-3 py-2 bg-gray-50 text-gray-500 border-l border-gray-300 text-xs font-medium">
-                {efficiencyUnit}
-              </span>
+            <div className="mt-3">
+              <label className="block text-xs text-gray-400 mb-1">
+                My car isn&apos;t listed — enter {efficiencyLabel} manually:
+              </label>
+              <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden focus-within:border-[#1a3668] focus-within:ring-2 focus-within:ring-[#1a3668]/10 max-w-xs bg-white">
+                <input
+                  type="number" step="0.1" min="0" value={manualEfficiency}
+                  onChange={(e) => { setManualEfficiency(e.target.value); if (e.target.value) setSelectedCar(null); }}
+                  placeholder={fuelType === 'Electric' ? 'e.g. 250' : 'e.g. 45'}
+                  className="flex-1 px-3 py-2 text-sm outline-none"
+                />
+                <span className="px-3 py-2 bg-gray-50 text-gray-500 border-l border-gray-200 text-xs font-medium">{efficiencyUnit}</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Step 5 — Postcodes */}
-        <div className="mb-8">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
-            Where are you commuting to and from?
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Home postcode</label>
-              <input
-                type="text"
-                value={homePostcode}
-                onChange={(e) => setHomePostcode(e.target.value.toUpperCase())}
-                placeholder="e.g. OX1 1AA"
-                maxLength={8}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm uppercase tracking-wide outline-none focus:border-[#1a3668] focus:ring-1 focus:ring-[#1a3668]"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Work postcode</label>
-              <input
-                type="text"
-                value={workPostcode}
-                onChange={(e) => setWorkPostcode(e.target.value.toUpperCase())}
-                placeholder="e.g. EC1A 1BB"
-                maxLength={8}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm uppercase tracking-wide outline-none focus:border-[#1a3668] focus:ring-1 focus:ring-[#1a3668]"
-              />
+          {/* Step 5 — Postcodes */}
+          <div>
+            {stepLabel(5, 'Where are you commuting to and from?')}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Home postcode</label>
+                <input
+                  type="text" value={homePostcode}
+                  onChange={(e) => setHomePostcode(e.target.value.toUpperCase())}
+                  placeholder="e.g. OX1 1AA" maxLength={8}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm uppercase tracking-wide outline-none focus:border-[#1a3668] focus:ring-2 focus:ring-[#1a3668]/10 bg-white"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Work postcode</label>
+                <input
+                  type="text" value={workPostcode}
+                  onChange={(e) => setWorkPostcode(e.target.value.toUpperCase())}
+                  placeholder="e.g. EC1A 1BB" maxLength={8}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm uppercase tracking-wide outline-none focus:border-[#1a3668] focus:ring-2 focus:ring-[#1a3668]/10 bg-white"
+                />
+              </div>
             </div>
           </div>
         </div>
 
         {/* Calculate button */}
         <button
-          type="button"
-          onClick={handleCalculate}
-          disabled={calculating}
-          className="w-full bg-[#1a3668] hover:bg-[#1a3668]/90 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3.5 px-6 rounded-xl transition-colors flex items-center justify-center gap-2 text-base"
+          type="button" onClick={handleCalculate} disabled={calculating}
+          className="mt-5 w-full font-semibold py-3.5 px-6 rounded-xl transition-all flex items-center justify-center gap-2 text-base text-white shadow-sm hover:shadow-md active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+          style={{ background: calculating ? '#1a3668' : 'linear-gradient(135deg, #1a3668, #df2681)' }}
         >
           {calculating ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              Calculating…
-            </>
+            <><Loader2 className="w-5 h-5 animate-spin" />Calculating…</>
           ) : (
             'Calculate my commute cost'
           )}
@@ -493,150 +516,176 @@ export default function CommutePage() {
 
         {/* Error */}
         {error && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
             {error}
           </div>
         )}
 
         {/* Results */}
         {results && (
-          <div className="mt-8">
-            <p className="text-sm text-gray-500 mb-4">
-              One-way distance: <span className="font-semibold">{results.distanceMiles.toFixed(1)} miles</span>
-            </p>
+          <div className="mt-8 space-y-5">
+            {/* Route summary */}
+            <div className="flex flex-wrap items-center gap-4 px-1">
+              <div className="text-sm text-gray-600">
+                <span className="font-bold text-[#1a3668] text-lg">{results.distanceMiles.toFixed(1)}</span>
+                <span className="ml-1">miles one-way</span>
+              </div>
+              <div className="text-sm text-gray-600">
+                <span className="font-bold text-[#1a3668] text-lg">{Math.round(results.durationMinutes)}</span>
+                <span className="ml-1">min drive</span>
+              </div>
+              {results.annualCO2kg !== null && results.annualCO2kg > 0 && (
+                <div className="text-sm text-gray-600 flex items-center gap-1">
+                  <Leaf className="w-4 h-4 text-green-500" />
+                  <span className="font-bold text-green-700">{formatCO2(results.annualCO2kg)}</span>
+                  <span className="text-gray-500">per year</span>
+                </div>
+              )}
+              {results.annualCO2kg === 0 && (
+                <div className="text-sm text-green-600 flex items-center gap-1">
+                  <Leaf className="w-4 h-4" />
+                  Zero tailpipe emissions
+                </div>
+              )}
+            </div>
 
-            {/* Desktop: 3-column table */}
-            <div className="hidden sm:block overflow-hidden rounded-xl border border-gray-200">
+            {/* Map */}
+            <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
+              <CommuteMap
+                homeLatLng={results.homeLatLng}
+                workLatLng={results.workLatLng}
+                routeGeometry={results.routeGeometry}
+              />
+            </div>
+
+            {/* Cost cards — desktop table */}
+            <div className="hidden sm:block overflow-hidden rounded-2xl border border-gray-100 shadow-sm">
               <table className="w-full text-sm">
                 <thead>
                   <tr>
-                    <th className="bg-[#1a3668] text-white font-semibold px-4 py-3 text-left">
-                      Your {userCarLabel}
+                    <th className="text-white font-semibold px-4 py-3.5 text-left" style={{ background: '#1a3668' }}>
+                      {userCarLabel}
                     </th>
-                    <th className="bg-gray-100 text-gray-600 font-semibold px-4 py-3 text-left">
-                      {results.comparisonPetrol.label}
-                    </th>
-                    <th className="bg-gray-100 text-gray-600 font-semibold px-4 py-3 text-left">
-                      {results.comparisonEV.label}
+                    <th className="font-semibold px-4 py-3.5 text-left text-sm"
+                      style={{ background: results.comparison.isEV ? '#e8f5e9' : '#fce4ec', color: results.comparison.isEV ? '#2e7d32' : '#c62828' }}>
+                      {results.comparison.label}
                     </th>
                   </tr>
                 </thead>
-                <tbody>
-                  <tr className="border-t border-gray-100">
-                    <td className="px-4 py-3 font-medium text-[#1a3668]">
-                      <div className="text-xs text-gray-400 mb-0.5">Weekly</div>
-                      {formatCurrency(results.weeklyCost)}
-                    </td>
-                    <td className="px-4 py-3 text-gray-700">
-                      <div className="text-xs text-gray-400 mb-0.5">Weekly</div>
-                      {formatCurrency(results.comparisonPetrol.weeklyCost)}
-                    </td>
-                    <td className="px-4 py-3 text-gray-700">
-                      <div className="text-xs text-gray-400 mb-0.5">Weekly</div>
-                      {formatCurrency(results.comparisonEV.weeklyCost)}
-                    </td>
-                  </tr>
-                  <tr className="border-t border-gray-100 bg-gray-50/50">
-                    <td className="px-4 py-3 font-medium text-[#1a3668]">
-                      <div className="text-xs text-gray-400 mb-0.5">Monthly</div>
-                      {formatCurrency(results.monthlyCost)}
-                    </td>
-                    <td className="px-4 py-3 text-gray-700">
-                      <div className="text-xs text-gray-400 mb-0.5">Monthly</div>
-                      {formatCurrency(results.comparisonPetrol.monthlyCost)}
-                    </td>
-                    <td className="px-4 py-3 text-gray-700">
-                      <div className="text-xs text-gray-400 mb-0.5">Monthly</div>
-                      {formatCurrency(results.comparisonEV.monthlyCost)}
-                    </td>
-                  </tr>
-                  <tr className="border-t border-gray-100">
-                    <td className="px-4 py-3 font-bold text-[#1a3668]">
-                      <div className="text-xs text-gray-400 mb-0.5">Annually</div>
-                      {formatCurrency(results.annualCost)}
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-gray-700">
-                      <div className="text-xs text-gray-400 mb-0.5">Annually</div>
-                      {formatCurrency(results.comparisonPetrol.annualCost)}
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-gray-700">
-                      <div className="text-xs text-gray-400 mb-0.5">Annually</div>
-                      {formatCurrency(results.comparisonEV.annualCost)}
-                    </td>
-                  </tr>
+                <tbody className="bg-white">
+                  {[
+                    { label: 'Weekly', mine: results.weeklyCost, theirs: results.comparison.weeklyCost },
+                    { label: 'Monthly', mine: results.monthlyCost, theirs: results.comparison.monthlyCost },
+                    { label: 'Annually', mine: results.annualCost, theirs: results.comparison.annualCost },
+                  ].map(({ label, mine, theirs }) => (
+                    <tr key={label} className="border-t border-gray-50">
+                      <td className="px-4 py-3 font-semibold text-[#1a3668]">
+                        <div className="text-xs text-gray-400 mb-0.5">{label}</div>
+                        {formatCurrency(mine)}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">
+                        <div className="text-xs text-gray-400 mb-0.5">{label}</div>
+                        <span className={theirs < mine ? 'text-green-700 font-semibold' : theirs > mine ? 'text-red-700 font-semibold' : ''}>
+                          {formatCurrency(theirs)}
+                        </span>
+                        {theirs < mine && (
+                          <span className="ml-2 text-xs text-green-600">
+                            saves {formatCurrency(mine - theirs)}/{label.toLowerCase()}
+                          </span>
+                        )}
+                        {theirs > mine && (
+                          <span className="ml-2 text-xs text-red-500">
+                            +{formatCurrency(theirs - mine)}/{label.toLowerCase()}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
 
-            {/* Mobile: stacked cards */}
+            {/* Mobile cards */}
             <div className="sm:hidden space-y-3">
-              {/* User car */}
-              <div className="rounded-xl border-2 border-[#1a3668] overflow-hidden">
-                <div className="bg-[#1a3668] text-white font-semibold px-4 py-3 text-sm">
-                  Your {userCarLabel}
+              <div className="rounded-2xl border-2 overflow-hidden" style={{ borderColor: '#1a3668' }}>
+                <div className="text-white font-semibold px-4 py-3 text-sm" style={{ background: '#1a3668' }}>
+                  {userCarLabel}
                 </div>
-                <div className="grid grid-cols-3 divide-x divide-gray-100">
-                  <div className="px-3 py-3 text-center">
-                    <div className="text-xs text-gray-400 mb-1">Weekly</div>
-                    <div className="font-semibold text-[#1a3668] text-sm">{formatCurrency(results.weeklyCost)}</div>
-                  </div>
-                  <div className="px-3 py-3 text-center">
-                    <div className="text-xs text-gray-400 mb-1">Monthly</div>
-                    <div className="font-semibold text-[#1a3668] text-sm">{formatCurrency(results.monthlyCost)}</div>
-                  </div>
-                  <div className="px-3 py-3 text-center">
-                    <div className="text-xs text-gray-400 mb-1">Annually</div>
-                    <div className="font-bold text-[#1a3668] text-sm">{formatCurrency(results.annualCost)}</div>
-                  </div>
+                <div className="grid grid-cols-3 divide-x divide-gray-100 bg-white">
+                  {[['Weekly', results.weeklyCost], ['Monthly', results.monthlyCost], ['Annually', results.annualCost]].map(([lbl, val]) => (
+                    <div key={lbl as string} className="px-3 py-3 text-center">
+                      <div className="text-xs text-gray-400 mb-1">{lbl}</div>
+                      <div className="font-bold text-[#1a3668] text-sm">{formatCurrency(val as number)}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
-
-              {/* Petrol comparison */}
-              <div className="rounded-xl border border-gray-200 overflow-hidden">
-                <div className="bg-gray-100 text-gray-600 font-semibold px-4 py-3 text-sm">
-                  {results.comparisonPetrol.label}
+              <div className="rounded-2xl border overflow-hidden border-gray-100">
+                <div className="font-semibold px-4 py-3 text-sm"
+                  style={{ background: results.comparison.isEV ? '#e8f5e9' : '#fce4ec', color: results.comparison.isEV ? '#2e7d32' : '#c62828' }}>
+                  {results.comparison.label}
                 </div>
-                <div className="grid grid-cols-3 divide-x divide-gray-100">
-                  <div className="px-3 py-3 text-center">
-                    <div className="text-xs text-gray-400 mb-1">Weekly</div>
-                    <div className="font-medium text-gray-700 text-sm">{formatCurrency(results.comparisonPetrol.weeklyCost)}</div>
-                  </div>
-                  <div className="px-3 py-3 text-center">
-                    <div className="text-xs text-gray-400 mb-1">Monthly</div>
-                    <div className="font-medium text-gray-700 text-sm">{formatCurrency(results.comparisonPetrol.monthlyCost)}</div>
-                  </div>
-                  <div className="px-3 py-3 text-center">
-                    <div className="text-xs text-gray-400 mb-1">Annually</div>
-                    <div className="font-semibold text-gray-700 text-sm">{formatCurrency(results.comparisonPetrol.annualCost)}</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* EV comparison */}
-              <div className="rounded-xl border border-gray-200 overflow-hidden">
-                <div className="bg-gray-100 text-gray-600 font-semibold px-4 py-3 text-sm">
-                  {results.comparisonEV.label}
-                </div>
-                <div className="grid grid-cols-3 divide-x divide-gray-100">
-                  <div className="px-3 py-3 text-center">
-                    <div className="text-xs text-gray-400 mb-1">Weekly</div>
-                    <div className="font-medium text-gray-700 text-sm">{formatCurrency(results.comparisonEV.weeklyCost)}</div>
-                  </div>
-                  <div className="px-3 py-3 text-center">
-                    <div className="text-xs text-gray-400 mb-1">Monthly</div>
-                    <div className="font-medium text-gray-700 text-sm">{formatCurrency(results.comparisonEV.monthlyCost)}</div>
-                  </div>
-                  <div className="px-3 py-3 text-center">
-                    <div className="text-xs text-gray-400 mb-1">Annually</div>
-                    <div className="font-semibold text-gray-700 text-sm">{formatCurrency(results.comparisonEV.annualCost)}</div>
-                  </div>
+                <div className="grid grid-cols-3 divide-x divide-gray-100 bg-white">
+                  {[['Weekly', results.comparison.weeklyCost], ['Monthly', results.comparison.monthlyCost], ['Annually', results.comparison.annualCost]].map(([lbl, val]) => (
+                    <div key={lbl as string} className="px-3 py-3 text-center">
+                      <div className="text-xs text-gray-400 mb-1">{lbl}</div>
+                      <div className="font-medium text-gray-700 text-sm">{formatCurrency(val as number)}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
 
+            {/* Comparison blurb */}
+            <div
+              className="rounded-xl p-4 text-sm leading-relaxed border"
+              style={{
+                background: results.comparison.isEV ? '#f0fdf4' : '#fff0f6',
+                borderColor: results.comparison.isEV ? '#bbf7d0' : '#fbcfe8',
+                color: results.comparison.isEV ? '#166534' : '#9d174d',
+              }}
+            >
+              {results.comparison.isEV ? (
+                <>
+                  <strong>Curious about switching to electric?</strong> A {results.comparison.label} would cost{' '}
+                  <strong>{formatCurrency(results.comparison.annualCost)}</strong> per year for the same commute —{' '}
+                  {results.comparison.annualCost < results.annualCost
+                    ? `saving you ${formatCurrency(results.annualCost - results.comparison.annualCost)} a year.`
+                    : `${formatCurrency(results.comparison.annualCost - results.annualCost)} more per year.`}
+                  {' '}Plus zero tailpipe emissions.
+                </>
+              ) : (
+                <>
+                  <strong>For comparison,</strong> a {results.comparison.label} running on petrol would cost{' '}
+                  <strong>{formatCurrency(results.comparison.annualCost)}</strong> per year for the same commute —{' '}
+                  {results.comparison.annualCost > results.annualCost
+                    ? `${formatCurrency(results.comparison.annualCost - results.annualCost)} more than your electric car.`
+                    : `${formatCurrency(results.annualCost - results.comparison.annualCost)} less per year.`}
+                </>
+              )}
+            </div>
+
+            {/* Shareable link */}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all border"
+                style={{
+                  background: copied ? '#f0fdf4' : 'white',
+                  borderColor: copied ? '#86efac' : '#e5e7eb',
+                  color: copied ? '#166534' : '#1a3668',
+                }}
+              >
+                <Link2 className="w-4 h-4" />
+                {copied ? 'Link copied!' : 'Copy shareable link'}
+              </button>
+              <p className="text-xs text-gray-400">Share pre-filled results with a candidate</p>
+            </div>
+
             {/* Attribution */}
-            <p className="mt-4 text-xs text-gray-400 leading-relaxed">
-              Fuel prices: DESNZ gov.uk | Distances: OpenStreetMap contributors (ODbL)
+            <p className="text-xs text-gray-400">
+              Fuel prices: DESNZ gov.uk · Vehicle data: VCA (Open Government Licence) · Distances: OpenStreetMap contributors (ODbL)
             </p>
           </div>
         )}
@@ -645,17 +694,21 @@ export default function CommutePage() {
         <div className="mt-10 pt-6 border-t border-gray-100 text-center">
           <p className="text-xs text-gray-400">
             Powered by{' '}
-            <a
-              href="https://www.aaronwallis.co.uk"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#1a3668] hover:text-[#df2681] underline underline-offset-2 transition-colors"
-            >
+            <a href="https://www.aaronwallis.co.uk" target="_blank" rel="noopener noreferrer"
+              className="text-[#1a3668] hover:text-[#df2681] underline underline-offset-2 transition-colors font-medium">
               Aaron Wallis Sales Recruitment
             </a>
           </p>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CommutePage() {
+  return (
+    <Suspense>
+      <CommutePageInner />
+    </Suspense>
   );
 }
