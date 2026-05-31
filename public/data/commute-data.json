@@ -7,6 +7,13 @@
     "fuel": "DESNZ Weekly Road Fuel Prices (gov.uk)",
     "electricity": "Ofgem Electricity Price Cap Q2 2025"
   },
+  "hmrc": {
+    "firstTierRatePence": 55,
+    "secondTierRatePence": 25,
+    "firstTierMiles": 10000,
+    "taxYear": "2025/26",
+    "source": "https://www.gov.uk/government/publications/rates-and-allowances-travel-mileage-and-fuel-allowances/travel-mileage-and-fuel-rates-and-allowances"
+  },
   "comparison": {
     "petrol": {
       "make": "Mini",

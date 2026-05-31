@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import dynamic from 'next/dynamic';
-import { Loader2, Car, Zap, Fuel, Link2, Leaf } from 'lucide-react';
+import { Loader2, Car, Zap, Fuel, Link2, Leaf, Receipt } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 const CommuteMap = dynamic(() => import('@/components/commute-map'), { ssr: false });
@@ -22,6 +22,12 @@ interface CommuteData {
   dieselPricePerLitre: number;
   electricityPricePerKwh: number;
   lastUpdated: string;
+  hmrc: {
+    firstTierRatePence: number;
+    secondTierRatePence: number;
+    firstTierMiles: number;
+    taxYear: string;
+  };
   comparison: {
     petrol: { make: string; model: string; label: string; mpg: number };
     ev: { make: string; model: string; label: string; whpm: number };
@@ -31,6 +37,17 @@ interface CommuteData {
 interface RouteGeometry {
   type: 'LineString';
   coordinates: [number, number][];
+}
+
+interface HmrcCalc {
+  annualMiles: number;
+  hmrcAnnual: number;
+  firstTierMiles: number;
+  secondTierMiles: number;
+  firstTierPence: number;
+  secondTierPence: number;
+  taxYear: string;
+  difference: number;
 }
 
 interface Results {
@@ -43,6 +60,7 @@ interface Results {
   homeLatLng: [number, number];
   workLatLng: [number, number];
   routeGeometry: RouteGeometry;
+  hmrc: HmrcCalc;
   comparison: {
     weeklyCost: number;
     monthlyCost: number;
@@ -250,6 +268,26 @@ function CommutePageInner() {
 
       const monthlyCost = weeklyCost * 52 / 12;
       const annualCost = weeklyCost * 52;
+      const annualMiles = weeklyMiles * 52;
+
+      // HMRC mileage rate calculation
+      const hmrcData = commuteData!.hmrc;
+      const firstRate = hmrcData.firstTierRatePence / 100;
+      const secondRate = hmrcData.secondTierRatePence / 100;
+      const threshold = hmrcData.firstTierMiles;
+      const firstTierMiles = Math.min(annualMiles, threshold);
+      const secondTierMiles = Math.max(0, annualMiles - threshold);
+      const hmrcAnnual = firstTierMiles * firstRate + secondTierMiles * secondRate;
+      const hmrc: HmrcCalc = {
+        annualMiles,
+        hmrcAnnual,
+        firstTierMiles,
+        secondTierMiles,
+        firstTierPence: hmrcData.firstTierRatePence,
+        secondTierPence: hmrcData.secondTierRatePence,
+        taxYear: hmrcData.taxYear,
+        difference: hmrcAnnual - annualCost,
+      };
 
       // Smart comparison: petrol/diesel users → show EV; EV users → show petrol
       let comparison: Results['comparison'];
@@ -287,6 +325,7 @@ function CommutePageInner() {
         homeLatLng,
         workLatLng,
         routeGeometry,
+        hmrc,
         comparison,
       });
 
@@ -663,6 +702,68 @@ function CommutePageInner() {
                     : `${formatCurrency(results.annualCost - results.comparison.annualCost)} less per year.`}
                 </>
               )}
+            </div>
+
+            {/* HMRC mileage rate callout */}
+            <div className="rounded-xl border border-[#1a3668]/20 overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3" style={{ background: '#1a3668' }}>
+                <Receipt className="w-4 h-4 text-white/80 shrink-0" />
+                <span className="text-sm font-semibold text-white">
+                  HMRC Approved Mileage Rate ({results.hmrc.taxYear})
+                </span>
+                <span className="ml-auto text-xs text-white/60 font-normal">
+                  Updated {results.hmrc.taxYear}
+                </span>
+              </div>
+              <div className="bg-white px-4 py-4 space-y-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                  <div className="rounded-lg bg-gray-50 px-3 py-2.5">
+                    <div className="text-xs text-gray-400 mb-0.5">Annual miles</div>
+                    <div className="font-bold text-[#1a3668]">{Math.round(results.hmrc.annualMiles).toLocaleString()}</div>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 px-3 py-2.5">
+                    <div className="text-xs text-gray-400 mb-0.5">Rate (first {results.hmrc.firstTierMiles.toLocaleString()} mi)</div>
+                    <div className="font-bold text-[#1a3668]">{results.hmrc.firstTierPence}p/mile</div>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 px-3 py-2.5">
+                    <div className="text-xs text-gray-400 mb-0.5">Rate (after {results.hmrc.firstTierMiles.toLocaleString()} mi)</div>
+                    <div className="font-bold text-[#1a3668]">{results.hmrc.secondTierPence}p/mile</div>
+                  </div>
+                  <div className="rounded-lg px-3 py-2.5" style={{ background: results.hmrc.difference >= 0 ? '#f0fdf4' : '#fff0f6' }}>
+                    <div className="text-xs mb-0.5" style={{ color: results.hmrc.difference >= 0 ? '#166534' : '#9d174d' }}>
+                      HMRC annual value
+                    </div>
+                    <div className="font-bold" style={{ color: results.hmrc.difference >= 0 ? '#166534' : '#9d174d' }}>
+                      {formatCurrency(results.hmrc.hmrcAnnual)}
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  {results.hmrc.difference >= 0 ? (
+                    <>
+                      At the HMRC approved rate, an employer could reimburse{' '}
+                      <strong className="text-[#1a3668]">{formatCurrency(results.hmrc.hmrcAnnual)}</strong> per year for these miles —
+                      {' '}<strong className="text-green-700">{formatCurrency(results.hmrc.difference)} more</strong> than your actual fuel cost.
+                      {results.hmrc.secondTierMiles > 0 && (
+                        <> The first {results.hmrc.firstTierMiles.toLocaleString()} miles are at {results.hmrc.firstTierPence}p; the remaining {Math.round(results.hmrc.secondTierMiles).toLocaleString()} miles at {results.hmrc.secondTierPence}p.</>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      At the HMRC approved rate, an employer could reimburse{' '}
+                      <strong className="text-[#1a3668]">{formatCurrency(results.hmrc.hmrcAnnual)}</strong> per year for these miles —
+                      {' '}your actual fuel cost is{' '}
+                      <strong style={{ color: '#df2681' }}>{formatCurrency(Math.abs(results.hmrc.difference))} more</strong> than the HMRC rate covers.
+                    </>
+                  )}
+                  {' '}HMRC mileage rates apply to business travel — not ordinary commuting — but are a useful benchmark when negotiating a car or mileage allowance.{' '}
+                  <a href="https://www.gov.uk/government/publications/rates-and-allowances-travel-mileage-and-fuel-allowances/travel-mileage-and-fuel-rates-and-allowances"
+                    target="_blank" rel="noopener noreferrer"
+                    className="text-[#1a3668] underline underline-offset-2 hover:text-[#df2681]">
+                    HMRC rates guidance ↗
+                  </a>
+                </p>
+              </div>
             </div>
 
             {/* Shareable link */}
