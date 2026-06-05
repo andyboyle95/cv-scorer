@@ -11,11 +11,18 @@ const nextConfig: NextConfig = {
     ],
   },
   async headers() {
+    // Allow these tools to be embedded via <iframe> on the Aaron Wallis site.
     return [
       {
-        source: '/commute',
+        source: "/commute",
         headers: [
-          { key: 'Content-Security-Policy', value: "frame-ancestors *" },
+          { key: "Content-Security-Policy", value: "frame-ancestors *" },
+        ],
+      },
+      {
+        source: "/job-spec",
+        headers: [
+          { key: "Content-Security-Policy", value: "frame-ancestors *" },
         ],
       },
     ];
