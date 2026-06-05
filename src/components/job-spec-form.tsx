@@ -120,9 +120,15 @@ const STEPS: { fields: (keyof JobSpecFormData)[] }[] = [
 interface JobSpecFormProps {
   onSubmit: (data: JobSpecFormData) => void;
   submitting?: boolean;
+  /** Pre-fill the wizard (used when returning to "Edit answers"). */
+  initialValues?: JobSpecFormData;
 }
 
-export function JobSpecForm({ onSubmit, submitting }: JobSpecFormProps) {
+export function JobSpecForm({
+  onSubmit,
+  submitting,
+  initialValues,
+}: JobSpecFormProps) {
   const [step, setStep] = useState(0);
 
   const [showTest, setShowTest] = useState(false);
@@ -145,7 +151,7 @@ export function JobSpecForm({ onSubmit, submitting }: JobSpecFormProps) {
   } = useForm<JobSpecFormData>({
     resolver: zodResolver(schema),
     mode: "onTouched",
-    defaultValues: {
+    defaultValues: initialValues ?? {
       jobTitle: "",
       industry: "",
       workingArrangement: "",

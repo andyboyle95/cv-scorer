@@ -1,9 +1,15 @@
 "use client";
 
-// Job Spec Editor — two-panel "edit + live A4 preview" experience matching
-// the CV Generator pattern. The right-hand .spec-page divs are captured by
-// jsPDF + html2canvas on download, and the same template is used by
-// window.print() for the browser "Print to PDF" path.
+// Job Spec Editor — two-panel "edit + live A4 preview" experience.
+//
+// Two ways to edit:
+//  1. Edit the INPUTS — "Edit answers" returns to the wizard pre-filled so you
+//     can change the brief and regenerate the whole spec.
+//  2. Edit the OUTPUT — each section is a single clean textarea (one bullet per
+//     line for lists), with a per-section "Regenerate" AI button.
+//
+// The right-hand .spec-page is captured by jsPDF + html2canvas on download, and
+// the same template drives window.print() for the "Print to PDF" path.
 
 import { useRef, useState } from "react";
 import Image from "next/image";
@@ -12,14 +18,16 @@ import {
   ArrowLeft,
   FileDown,
   Loader2,
-  Plus,
+  Pencil,
   RotateCcw,
-  Trash2,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
 import { Textarea } from "@/ui/textarea";
 import type { GeneratedJobSpec } from "@/lib/job-spec-schema";
+import type { JobSpecFormData } from "@/components/job-spec-form";
+import type { SpecSection } from "@/lib/job-spec-prompts";
 
 // ---------------------------------------------------------------------------
 // Editable model
@@ -43,14 +51,47 @@ interface EditableSpec {
 
 interface JobSpecEditorProps {
   spec: GeneratedJobSpec;
-  jobTitle: string;
-  companyUrl: string;
-  preparedBy: string;
+  answers: JobSpecFormData;
   onRestart: () => void;
+  onEditAnswers: () => void;
 }
 
-// Strip "www." and the TLD, then title-case the leftmost label so the user
-// gets a sensible default company name from their URL.
+// Render order + metadata for the editable output sections. Keys map 1:1 to
+// both EditableSpec and the server's SpecSection union.
+const SECTIONS: {
+  key: SpecSection;
+  title: string;
+  type: "prose" | "list";
+  placeholder?: string;
+}[] = [
+  { key: "openingStatement", title: "Opening Statement", type: "prose" },
+  { key: "roleOverview", title: "The Role", type: "prose" },
+  {
+    key: "keyResponsibilities",
+    title: "Key Responsibilities",
+    type: "list",
+    placeholder: "Manage the end-to-end sales cycle from prospect to close",
+  },
+  {
+    key: "experienceAndSkills",
+    title: "Experience & Skills",
+    type: "list",
+    placeholder: "5+ years B2B field sales experience",
+  },
+  { key: "desirable", title: "Desirable", type: "list", placeholder: "Optional nice-to-have" },
+  { key: "behaviouralSummary", title: "Behavioural Summary", type: "prose" },
+  { key: "discProfile", title: "DiSC Profile", type: "prose" },
+  { key: "keyBehaviours", title: "Key Behaviours", type: "list", placeholder: "Resilient under pressure" },
+  {
+    key: "motivationalDrivers",
+    title: "What Motivates Them",
+    type: "list",
+    placeholder: "Uncapped commission and clear progression",
+  },
+  { key: "watchOuts", title: "Watch-Outs", type: "list", placeholder: "Personality types that would struggle" },
+];
+
+// Strip protocol/"www."/TLD, then title-case → a sensible default company name.
 function companyFromUrl(url: string): string {
   if (!url) return "";
   const host = url
@@ -59,22 +100,18 @@ function companyFromUrl(url: string): string {
     .replace(/^www\./i, "")
     .split(/[\/?#]/)[0];
   const label = host.split(".")[0];
-  return label
-    .replace(/[-_]+/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return label.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function initFromSpec(
   spec: GeneratedJobSpec,
-  jobTitle: string,
-  companyUrl: string,
-  preparedBy: string
+  answers: JobSpecFormData
 ): EditableSpec {
   return {
-    jobTitle: spec.job_spec.job_title || jobTitle,
-    companyName: companyFromUrl(companyUrl),
+    jobTitle: spec.job_spec.job_title || answers.jobTitle,
+    companyName: companyFromUrl(answers.companyUrl),
     preparedDate: new Date().toLocaleDateString("en-GB"),
-    preparedBy,
+    preparedBy: answers.name,
     openingStatement: spec.opening_statement ?? "",
     roleOverview: spec.job_spec.role_overview ?? "",
     keyResponsibilities: [...(spec.job_spec.key_responsibilities ?? [])],
@@ -88,48 +125,54 @@ function initFromSpec(
   };
 }
 
-// Keys that hold string[] lists — typed helper so updates stay safe.
-type ListKey =
-  | "keyResponsibilities"
-  | "experienceAndSkills"
-  | "desirable"
-  | "keyBehaviours"
-  | "motivationalDrivers"
-  | "watchOuts";
-
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 export function JobSpecEditor({
   spec,
-  jobTitle,
-  companyUrl,
-  preparedBy,
+  answers,
   onRestart,
+  onEditAnswers,
 }: JobSpecEditorProps) {
   const [data, setData] = useState<EditableSpec>(() =>
-    initFromSpec(spec, jobTitle, companyUrl, preparedBy)
+    initFromSpec(spec, answers)
   );
   const [downloading, setDownloading] = useState(false);
+  const [regenSection, setRegenSection] = useState<SpecSection | null>(null);
   const previewWrapperRef = useRef<HTMLDivElement>(null);
 
-  const update = <K extends keyof EditableSpec>(key: K, value: EditableSpec[K]) =>
-    setData((d) => ({ ...d, [key]: value }));
+  const update = <K extends keyof EditableSpec>(
+    key: K,
+    value: EditableSpec[K]
+  ) => setData((d) => ({ ...d, [key]: value }));
 
-  const updateListItem = (key: ListKey, idx: number, value: string) =>
-    setData((d) => {
-      const next = [...d[key]];
-      next[idx] = value;
-      return { ...d, [key]: next };
-    });
+  // ── Per-section AI regeneration ────────────────────────────────────────
+  const regenerate = async (section: SpecSection) => {
+    setRegenSection(section);
+    try {
+      const res = await fetch("/api/regenerate-job-spec", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers, section }),
+      });
+      if (!res.ok) {
+        const { error } = await res.json().catch(() => ({}));
+        throw new Error(error ?? "Regeneration failed");
+      }
+      const json: { content?: string; items?: string[] } = await res.json();
+      setData((d) => ({
+        ...d,
+        [section]: json.items ?? json.content ?? d[section],
+      }));
+    } catch (err) {
+      console.error("[job-spec] regenerate failed:", err);
+      alert("Sorry — couldn't regenerate that section. Please try again.");
+    } finally {
+      setRegenSection(null);
+    }
+  };
 
-  const addListItem = (key: ListKey) =>
-    setData((d) => ({ ...d, [key]: [...d[key], ""] }));
-
-  const removeListItem = (key: ListKey, idx: number) =>
-    setData((d) => ({ ...d, [key]: d[key].filter((_, i) => i !== idx) }));
-
-  // ── PDF download (mirrors the CV generator's pattern) ──────────────────
+  // ── PDF download (mirrors the CV generator's pipeline) ─────────────────
   const handleDownload = async () => {
     setDownloading(true);
     try {
@@ -156,9 +199,7 @@ export function JobSpecEditor({
           backgroundColor: "#ffffff",
         });
 
-        const a4HeightPx = Math.round(
-          canvas.width * (pdfHeightMm / pdfWidthMm)
-        );
+        const a4HeightPx = Math.round(canvas.width * (pdfHeightMm / pdfWidthMm));
         let yOffset = 0;
 
         while (yOffset < canvas.height) {
@@ -193,11 +234,7 @@ export function JobSpecEditor({
         }
       }
 
-      const slug = (data.jobTitle || "job-spec")
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "");
-      pdf!.save(`${slug}-job-spec.pdf`);
+      pdf!.save(`${slug(data.jobTitle)}-job-spec.pdf`);
     } catch (err) {
       console.error("[job-spec] PDF download failed:", err);
       alert("Sorry — PDF download failed. Please try again or use Print to PDF.");
@@ -207,23 +244,17 @@ export function JobSpecEditor({
   };
 
   const handlePrint = () => {
-    const slug =
-      (data.jobTitle || "job-spec")
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "") + "-job-spec";
     const prev = document.title;
-    document.title = slug;
+    document.title = `${slug(data.jobTitle)}-job-spec`;
     window.print();
     setTimeout(() => {
       document.title = prev;
     }, 1500);
   };
 
-  // ── Render ────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────────
   return (
     <>
-      {/* Screen UI (hidden on print) */}
       <div className="min-h-screen bg-[#F7F7F7] flex flex-col print:hidden">
         {/* Toolbar */}
         <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3 shadow-sm sticky top-0 z-20">
@@ -240,6 +271,16 @@ export function JobSpecEditor({
             </span>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onEditAnswers}
+              className="text-xs gap-1.5"
+              title="Go back to the questionnaire to change your inputs and regenerate"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Edit answers
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -281,7 +322,24 @@ export function JobSpecEditor({
         <div className="flex flex-1 flex-col lg:flex-row overflow-hidden">
           {/* LEFT: editable form */}
           <div className="w-full lg:w-[460px] shrink-0 bg-white border-r border-gray-200 overflow-y-auto">
-            <FormSection title="Heading">
+            {/* Inputs hint */}
+            <div className="px-5 py-3 bg-pink-50/60 border-b border-pink-100 text-[11px] text-gray-600 leading-relaxed">
+              Want to change the role itself?{" "}
+              <button
+                onClick={onEditAnswers}
+                className="font-semibold text-[#df2681] underline underline-offset-2"
+              >
+                Edit your answers
+              </button>{" "}
+              to regenerate from your brief. Or fine-tune the wording of any
+              section below.
+            </div>
+
+            {/* Heading fields */}
+            <div className="px-5 py-4 border-b border-gray-100 space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-[#1a3668]">
+                Heading
+              </h3>
               <Field label="Job Title">
                 <Input
                   value={data.jobTitle}
@@ -313,98 +371,22 @@ export function JobSpecEditor({
                   />
                 </Field>
               </div>
-            </FormSection>
-
-            <FormSection title="Opening Statement">
-              <Textarea
-                value={data.openingStatement}
-                onChange={(e) => update("openingStatement", e.target.value)}
-                className="min-h-[110px] text-sm"
-              />
-            </FormSection>
-
-            <FormSection title="The Role">
-              <Textarea
-                value={data.roleOverview}
-                onChange={(e) => update("roleOverview", e.target.value)}
-                className="min-h-[110px] text-sm"
-              />
-            </FormSection>
-
-            <ListEditor
-              title="Key Responsibilities"
-              items={data.keyResponsibilities}
-              onUpdate={(idx, v) => updateListItem("keyResponsibilities", idx, v)}
-              onAdd={() => addListItem("keyResponsibilities")}
-              onRemove={(idx) => removeListItem("keyResponsibilities", idx)}
-              placeholder="e.g. Manage end-to-end sales cycle from prospect to close"
-            />
-
-            <ListEditor
-              title="Experience & Skills"
-              items={data.experienceAndSkills}
-              onUpdate={(idx, v) => updateListItem("experienceAndSkills", idx, v)}
-              onAdd={() => addListItem("experienceAndSkills")}
-              onRemove={(idx) => removeListItem("experienceAndSkills", idx)}
-              placeholder="e.g. 5+ years B2B field sales experience"
-            />
-
-            <ListEditor
-              title="Desirable"
-              items={data.desirable}
-              onUpdate={(idx, v) => updateListItem("desirable", idx, v)}
-              onAdd={() => addListItem("desirable")}
-              onRemove={(idx) => removeListItem("desirable", idx)}
-              placeholder="Optional nice-to-have…"
-            />
-
-            <FormSection title="Behavioural Summary">
-              <Textarea
-                value={data.behaviouralSummary}
-                onChange={(e) => update("behaviouralSummary", e.target.value)}
-                className="min-h-[110px] text-sm"
-              />
-            </FormSection>
-
-            <FormSection title="DiSC Profile">
-              <Textarea
-                value={data.discProfile}
-                onChange={(e) => update("discProfile", e.target.value)}
-                className="min-h-[90px] text-sm"
-              />
-            </FormSection>
-
-            <ListEditor
-              title="Key Behaviours"
-              items={data.keyBehaviours}
-              onUpdate={(idx, v) => updateListItem("keyBehaviours", idx, v)}
-              onAdd={() => addListItem("keyBehaviours")}
-              onRemove={(idx) => removeListItem("keyBehaviours", idx)}
-              placeholder="e.g. Resilient under pressure"
-            />
-
-            <ListEditor
-              title="What Motivates Them"
-              items={data.motivationalDrivers}
-              onUpdate={(idx, v) => updateListItem("motivationalDrivers", idx, v)}
-              onAdd={() => addListItem("motivationalDrivers")}
-              onRemove={(idx) => removeListItem("motivationalDrivers", idx)}
-              placeholder="e.g. Uncapped commission and clear progression"
-            />
-
-            <ListEditor
-              title="Watch-Outs"
-              items={data.watchOuts}
-              onUpdate={(idx, v) => updateListItem("watchOuts", idx, v)}
-              onAdd={() => addListItem("watchOuts")}
-              onRemove={(idx) => removeListItem("watchOuts", idx)}
-              placeholder="Personality types that would struggle…"
-            />
-
-            <div className="px-5 py-6 text-[11px] text-gray-400 leading-relaxed border-t border-gray-100">
-              Edits apply live to the preview on the right. Use Download PDF
-              for a pixel-perfect Aaron Wallis branded export.
             </div>
+
+            {/* Output sections */}
+            {SECTIONS.map((s) => (
+              <SectionEditor
+                key={s.key}
+                title={s.title}
+                type={s.type}
+                placeholder={s.placeholder}
+                value={data[s.key]}
+                onChange={(v) => update(s.key, v as EditableSpec[typeof s.key])}
+                onRegenerate={() => regenerate(s.key)}
+                regenerating={regenSection === s.key}
+                disabled={regenSection !== null}
+              />
+            ))}
           </div>
 
           {/* RIGHT: live A4 preview */}
@@ -424,6 +406,90 @@ export function JobSpecEditor({
         <SpecPreview data={data} />
       </div>
     </>
+  );
+}
+
+function slug(s: string): string {
+  return (
+    (s || "job-spec").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") ||
+    "job-spec"
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Section editor — one textarea per section (one bullet per line for lists)
+// ---------------------------------------------------------------------------
+function SectionEditor({
+  title,
+  type,
+  value,
+  placeholder,
+  onChange,
+  onRegenerate,
+  regenerating,
+  disabled,
+}: {
+  title: string;
+  type: "prose" | "list";
+  value: string | string[];
+  placeholder?: string;
+  onChange: (value: string | string[]) => void;
+  onRegenerate: () => void;
+  regenerating: boolean;
+  disabled: boolean;
+}) {
+  const isList = type === "list";
+  const text = isList ? (value as string[]).join("\n") : (value as string);
+
+  return (
+    <div className="px-5 py-4 border-b border-gray-100 space-y-2">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-[#1a3668]">
+          {title}
+        </h3>
+        <button
+          type="button"
+          onClick={onRegenerate}
+          disabled={disabled}
+          title="Regenerate this section with AI"
+          className="flex items-center gap-1 text-[11px] font-semibold text-[#df2681] hover:text-[#c01f6e] disabled:opacity-40"
+        >
+          {regenerating ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Sparkles className="h-3.5 w-3.5" />
+          )}
+          {regenerating ? "Writing…" : "Regenerate"}
+        </button>
+      </div>
+      {isList && (
+        <p className="text-[10px] text-gray-400">One item per line</p>
+      )}
+      <Textarea
+        value={text}
+        onChange={(e) =>
+          onChange(isList ? e.target.value.split("\n") : e.target.value)
+        }
+        placeholder={placeholder}
+        rows={isList ? Math.max(4, (value as string[]).length + 1) : 4}
+        className="text-sm"
+      />
+    </div>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block space-y-1">
+      <span className="text-[11px] font-medium text-gray-500">{label}</span>
+      {children}
+    </label>
   );
 }
 
@@ -705,95 +771,5 @@ function Bullets({ items }: { items: string[] }) {
         </li>
       ))}
     </ul>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Form helpers
-// ---------------------------------------------------------------------------
-function FormSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="px-5 py-4 border-b border-gray-100 space-y-3">
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-[#1a3668]">
-        {title}
-      </h3>
-      {children}
-    </div>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block space-y-1">
-      <span className="text-[11px] font-medium text-gray-500">{label}</span>
-      {children}
-    </label>
-  );
-}
-
-function ListEditor({
-  title,
-  items,
-  onUpdate,
-  onAdd,
-  onRemove,
-  placeholder,
-}: {
-  title: string;
-  items: string[];
-  onUpdate: (idx: number, value: string) => void;
-  onAdd: () => void;
-  onRemove: (idx: number) => void;
-  placeholder?: string;
-}) {
-  return (
-    <FormSection title={title}>
-      <div className="space-y-2">
-        {items.length === 0 && (
-          <p className="text-[11px] text-gray-400 italic">No items yet.</p>
-        )}
-        {items.map((item, idx) => (
-          <div key={idx} className="flex items-start gap-2">
-            <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[#df2681] shrink-0" />
-            <Textarea
-              value={item}
-              onChange={(e) => onUpdate(idx, e.target.value)}
-              placeholder={placeholder}
-              rows={2}
-              className="text-sm min-h-[44px] flex-1"
-            />
-            <button
-              type="button"
-              onClick={() => onRemove(idx)}
-              aria-label={`Remove ${title.toLowerCase()} item ${idx + 1}`}
-              className="text-gray-300 hover:text-red-500 p-1 mt-1"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        ))}
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={onAdd}
-          className="w-full gap-1.5 text-xs"
-        >
-          <Plus className="h-3.5 w-3.5" /> Add item
-        </Button>
-      </div>
-    </FormSection>
   );
 }

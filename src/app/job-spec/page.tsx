@@ -47,15 +47,21 @@ export default function JobSpecPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // Back to the wizard, keeping the answers so they can be tweaked & re-run.
+  const handleEditAnswers = () => {
+    setSpec(null);
+    setError("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   // Editor mode — full-screen layout (no surrounding padding/header).
   if (spec && answers) {
     return (
       <JobSpecEditor
         spec={spec}
-        jobTitle={answers.jobTitle}
-        companyUrl={answers.companyUrl}
-        preparedBy={answers.name}
+        answers={answers}
         onRestart={handleRestart}
+        onEditAnswers={handleEditAnswers}
       />
     );
   }
@@ -80,7 +86,11 @@ export default function JobSpecPage() {
         </div>
       )}
 
-      <JobSpecForm onSubmit={handleSubmit} submitting={submitting} />
+      <JobSpecForm
+        onSubmit={handleSubmit}
+        submitting={submitting}
+        initialValues={answers ?? undefined}
+      />
     </div>
   );
 }
