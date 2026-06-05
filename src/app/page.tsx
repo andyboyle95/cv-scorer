@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { FileSearch, FileText, MessageSquare, Car, ArrowRight } from "lucide-react";
+import { FileSearch, FileText, MessageSquare, Car, ClipboardList, ArrowRight } from "lucide-react";
 
 export default function Home() {
   const router = useRouter();
@@ -15,6 +15,7 @@ export default function Home() {
     router.prefetch('/generate');
     router.prefetch('/interview');
     router.prefetch('/commute');
+    router.prefetch('/job-spec');
   }, [router]);
 
   return (
@@ -44,7 +45,7 @@ export default function Home() {
           <p className="text-gray-500 text-base">Choose a tool to get started</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl">
 
           {/* CV Scorer */}
           <Link
@@ -62,6 +63,26 @@ export default function Home() {
               </p>
             </div>
             <span className="mt-auto flex items-center gap-1 text-sm font-semibold text-[#df2681] group-hover:gap-2 transition-all">
+              Open tool <ArrowRight className="w-4 h-4" />
+            </span>
+          </Link>
+
+          {/* Job Spec Creator */}
+          <Link
+            href="/job-spec"
+            prefetch={true}
+            className="group bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:border-purple-500/40 transition-all p-8 flex flex-col items-start gap-4 text-left"
+          >
+            <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center group-hover:bg-purple-500/20 transition-colors">
+              <ClipboardList className="w-6 h-6 text-purple-600" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-[#1a3668] mb-1">Job Spec Creator</h2>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                Answer a few questions to instantly generate a tailored job spec and person spec for a sales role.
+              </p>
+            </div>
+            <span className="mt-auto flex items-center gap-1 text-sm font-semibold text-purple-600 group-hover:gap-2 transition-all">
               Open tool <ArrowRight className="w-4 h-4" />
             </span>
           </Link>
