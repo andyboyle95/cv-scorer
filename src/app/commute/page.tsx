@@ -152,9 +152,9 @@ function CommutePageInner() {
   // Sync fuel price when fuelType changes
   useEffect(() => {
     if (!commuteData || !fuelType) return;
-    if (fuelType === 'Petrol') setFuelPrice(commuteData.petrolPricePerLitre.toString());
-    else if (fuelType === 'Diesel') setFuelPrice(commuteData.dieselPricePerLitre.toString());
-    else if (fuelType === 'Electric') setFuelPrice(commuteData.electricityPricePerKwh.toString());
+    if (fuelType === 'Petrol') setFuelPrice(commuteData.petrolPricePerLitre.toFixed(2));
+    else if (fuelType === 'Diesel') setFuelPrice(commuteData.dieselPricePerLitre.toFixed(2));
+    else if (fuelType === 'Electric') setFuelPrice(commuteData.electricityPricePerKwh.toFixed(2));
   }, [fuelType, commuteData]);
 
   // Car suggestions
@@ -790,7 +790,6 @@ function CommutePageInner() {
                 <Link2 className="w-4 h-4" />
                 {copied ? 'Link copied!' : 'Copy shareable link'}
               </button>
-              <p className="text-xs text-gray-400">Share pre-filled results with a candidate</p>
             </div>
 
             {/* Attribution */}
