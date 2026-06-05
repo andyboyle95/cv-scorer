@@ -10,7 +10,7 @@ import {
 } from "./job-spec-schema";
 import type { JobSpecAnswers } from "./job-spec-config";
 
-const client = new Anthropic();
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export async function generateJobSpec(
   answers: JobSpecAnswers,

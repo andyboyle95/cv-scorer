@@ -28,19 +28,37 @@ const answersSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.error("[generate-job-spec] ANTHROPIC_API_KEY is not set");
+    return NextResponse.json(
+      {
+        error:
+          "The job spec service is not configured yet. Please try again later.",
+      },
+      { status: 503 }
+    );
+  }
+
   let answers: JobSpecAnswers;
   try {
     const body = await req.json();
     answers = answersSchema.parse(body) as JobSpecAnswers;
   } catch {
     return NextResponse.json(
-      { error: "Please complete all required fields." },
+      { error: "Some answers are missing or invalid. Please review the form and try again." },
       { status: 400 }
     );
   }
 
   try {
-    const websiteContent = await fetchWebsiteText(answers.companyUrl);
+    // Website fetch is best-effort and must never break generation.
+    let websiteContent = "";
+    try {
+      websiteContent = await fetchWebsiteText(answers.companyUrl);
+    } catch (err) {
+      console.error("[generate-job-spec] website fetch failed:", err);
+    }
+
     const spec = await generateJobSpec(answers, websiteContent);
 
     // Capture the lead — best effort, never blocks the user's result.
@@ -50,9 +68,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(spec);
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Failed to generate job spec";
     console.error("[generate-job-spec] Error:", err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      {
+        error:
+          "Sorry — we couldn't generate your job spec just now. Please try again in a moment.",
+      },
+      { status: 500 }
+    );
   }
 }

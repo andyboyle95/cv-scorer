@@ -30,6 +30,7 @@ export default function JobSpecPage() {
       setError(
         err instanceof Error ? err.message : "Something went wrong. Please try again."
       );
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setSubmitting(false);
     }

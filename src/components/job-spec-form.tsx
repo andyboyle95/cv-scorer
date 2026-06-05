@@ -57,6 +57,16 @@ const defaultQualities = PERSONAL_QUALITIES.reduce(
   {} as Record<string, number>
 );
 
+// Word + colour for each importance level (index by slider value 1–5).
+const IMPORTANCE = [
+  null,
+  { word: "Unimportant", className: "bg-gray-100 text-gray-500" },
+  { word: "Minor", className: "bg-sky-100 text-sky-700" },
+  { word: "Moderate", className: "bg-blue-100 text-blue-700" },
+  { word: "Important", className: "bg-pink-100 text-[#df2681]" },
+  { word: "Critical", className: "bg-[#df2681] text-white" },
+] as const;
+
 // Each step lists the field name(s) to validate before advancing.
 const STEPS: { fields: (keyof JobSpecFormData)[] }[] = [
   { fields: ["jobTitle"] },
@@ -124,9 +134,19 @@ export function JobSpecForm({ onSubmit, submitting }: JobSpecFormProps) {
 
   const back = () => setStep((s) => Math.max(s - 1, 0));
 
+  // If the final submit fails validation, jump to the first step that has an
+  // error so the user can see and fix it (instead of nothing happening).
+  const goToFirstError = (formErrors: typeof errors) => {
+    const erroredKeys = Object.keys(formErrors);
+    const target = STEPS.findIndex((s) =>
+      s.fields.some((f) => erroredKeys.includes(f as string))
+    );
+    if (target >= 0) setStep(target);
+  };
+
   return (
     <form
-      onSubmit={handleSubmit(onSubmit)}
+      onSubmit={handleSubmit(onSubmit, goToFirstError)}
       className="w-full max-w-2xl mx-auto"
       onKeyDown={(e) => {
         // Prevent Enter from submitting early on intermediate steps.
@@ -319,33 +339,65 @@ function StepContent({ step, register, control, errors }: StepProps) {
       return (
         <Question
           title="Personal qualities"
-          subtitle="How important is each quality for this role? Unimportant (1) to Critical (5)."
+          subtitle="How important is each quality for the ideal candidate? Drag each slider from Unimportant to Critical."
         >
-          <div className="space-y-5 mt-2">
+          {/* Scale legend */}
+          <div className="flex items-center justify-between text-[11px] font-medium text-gray-400 mb-6 px-0.5">
+            <span>1 · Unimportant</span>
+            <span className="hidden sm:inline">3 · Moderate</span>
+            <span>5 · Critical</span>
+          </div>
+
+          <div className="space-y-6">
             {PERSONAL_QUALITIES.map((q) => (
               <Controller
                 key={q.key}
                 name={`qualities.${q.key}` as const}
                 control={control}
-                render={({ field }) => (
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-[#1a3668]">
-                        {q.label}
-                      </span>
-                      <span className="text-sm font-semibold text-[#df2681] tabular-nums">
-                        {field.value}
-                      </span>
+                render={({ field }) => {
+                  const value = Number(field.value);
+                  const level = IMPORTANCE[value]!;
+                  return (
+                    <div>
+                      <div className="flex items-center justify-between mb-2 gap-3">
+                        <span className="text-sm font-medium text-[#1a3668]">
+                          {q.label}
+                        </span>
+                        <span
+                          className={cn(
+                            "text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap transition-colors",
+                            level.className
+                          )}
+                        >
+                          {level.word}
+                        </span>
+                      </div>
+                      <Slider
+                        min={1}
+                        max={5}
+                        step={1}
+                        value={[value]}
+                        onValueChange={([v]) => field.onChange(v)}
+                        aria-label={`${q.label} importance`}
+                      />
+                      {/* Tick marks */}
+                      <div className="flex justify-between px-0.5 mt-1.5">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <button
+                            key={n}
+                            type="button"
+                            onClick={() => field.onChange(n)}
+                            aria-label={`Set ${q.label} to ${n}`}
+                            className={cn(
+                              "h-1.5 w-1.5 rounded-full transition-colors",
+                              n <= value ? "bg-[#df2681]" : "bg-gray-300"
+                            )}
+                          />
+                        ))}
+                      </div>
                     </div>
-                    <Slider
-                      min={1}
-                      max={5}
-                      step={1}
-                      value={[Number(field.value)]}
-                      onValueChange={([v]) => field.onChange(v)}
-                    />
-                  </div>
-                )}
+                  );
+                }}
               />
             ))}
           </div>
