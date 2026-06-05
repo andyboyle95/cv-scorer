@@ -20,8 +20,13 @@ export async function sendLeadEmail(
   answers: JobSpecAnswers,
   spec: GeneratedJobSpec
 ): Promise<boolean> {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.LEAD_FROM_EMAIL;
+  // Beta fallbacks: prefer Render env vars, but fall back to baked-in values
+  // so lead emails work without dashboard config. Move these into Render's
+  // Environment tab and delete the literals here when ready (then rotate key).
+  const apiKey =
+    process.env.RESEND_API_KEY || "re_E7NwRa2F_AiY9ZHpLCFB7VN7AbpraFG87";
+  const from =
+    process.env.LEAD_FROM_EMAIL || "Job Spec Creator <onboarding@resend.dev>";
   const to =
     process.env.LEAD_NOTIFICATION_EMAIL || "andyboyleaw@gmail.com";
 
