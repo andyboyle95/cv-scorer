@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -57,6 +57,37 @@ const defaultQualities = PERSONAL_QUALITIES.reduce(
   {} as Record<string, number>
 );
 
+// Sample data used by the "Fill test data" button (?test=1 only).
+const PRESET: JobSpecFormData = {
+  jobTitle: "Business Development Manager",
+  industry: "technology",
+  workingArrangement: "hybrid",
+  jobFunction: "f2f-hunter",
+  accountVolume: "none",
+  seniority: "experienced",
+  transactional: "no",
+  sellingInto: "end-users",
+  leadGeneration: "self",
+  qualities: {
+    ...defaultQualities,
+    targetOriented: 5,
+    dominant: 4,
+    autonomous: 5,
+    friendliness: 4,
+    fastPaced: 4,
+    meticulous: 2,
+    compliant: 2,
+  },
+  salesCycle: "medium",
+  orderValue: "10k-50k",
+  pointOfContact: "director",
+  additionalNotes:
+    "Must have experience selling SaaS into financial services. £55k base, £90k OTE, car allowance.",
+  name: "Andy Boyle",
+  email: "andyboyleaw@gmail.com",
+  companyUrl: "www.aaronwallis.co.uk",
+};
+
 // Word + colour for each importance level (index by slider value 1–5).
 const IMPORTANCE = [
   null,
@@ -94,11 +125,22 @@ interface JobSpecFormProps {
 export function JobSpecForm({ onSubmit, submitting }: JobSpecFormProps) {
   const [step, setStep] = useState(0);
 
+  const [showTest, setShowTest] = useState(false);
+
+  // Only expose the test button when the URL has ?test=1 (kept out of the
+  // way of real leads). Done in an effect to avoid a hydration mismatch.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has("test")) {
+      setShowTest(true);
+    }
+  }, []);
+
   const {
     register,
     handleSubmit,
     control,
     trigger,
+    reset,
     formState: { errors },
   } = useForm<JobSpecFormData>({
     resolver: zodResolver(schema),
@@ -134,6 +176,11 @@ export function JobSpecForm({ onSubmit, submitting }: JobSpecFormProps) {
 
   const back = () => setStep((s) => Math.max(s - 1, 0));
 
+  const fillTestData = () => {
+    reset(PRESET);
+    setStep(STEPS.length - 1);
+  };
+
   // If the final submit fails validation, jump to the first step that has an
   // error so the user can see and fix it (instead of nothing happening).
   const goToFirstError = (formErrors: typeof errors) => {
@@ -156,6 +203,17 @@ export function JobSpecForm({ onSubmit, submitting }: JobSpecFormProps) {
         }
       }}
     >
+      {showTest && (
+        <div className="mb-3 flex justify-end">
+          <button
+            type="button"
+            onClick={fillTestData}
+            className="text-xs font-semibold text-[#df2681] border border-[#df2681]/40 rounded-md px-3 py-1.5 hover:bg-pink-50 transition-colors"
+          >
+            Fill test data
+          </button>
+        </div>
+      )}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-[#E2E8F0]">
         {/* Progress bar */}
         <div className="h-1.5 bg-gray-100">
@@ -170,7 +228,10 @@ export function JobSpecForm({ onSubmit, submitting }: JobSpecFormProps) {
             Step {step + 1} of {STEPS.length}
           </p>
 
+          {/* key={step} forces each step to mount fresh so Controllers don't
+              share an instance across steps (which dropped earlier answers). */}
           <StepContent
+            key={step}
             step={step}
             register={register}
             control={control}
@@ -246,20 +307,27 @@ function StepContent({ step, register, control, errors }: StepProps) {
     case 1:
       return (
         <Question title="What industry do you want to recruit for?">
-          <select
-            {...register("industry")}
-            className="flex h-12 w-full rounded-md border border-input bg-white px-3 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            defaultValue=""
-          >
-            <option value="" disabled>
-              Select an industry…
-            </option>
-            {INDUSTRIES.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+          <Controller
+            name="industry"
+            control={control}
+            render={({ field }) => (
+              <select
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                className="flex h-12 w-full rounded-md border border-input bg-white px-3 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="" disabled>
+                  Select an industry…
+                </option>
+                {INDUSTRIES.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            )}
+          />
           <FieldError message={errors.industry?.message} />
         </Question>
       );
