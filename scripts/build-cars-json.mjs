@@ -1,171 +1,155 @@
 /**
  * build-cars-json.mjs
  *
- * Converts the official VCA Car Fuel Data CSV into public/data/cars.json.
+ * Builds public/data/cars.json from official VCA Car Fuel Data CSVs.
  *
- * HOW TO GET THE SOURCE DATA
- * ──────────────────────────
- * 1. Go to https://carfueldata.vehicle-certification-agency.gov.uk/
- * 2. Click "All manufacturers" → leave all filters blank → click Search
- * 3. Click "Download as CSV" at the bottom of the results page
- * 4. Save the file as: scripts/vca-source.csv
- * 5. Run: node scripts/build-cars-json.mjs
+ * DATA SOURCES (Open Government Licence v3.0 — Vehicle Certification Agency)
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Latest (Euro 6 realtime):
+ *   https://carfueldata.vehicle-certification-agency.gov.uk/downloads/download.aspx?rg=latest
+ *   → click the ZIP link → extract → rename to scripts/vca-source-latest.csv
  *
- * The VCA dataset contains ~6,000–8,000 entries covering every new car
- * approved for sale in the UK, including WLTP combined MPG and CO2 g/km.
+ * Annual guides (for historical/discontinued models):
+ *   https://carfueldata.vehicle-certification-agency.gov.uk/downloads/download.aspx?rg=2025
+ *   https://carfueldata.vehicle-certification-agency.gov.uk/downloads/download.aspx?rg=2024
+ *   https://carfueldata.vehicle-certification-agency.gov.uk/downloads/download.aspx?rg=2023
+ *   → download each year's data zip → extract CSV → rename to vca-source-YYYY.csv
  *
- * Data is published under the Open Government Licence v3.0.
- * Source: Vehicle Certification Agency, DVSA / OZEV
+ * Run: node scripts/build-cars-json.mjs
  *
- * COLUMN MAPPING (typical VCA CSV headers)
- * ─────────────────────────────────────────
- * Manufacturer / Description / Engine Size / Fuel Type /
- * Transmission / WLTP Combined (mpg) / WLTP CO2 (g/km) /
- * Electric Range (WLTP miles) / Wh/km
- *
- * Run annually after downloading the latest CSV from VCA.
+ * Latest source takes priority; older years fill in models no longer in the latest data.
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const SOURCE_CSV = resolve(__dirname, 'vca-source.csv');
-const OUTPUT_JSON = resolve(__dirname, '../public/data/cars.json');
+const __dir = dirname(fileURLToPath(import.meta.url));
+const OUT   = resolve(__dir, '../public/data/cars.json');
 
-if (!existsSync(SOURCE_CSV)) {
-  console.error(`\nSource CSV not found: ${SOURCE_CSV}`);
-  console.error(`\nTo download it:`);
-  console.error(`  1. Visit https://carfueldata.vehicle-certification-agency.gov.uk/`);
-  console.error(`  2. Search with no filters → Download as CSV`);
-  console.error(`  3. Save to scripts/vca-source.csv`);
-  console.error(`  4. Re-run: node scripts/build-cars-json.mjs\n`);
-  process.exit(1);
-}
+// Source files in priority order: latest first
+const SOURCES = [
+  { path: resolve(__dir, 'vca-source-latest.csv'), mpgCol: 21, mkwhCol: 10, whkmCol: 11, co2Col: 29, fuelCol: 6 },
+  { path: resolve(__dir, 'vca-source-2025.csv'),   mpgCol: 20, mkwhCol:  9, whkmCol: 10, co2Col: 28, fuelCol: 5 },
+  { path: resolve(__dir, 'vca-source-2024.csv'),   mpgCol: 20, mkwhCol: 12, whkmCol: 13, co2Col: 28, fuelCol: 5 },
+  { path: resolve(__dir, 'vca-source-2023.csv'),   mpgCol: 20, mkwhCol: 12, whkmCol: 13, co2Col: 28, fuelCol: 5 },
+];
 
-const csv = readFileSync(SOURCE_CSV, 'utf8');
-const lines = csv.split('\n').map(l => l.trim()).filter(Boolean);
+const MAKE_FIX = new Map([
+  ['Aston Martin Lagonda', 'Aston Martin'],
+  ['Chrysler Jeep', 'Jeep'],
+  ['Chery Uk Ltd', 'Chery'],
+  ['Gwm', 'GWM'],
+  ['Ineos Automotive Ltd', 'Ineos'],
+  ['Kgm Uk Motors Ltd', 'KGM'],
+  ['Mg Motors Uk', 'MG'],
+  ['Mg Motor Uk', 'MG'],
+  ['Mercedes-Benz', 'Mercedes'],
+  ['Smart Uk Automotive Ltd', 'Smart'],
+  ['Volkswagen', 'VW'],
+  ['Bentley Motors', 'Bentley'],
+  ['Rolls Royce', 'Rolls-Royce'],
+  ['Mini', 'MINI'],
+]);
 
-// Find header row
-const headerLine = lines.findIndex(l =>
-  l.toLowerCase().includes('manufacturer') || l.toLowerCase().includes('make')
-);
-if (headerLine === -1) {
-  console.error('Could not find header row in CSV. Check the file format.');
-  process.exit(1);
-}
-
-const headers = lines[headerLine]
-  .split(',')
-  .map(h => h.replace(/"/g, '').trim().toLowerCase());
-
-console.log('Headers found:', headers.slice(0, 12).join(' | '));
-
-// Column detection (VCA column names vary slightly between releases)
-function col(keywords) {
-  return headers.findIndex(h => keywords.some(k => h.includes(k)));
-}
-
-const makeCol    = col(['manufacturer', 'make']);
-const modelCol   = col(['description', 'model', 'vehicle']);
-const fuelCol    = col(['fuel type', 'fuel']);
-const mpgCol     = col(['wltp combined', 'mpg', 'combined mpg', 'urban extra']);
-const co2Col     = col(['co2', 'co₂']);
-const whkmCol    = col(['wh/km', 'whkm', 'energy consumption']);
-
-console.log(`Columns: make=${makeCol} model=${modelCol} fuel=${fuelCol} mpg=${mpgCol} co2=${co2Col} whkm=${whkmCol}`);
-
-const LITRES_PER_GALLON = 4.54609;
-
-function normaliseFuel(raw) {
-  const f = raw.toLowerCase();
-  if (f.includes('electric') && !f.includes('plug') && !f.includes('hybrid')) return 'Electric';
-  if (f.includes('petrol') || f.includes('gasoline')) return 'Petrol';
-  if (f.includes('diesel')) return 'Diesel';
-  return null; // skip hybrids not explicitly petrol/diesel, hydrogen, etc.
-}
-
-const cars = [];
-let skipped = 0;
-
-for (let i = headerLine + 1; i < lines.length; i++) {
-  const cells = lines[i].split(',').map(c => c.replace(/"/g, '').trim());
-  if (cells.length < 4) continue;
-
-  const rawMake  = cells[makeCol]  ?? '';
-  const rawModel = cells[modelCol] ?? '';
-  const rawFuel  = cells[fuelCol]  ?? '';
-
-  if (!rawMake || !rawModel) { skipped++; continue; }
-
-  const fuel = normaliseFuel(rawFuel);
-  if (!fuel) { skipped++; continue; }
-
-  // Parse MPG — VCA gives L/100km or mpg depending on version
-  let mpg = null;
-  let whpm = null;
-
-  if (fuel === 'Electric') {
-    // Energy consumption in Wh/km → convert to Wh/mile
-    const whkm = whkmCol >= 0 ? parseFloat(cells[whkmCol]) : NaN;
-    if (!isNaN(whkm) && whkm > 0) {
-      whpm = Math.round(whkm * 1.60934);
-    }
-  } else {
-    const mpgRaw = mpgCol >= 0 ? parseFloat(cells[mpgCol]) : NaN;
-    if (!isNaN(mpgRaw) && mpgRaw > 0) {
-      // If value looks like L/100km (< 15), convert to MPG
-      if (mpgRaw < 15) {
-        mpg = Math.round((LITRES_PER_GALLON / mpgRaw) * 100 * 10) / 10;
-      } else {
-        mpg = mpgRaw;
-      }
-    }
-  }
-
-  const co2Raw = co2Col >= 0 ? parseFloat(cells[co2Col]) : NaN;
-  const co2gkm = (!isNaN(co2Raw) && co2Raw >= 0) ? Math.round(co2Raw) : (fuel === 'Electric' ? 0 : null);
-
-  // Split model into model + variant (first word = model, rest = variant)
-  const parts = rawModel.replace(/\s+/g, ' ').split(' ');
-  const model   = parts.slice(0, 2).join(' ');
-  const variant = parts.slice(2).join(' ') || '';
-
-  // Normalise make capitalisation
-  const make = rawMake
+function normaliseMake(s) {
+  let t = s.trim().replace(/\s+/g, ' ')
     .split(' ')
     .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-    .join(' ')
-    .replace('Bmw', 'BMW')
-    .replace('Mg ', 'MG ')
-    .replace('Vw', 'VW')
-    .replace('Mini', 'MINI');
-
-  cars.push({ make, model, variant, fuel, mpg, whpm, co2gkm });
+    .join(' ');
+  for (const [from, to] of [['Bmw','BMW'],['Mg ','MG '],['Vw ','VW '],['Ds ','DS '],
+                              ['Byd','BYD'],['Gmc','GMC'],['Mini','MINI'],['Ldv','LDV']]) {
+    t = t.includes(from) ? t.replaceAll(from, to) : t;
+  }
+  return MAKE_FIX.get(t) ?? t;
 }
 
-// Deduplicate on make+model+variant+fuel
+function normaliseFuel(raw) {
+  const f = raw.trim().toLowerCase();
+  if (f === 'electricity') return 'Electric';
+  if (['petrol', 'petrol / lpg', 'petrol hybrid'].includes(f)) return 'Petrol';
+  if (f === 'diesel') return 'Diesel';
+  if (f.includes('petrol electric')) return 'Petrol';     // MHEV / full hybrid
+  if (f.includes('diesel electric') || f.includes('electricity / diesel')) return 'Diesel';
+  if (f.includes('electricity / petrol')) return 'Electric'; // PHEV
+  return null;
+}
+
+function pf(s) {
+  const v = parseFloat((s ?? '').trim());
+  return isFinite(v) && v > 0 ? v : null;
+}
+
+const all = [];
 const seen = new Set();
-const deduped = cars.filter(c => {
-  const key = `${c.make}|${c.model}|${c.variant}|${c.fuel}`;
-  if (seen.has(key)) return false;
-  seen.add(key);
-  return true;
+
+for (const { path, mpgCol, mkwhCol, whkmCol, co2Col, fuelCol } of SOURCES) {
+  if (!existsSync(path)) {
+    console.warn(`SKIP (not found): ${path}`);
+    continue;
+  }
+  const lines = readFileSync(path, 'latin1').split('\n').filter(Boolean);
+  let added = 0;
+
+  for (let i = 1; i < lines.length; i++) {
+    const r = lines[i].split(',');
+    if (r.length <= Math.max(mpgCol, co2Col, fuelCol)) continue;
+
+    const fuel = normaliseFuel(r[fuelCol] ?? '');
+    if (!fuel) continue;
+
+    const make  = normaliseMake(r[0] ?? '');
+    const model = (r[1] ?? '').trim().replace(/\s+/g, ' ');
+    if (!make || !model) continue;
+
+    let variant = (r[2] ?? '').trim().replace(/\s+/g, ' ');
+    if (variant.toLowerCase().startsWith(model.toLowerCase())) {
+      variant = variant.slice(model.length).trim();
+    }
+
+    const key = `${make}|${model}|${variant}|${fuel}`;
+    if (seen.has(key)) continue;
+
+    let mpg = null, whpm = null;
+
+    if (fuel === 'Petrol' || fuel === 'Diesel') {
+      const v = pf(r[mpgCol]);
+      if (v && v >= 5) mpg = Math.round(v * 10) / 10;
+    }
+
+    if (fuel === 'Electric' || !mpg) {
+      const mkwh = pf(r[mkwhCol]);
+      if (mkwh) {
+        whpm = Math.round(1000 / mkwh);
+      } else {
+        const wkm = pf(r[whkmCol]);
+        if (wkm) whpm = Math.round(wkm * 1.60934);
+      }
+    }
+
+    if (fuel === 'Electric' && !whpm) continue;
+    if ((fuel === 'Petrol' || fuel === 'Diesel') && !mpg) continue;
+
+    const co2v = pf(r[co2Col]);
+    const co2gkm = co2v != null ? Math.round(co2v) : (fuel === 'Electric' ? 0 : null);
+
+    seen.add(key);
+    all.push({ make, model, variant, fuel, mpg, whpm, co2gkm });
+    added++;
+  }
+
+  console.log(`  ${String(added).padStart(5)} from ${path.split('/').pop()}`);
+}
+
+const fuelOrder = { Petrol: 0, Diesel: 1, Electric: 2 };
+all.sort((a, b) => {
+  const fo = (fuelOrder[a.fuel] ?? 9) - (fuelOrder[b.fuel] ?? 9);
+  return fo || `${a.make} ${a.model} ${a.variant}`.localeCompare(`${b.make} ${b.model} ${b.variant}`);
 });
 
-// Sort: petrol → diesel → electric, then alphabetically
-deduped.sort((a, b) => {
-  const fuelOrder = { Petrol: 0, Diesel: 1, Electric: 2 };
-  const fo = (fuelOrder[a.fuel] ?? 3) - (fuelOrder[b.fuel] ?? 3);
-  if (fo !== 0) return fo;
-  return `${a.make} ${a.model} ${a.variant}`.localeCompare(`${b.make} ${b.model} ${b.variant}`);
-});
-
-writeFileSync(OUTPUT_JSON, JSON.stringify(deduped, null, 2) + '\n', 'utf8');
-
-console.log(`\n✓ Written ${deduped.length} cars to ${OUTPUT_JSON}`);
-console.log(`  Skipped: ${skipped} rows (hybrids without clear fuel type, blanks, etc.)`);
-console.log(`  Petrol: ${deduped.filter(c=>c.fuel==='Petrol').length}`);
-console.log(`  Diesel: ${deduped.filter(c=>c.fuel==='Diesel').length}`);
-console.log(`  Electric: ${deduped.filter(c=>c.fuel==='Electric').length}`);
+writeFileSync(OUT, JSON.stringify(all, null, 2) + '\n', 'utf8');
+console.log(`\n✓ ${all.length} cars → ${OUT}`);
+console.log(`  Petrol: ${all.filter(c => c.fuel==='Petrol').length}`);
+console.log(`  Diesel: ${all.filter(c => c.fuel==='Diesel').length}`);
+console.log(`  Electric: ${all.filter(c => c.fuel==='Electric').length}`);
+console.log(`  Makes: ${new Set(all.map(c => c.make)).size}`);
