@@ -466,6 +466,7 @@ function renderResults(r){
     <p class="attrib">Fuel prices: DESNZ gov.uk · Vehicle data: VCA (Open Government Licence) · Distances: OpenStreetMap contributors (ODbL)</p>
   `;
   $('results').classList.remove('hide');
+  if (typeof postHeight === 'function') postHeight();
 
   $('copyBtn').addEventListener('click', async (e) => {
     try { await navigator.clipboard.writeText(window.location.href);
@@ -494,7 +495,7 @@ function drawMap(r){
   L.marker(r.homeLatLng, { icon:mk('#df2681') }).addTo(map).bindPopup('Home');
   L.marker(r.workLatLng, { icon:mk('#1a3668') }).addTo(map).bindPopup('Work');
   map.fitBounds(line.getBounds(), { padding:[32,32] });
-  setTimeout(() => map.invalidateSize(), 100);
+  setTimeout(() => { map.invalidateSize(); if (typeof postHeight === 'function') postHeight(); }, 150);
 }
 
 /* ====== Shareable URL ====== */
@@ -523,6 +524,18 @@ $('lastUpdated').textContent = 'Fuel prices last updated '+DATA.lastUpdated;
     if (match) selectCar(match);
   }
 })();
+
+/* ====== Auto-resize when embedded in an iframe ====== */
+function postHeight(){
+  if (window.parent === window) return;
+  const h = Math.ceil(document.documentElement.getBoundingClientRect().height);
+  window.parent.postMessage({ type:'aw-commute-resize', height:h }, '*');
+}
+window.addEventListener('load', postHeight);
+window.addEventListener('resize', postHeight);
+if (window.ResizeObserver){ new ResizeObserver(() => postHeight()).observe(document.body); }
+// Fire a few times early in case fonts/layout settle after first paint.
+[0, 200, 600, 1200].forEach(t => setTimeout(postHeight, t));
 </script>
 </body>
 </html>
