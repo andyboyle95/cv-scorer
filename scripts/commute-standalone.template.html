@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cost of Commuting Calculator — Aaron Wallis</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root { --navy:#1a3668; --pink:#df2681; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#f9fafb; color:#2d2d2d;
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; }
+  .accent { height:4px; background:linear-gradient(90deg,var(--navy),var(--pink)); }
+  .wrap { max-width:640px; margin:0 auto; padding:32px 16px; }
+  h2 { color:var(--navy); font-size:24px; font-weight:700; margin:0 0 4px; line-height:1.2; }
+  .sub { font-size:14px; color:#6b7280; margin:0; }
+  .muted { font-size:12px; color:#9ca3af; margin:4px 0 0; }
+  .card { background:#fff; border:1px solid #f0f0f0; border-radius:16px; box-shadow:0 1px 2px rgba(0,0,0,.04);
+    padding:24px; margin-top:24px; }
+  .step { margin-bottom:24px; }
+  .step:last-child { margin-bottom:0; }
+  .step-label { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600; color:#1f2937; margin-bottom:12px; }
+  .num { display:flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%;
+    font-size:12px; font-weight:700; color:#fff; background:var(--pink); flex-shrink:0; }
+  .pills { display:flex; flex-wrap:wrap; gap:8px; }
+  .pill { padding:8px 16px; border-radius:999px; border:1px solid rgba(26,54,104,.4); background:#fff;
+    color:var(--navy); font-size:14px; font-weight:500; cursor:pointer; transition:all .15s; display:inline-flex; align-items:center; gap:6px; }
+  .pill:hover { border-color:var(--navy); background:rgba(26,54,104,.05); }
+  .pill.active { background:var(--navy); color:#fff; border-color:var(--navy); box-shadow:0 1px 2px rgba(0,0,0,.1); }
+  .field { display:flex; align-items:center; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; background:#fff; }
+  .field:focus-within { border-color:var(--navy); box-shadow:0 0 0 2px rgba(26,54,104,.1); }
+  .field .prefix { padding:10px 12px; color:#6b7280; border-right:1px solid #e5e7eb; font-size:14px; font-weight:500; background:#f9fafb; }
+  .field .suffix { padding:8px 12px; color:#6b7280; border-left:1px solid #e5e7eb; font-size:12px; font-weight:500; background:#f9fafb; }
+  .field input { flex:1; border:0; outline:0; padding:10px 12px; font-size:14px; min-width:0; background:transparent; }
+  .maxw { max-width:280px; }
+  .lbl { display:block; font-size:12px; color:#9ca3af; margin-bottom:4px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:520px){ .grid2 { grid-template-columns:1fr; } }
+  .relative { position:relative; }
+  .suggestions { position:absolute; z-index:20; width:100%; background:#fff; border:1px solid #e5e7eb;
+    border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,.1); margin-top:4px; max-height:224px; overflow-y:auto; list-style:none; padding:0; }
+  .suggestions li button { width:100%; text-align:left; padding:10px 16px; font-size:14px; border:0; background:none; cursor:pointer; }
+  .suggestions li button:hover { background:rgba(26,54,104,.05); }
+  .sg-name { font-weight:500; color:#111827; }
+  .sg-var { color:#6b7280; }
+  .sg-meta { margin-left:8px; font-size:12px; color:#9ca3af; }
+  .sg-co2 { color:#16a34a; }
+  .uppercase input { text-transform:uppercase; letter-spacing:.03em; }
+  input.pc { width:100%; border:1px solid #e5e7eb; border-radius:12px; padding:10px 12px; font-size:14px;
+    text-transform:uppercase; letter-spacing:.03em; outline:0; background:#fff; }
+  input.pc:focus { border-color:var(--navy); box-shadow:0 0 0 2px rgba(26,54,104,.1); }
+  .btn-calc { margin-top:20px; width:100%; font-weight:600; padding:14px 24px; border-radius:12px; border:0;
+    color:#fff; font-size:16px; cursor:pointer; background:linear-gradient(135deg,var(--navy),var(--pink));
+    box-shadow:0 1px 2px rgba(0,0,0,.05); transition:all .15s; }
+  .btn-calc:hover { box-shadow:0 4px 12px rgba(0,0,0,.12); }
+  .btn-calc:disabled { opacity:.6; cursor:not-allowed; background:var(--navy); }
+  .err { margin-top:16px; padding:12px; background:#fef2f2; border:1px solid #fecaca; border-radius:12px; font-size:14px; color:#b91c1c; }
+  .selcar { margin-top:8px; display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+  .selcar .eff { font-size:14px; color:#16a34a; font-weight:500; }
+  .selcar .co2 { font-size:14px; color:#6b7280; }
+  .clearbtn { margin-right:12px; border:0; background:none; color:#9ca3af; font-size:18px; cursor:pointer; }
+  .results { margin-top:32px; }
+  .results > * { margin-bottom:20px; }
+  .rowsum { display:flex; flex-wrap:wrap; gap:16px; padding:0 4px; font-size:14px; color:#4b5563; }
+  .rowsum b { color:var(--navy); font-size:18px; }
+  .rowsum .green { color:#15803d; }
+  #map { height:280px; width:100%; }
+  .mapbox { border-radius:16px; overflow:hidden; border:1px solid #f0f0f0; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+  table { width:100%; border-collapse:collapse; font-size:14px; background:#fff; }
+  .tablebox { border-radius:16px; overflow:hidden; border:1px solid #f0f0f0; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+  th { padding:14px 16px; text-align:left; font-weight:600; }
+  th.mine { background:var(--navy); color:#fff; }
+  td { padding:12px 16px; border-top:1px solid #f3f4f6; }
+  td .tlabel { font-size:12px; color:#9ca3af; margin-bottom:2px; }
+  td.mine { font-weight:600; color:var(--navy); }
+  .save { color:#15803d; font-weight:600; }
+  .more { color:#b91c1c; font-weight:600; }
+  .save-note { margin-left:8px; font-size:12px; color:#16a34a; }
+  .more-note { margin-left:8px; font-size:12px; color:#ef4444; }
+  .blurb { border-radius:12px; padding:16px; font-size:14px; line-height:1.6; border:1px solid; }
+  .hmrc { border:1px solid rgba(26,54,104,.2); border-radius:12px; overflow:hidden; }
+  .hmrc-head { display:flex; align-items:center; gap:8px; padding:12px 16px; background:var(--navy); color:#fff; font-size:14px; font-weight:600; }
+  .hmrc-body { background:#fff; padding:16px; }
+  .hmrc-line { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:14px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:6px; }
+  .hmrc-line .v { font-weight:600; color:var(--navy); }
+  .hmrc-total { border-top:1px solid #f3f4f6; padding-top:8px; margin-top:8px; }
+  .badge { font-size:12px; padding:2px 8px; border-radius:999px; font-weight:500; }
+  .hmrc-note { font-size:12px; color:#6b7280; line-height:1.5; border-top:1px solid #f9fafb; padding-top:12px; margin:12px 0 0; }
+  .hmrc-note a, .attrib a { color:var(--navy); }
+  .copybtn { display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border-radius:12px; font-size:14px;
+    font-weight:500; border:1px solid #e5e7eb; background:#fff; color:var(--navy); cursor:pointer; }
+  .attrib { font-size:12px; color:#9ca3af; }
+  .footer { margin-top:40px; padding-top:24px; border-top:1px solid #f0f0f0; text-align:center; }
+  .footer a { color:var(--navy); font-weight:500; text-decoration:none; }
+  .footer a:hover { color:var(--pink); }
+  .hide { display:none !important; }
+  .spin { display:inline-block; width:18px; height:18px; border:2px solid rgba(255,255,255,.4); border-top-color:#fff;
+    border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; margin-right:8px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="accent"></div>
+<div class="wrap">
+  <div>
+    <h2>Cost of Commuting Calculator</h2>
+    <p class="sub">See exactly what this commute will cost you — weekly, monthly and annually.</p>
+    <p class="muted" id="lastUpdated"></p>
+  </div>
+
+  <div class="card">
+    <!-- Step 1 -->
+    <div class="step">
+      <div class="step-label"><span class="num">1</span>How many days a week do you commute?</div>
+      <div class="pills" id="daysPills"></div>
+    </div>
+    <!-- Step 2 -->
+    <div class="step">
+      <div class="step-label"><span class="num">2</span>What fuel does your car use?</div>
+      <div class="pills" id="fuelPills"></div>
+    </div>
+    <!-- Step 3 -->
+    <div class="step">
+      <div class="step-label"><span class="num">3</span><span id="fuelPriceLabel">How much do you pay per litre?</span></div>
+      <div class="field maxw">
+        <span class="prefix">£</span>
+        <input type="number" step="0.001" min="0" id="fuelPrice" placeholder="1.52" />
+      </div>
+    </div>
+    <!-- Step 4 -->
+    <div class="step">
+      <div class="step-label"><span class="num">4</span>What's the make and model of your car?</div>
+      <div class="relative" id="carSearchWrap">
+        <div class="field">
+          <input type="text" id="carSearch" placeholder="Select fuel type first…" autocomplete="off" />
+          <button type="button" id="carClear" class="clearbtn hide" aria-label="Clear">×</button>
+        </div>
+        <ul class="suggestions hide" id="suggestions"></ul>
+      </div>
+      <div class="selcar hide" id="selCar"></div>
+      <div style="margin-top:12px;">
+        <label class="lbl" id="manualLabel">My car isn't listed — enter Miles per gallon (MPG) manually:</label>
+        <div class="field maxw">
+          <input type="number" step="0.1" min="0" id="manualEff" placeholder="e.g. 45" />
+          <span class="suffix" id="manualUnit">MPG</span>
+        </div>
+      </div>
+    </div>
+    <!-- Step 5 -->
+    <div class="step">
+      <div class="step-label"><span class="num">5</span>Where are you commuting to and from?</div>
+      <div class="grid2">
+        <div>
+          <label class="lbl">Home postcode</label>
+          <input type="text" class="pc" id="homePostcode" placeholder="e.g. OX1 1AA" maxlength="8" />
+        </div>
+        <div>
+          <label class="lbl">Work postcode</label>
+          <input type="text" class="pc" id="workPostcode" placeholder="e.g. EC1A 1BB" maxlength="8" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button type="button" class="btn-calc" id="calcBtn">Calculate my commute cost</button>
+  <div class="err hide" id="error"></div>
+
+  <div class="results hide" id="results"></div>
+
+  <div class="footer">
+    <p class="sub">Powered by
+      <a href="https://www.aaronwallis.co.uk" target="_blank" rel="noopener noreferrer">Aaron Wallis Sales Recruitment</a>
+    </p>
+  </div>
+</div>
+
+<script>
+/* ====== Embedded data ====== */
+const CARS = __CARS__;
+const DATA = __DATA__;
+
+/* ====== Constants & helpers ====== */
+const LITRES_PER_GALLON = 4.54609;
+const UK_POSTCODE_REGEX = /^[A-Z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]{2}$/i;
+const gbp = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP',minimumFractionDigits:2,maximumFractionDigits:2});
+const fmt = (v) => gbp.format(v);
+const fmtCO2 = (kg) => kg >= 1000 ? (kg/1000).toFixed(1)+' tonnes CO₂' : Math.round(kg)+' kg CO₂';
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $ = (id) => document.getElementById(id);
+
+/* ====== State ====== */
+const state = { days:null, fuelType:null, fuelPrice:'', selectedCar:null, manualEfficiency:'',
+  homePostcode:'', workPostcode:'', calculating:false };
+
+/* ====== Build pills ====== */
+const daysPills = $('daysPills');
+[1,2,3,4,5].forEach(d => {
+  const b = document.createElement('button');
+  b.type='button'; b.className='pill'; b.textContent = d+' '+(d===1?'day':'days');
+  b.onclick = () => { state.days = d; [...daysPills.children].forEach(c=>c.classList.remove('active')); b.classList.add('active'); };
+  daysPills.appendChild(b);
+});
+const fuelPills = $('fuelPills');
+['Petrol','Diesel','Electric'].forEach(t => {
+  const b = document.createElement('button');
+  b.type='button'; b.className='pill'; b.textContent = t;
+  b.onclick = () => selectFuel(t, b);
+  fuelPills.appendChild(b);
+});
+
+function selectFuel(type, btn){
+  state.fuelType = type;
+  [...fuelPills.children].forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  // reset car if fuel mismatch
+  if (state.selectedCar && state.selectedCar.fuel !== type){ state.selectedCar=null; $('carSearch').value=''; renderSelCar(); }
+  // sync default price
+  if (type==='Petrol') state.fuelPrice = DATA.petrolPricePerLitre.toFixed(2);
+  else if (type==='Diesel') state.fuelPrice = DATA.dieselPricePerLitre.toFixed(2);
+  else state.fuelPrice = DATA.electricityPricePerKwh.toFixed(2);
+  $('fuelPrice').value = state.fuelPrice;
+  // labels
+  const isEV = type==='Electric';
+  $('fuelPriceLabel').textContent = 'How much do you pay '+(isEV?'per kWh':'per litre')+'?';
+  $('manualLabel').textContent = "My car isn't listed — enter "+(isEV?'Wh per mile':'Miles per gallon (MPG)')+' manually:';
+  $('manualUnit').textContent = isEV?'Wh/mi':'MPG';
+  $('manualEff').placeholder = isEV?'e.g. 250':'e.g. 45';
+  $('carSearch').placeholder = 'Search '+type.toLowerCase()+' cars…';
+  renderSuggestions();
+}
+
+/* ====== Fuel price input ====== */
+$('fuelPrice').addEventListener('input', e => state.fuelPrice = e.target.value);
+$('manualEff').addEventListener('input', e => {
+  state.manualEfficiency = e.target.value;
+  if (e.target.value){ state.selectedCar=null; $('carSearch').value=''; renderSelCar(); }
+});
+$('homePostcode').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); state.homePostcode = e.target.value; });
+$('workPostcode').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); state.workPostcode = e.target.value; });
+
+/* ====== Car search ====== */
+const carSearch = $('carSearch');
+const suggestionsEl = $('suggestions');
+carSearch.addEventListener('input', () => { state.selectedCar=null; renderSelCar(); renderSuggestions(); });
+carSearch.addEventListener('focus', renderSuggestions);
+$('carClear').onclick = () => { state.selectedCar=null; carSearch.value=''; renderSelCar(); renderSuggestions(); };
+document.addEventListener('mousedown', (e) => {
+  if (!$('carSearchWrap').contains(e.target)) suggestionsEl.classList.add('hide');
+});
+
+function renderSuggestions(){
+  const q = carSearch.value.trim().toLowerCase();
+  if (q.length < 2){ suggestionsEl.classList.add('hide'); suggestionsEl.innerHTML=''; return; }
+  const matches = CARS.filter(c => {
+    const full = (c.make+' '+c.model+' '+c.variant).toLowerCase();
+    return full.includes(q) && (!state.fuelType || c.fuel === state.fuelType);
+  }).slice(0,8);
+  if (matches.length === 0){ suggestionsEl.classList.add('hide'); suggestionsEl.innerHTML=''; return; }
+  suggestionsEl.innerHTML = matches.map((c,i) => {
+    const meta = c.fuel==='Electric' ? (c.whpm+' Wh/mi') : (c.mpg+' mpg');
+    const co2 = (c.co2gkm!==null && c.co2gkm>0) ? ` <span class="sg-co2">· ${c.co2gkm}g CO₂/km</span>` : '';
+    return `<li><button type="button" data-i="${i}">
+      <span class="sg-name">${esc(c.make)} ${esc(c.model)}</span>${c.variant?`<span class="sg-var"> — ${esc(c.variant)}</span>`:''}
+      <span class="sg-meta">${meta}${co2}</span></button></li>`;
+  }).join('');
+  [...suggestionsEl.querySelectorAll('button')].forEach((btn,idx) => {
+    btn.addEventListener('mousedown', () => selectCar(matches[idx]));
+  });
+  suggestionsEl.classList.remove('hide');
+}
+
+function selectCar(c){
+  state.selectedCar = c;
+  state.manualEfficiency=''; $('manualEff').value='';
+  carSearch.value = (c.make+' '+c.model+' '+c.variant).trim();
+  suggestionsEl.classList.add('hide');
+  renderSelCar();
+}
+
+function renderSelCar(){
+  const el = $('selCar'); const c = state.selectedCar;
+  $('carClear').classList.toggle('hide', !c);
+  if (!c){ el.classList.add('hide'); el.innerHTML=''; return; }
+  const eff = c.fuel==='Electric' ? (c.whpm+' Wh/mi') : (c.mpg+' mpg');
+  const co2 = (c.co2gkm!==null && c.co2gkm>0) ? `<span class="co2">🌱 ${c.co2gkm} g/km CO₂</span>` : '';
+  el.innerHTML = `<span class="eff">${eff}</span> ${co2}`;
+  el.classList.remove('hide');
+}
+
+/* ====== Distance via public APIs (postcodes.io + OSRM) ====== */
+async function getLatLng(postcode){
+  const res = await fetch('https://api.postcodes.io/postcodes/'+encodeURIComponent(postcode.trim().toUpperCase()));
+  if (!res.ok) throw new Error('Postcode not found: '+postcode);
+  const data = await res.json();
+  if (!data.result) throw new Error('Invalid postcode: '+postcode);
+  return { lat:data.result.latitude, lng:data.result.longitude };
+}
+async function calcDistance(home, work){
+  const [h,w] = await Promise.all([getLatLng(home), getLatLng(work)]);
+  const url = `https://router.project-osrm.org/route/v1/driving/${h.lng},${h.lat};${w.lng},${w.lat}?overview=full&geometries=geojson`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Could not calculate route. Please try again.');
+  const d = await res.json();
+  if (!d.routes || !d.routes.length) throw new Error('No route found between these postcodes.');
+  const r = d.routes[0];
+  return { distanceMiles:r.distance/1609.344, durationMinutes:r.duration/60,
+    homeLatLng:[h.lat,h.lng], workLatLng:[w.lat,w.lng], routeGeometry:r.geometry };
+}
+
+/* ====== Validation ====== */
+function validate(){
+  if (state.days===null) return 'Please select how many days a week you commute.';
+  if (!state.fuelType) return 'Please select your fuel type.';
+  const p = parseFloat(state.fuelPrice);
+  if (isNaN(p) || p<=0) return 'Please enter a valid fuel price.';
+  if (!state.selectedCar){
+    const e = parseFloat(state.manualEfficiency);
+    if (isNaN(e) || e<=0) return state.fuelType==='Electric' ? "Please select a car or enter your car's Wh/mi." : "Please select a car or enter your car's MPG.";
+  }
+  if (!state.homePostcode.trim()) return 'Please enter your home postcode.';
+  if (!state.workPostcode.trim()) return 'Please enter your work postcode.';
+  if (!UK_POSTCODE_REGEX.test(state.homePostcode.trim())) return 'Invalid home postcode: '+state.homePostcode;
+  if (!UK_POSTCODE_REGEX.test(state.workPostcode.trim())) return 'Invalid work postcode: '+state.workPostcode;
+  return null;
+}
+
+/* ====== Calculate ====== */
+let mapInstance = null;
+$('calcBtn').addEventListener('click', handleCalculate);
+
+async function handleCalculate(){
+  const v = validate();
+  const errEl = $('error');
+  if (v){ errEl.textContent=v; errEl.classList.remove('hide'); return; }
+  errEl.classList.add('hide');
+  state.calculating = true;
+  const btn = $('calcBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Calculating…';
+  $('results').classList.add('hide');
+
+  try {
+    const data = await calcDistance(state.homePostcode.trim(), state.workPostcode.trim());
+    const days = state.days;
+    const weeklyMiles = data.distanceMiles * 2 * days;
+    const price = parseFloat(state.fuelPrice);
+    let weeklyCost, annualCO2kg = null;
+
+    if (state.fuelType === 'Electric'){
+      const whpm = state.selectedCar ? state.selectedCar.whpm : parseFloat(state.manualEfficiency);
+      weeklyCost = (weeklyMiles * whpm / 1000) * price;
+      annualCO2kg = 0;
+    } else {
+      const mpg = state.selectedCar ? state.selectedCar.mpg : parseFloat(state.manualEfficiency);
+      weeklyCost = (weeklyMiles / mpg) * LITRES_PER_GALLON * price;
+      const co2gkm = state.selectedCar ? state.selectedCar.co2gkm : null;
+      if (co2gkm !== null && co2gkm !== undefined) annualCO2kg = (weeklyMiles * 52 * 1.60934 * co2gkm) / 1000;
+    }
+
+    const monthlyCost = weeklyCost*52/12;
+    const annualCost = weeklyCost*52;
+    const annualMiles = weeklyMiles*52;
+
+    // HMRC
+    const H = DATA.hmrc;
+    const firstRate = H.firstTierRatePence/100, secondRate = H.secondTierRatePence/100, threshold = H.firstTierMiles;
+    const firstTierMiles = Math.min(annualMiles, threshold);
+    const secondTierMiles = Math.max(0, annualMiles - threshold);
+    const hmrcAnnual = firstTierMiles*firstRate + secondTierMiles*secondRate;
+    const hmrc = { annualMiles:Math.round(annualMiles), hmrcAnnual, threshold,
+      firstTierMiles:Math.round(firstTierMiles), secondTierMiles:Math.round(secondTierMiles),
+      firstTierPence:H.firstTierRatePence, secondTierPence:H.secondTierRatePence, taxYear:H.taxYear,
+      difference:hmrcAnnual - annualCost };
+
+    // Comparison
+    let comparison;
+    if (state.fuelType === 'Electric'){
+      const c = (weeklyMiles / DATA.comparison.petrol.mpg) * LITRES_PER_GALLON * DATA.petrolPricePerLitre;
+      comparison = { weeklyCost:c, monthlyCost:c*52/12, annualCost:c*52, label:DATA.comparison.petrol.label, isEV:false };
+    } else {
+      const c = (weeklyMiles * DATA.comparison.ev.whpm / 1000) * DATA.electricityPricePerKwh;
+      comparison = { weeklyCost:c, monthlyCost:c*52/12, annualCost:c*52, label:DATA.comparison.ev.label, isEV:true };
+    }
+
+    const results = { ...data, weeklyCost, monthlyCost, annualCost, annualCO2kg, hmrc, comparison };
+    renderResults(results);
+    updateUrl();
+  } catch(e){
+    errEl.textContent = e.message || 'An unexpected error occurred. Please try again.';
+    errEl.classList.remove('hide');
+  } finally {
+    state.calculating = false;
+    btn.disabled = false; btn.textContent = 'Calculate my commute cost';
+  }
+}
+
+/* ====== Render results ====== */
+function renderResults(r){
+  const userCarLabel = state.selectedCar ? (state.selectedCar.make+' '+state.selectedCar.model) : 'Your car';
+  const co2line = r.annualCO2kg !== null && r.annualCO2kg > 0
+    ? `<div class="rowsum-item">🌱 <b class="green">${fmtCO2(r.annualCO2kg)}</b> <span>per year</span></div>`
+    : (r.annualCO2kg === 0 ? `<div style="color:#16a34a;font-size:14px;">🌱 Zero tailpipe emissions</div>` : '');
+
+  const compColor = r.comparison.isEV ? '#2e7d32' : '#c62828';
+  const compBg = r.comparison.isEV ? '#e8f5e9' : '#fce4ec';
+
+  const rows = [
+    ['Weekly', r.weeklyCost, r.comparison.weeklyCost],
+    ['Monthly', r.monthlyCost, r.comparison.monthlyCost],
+    ['Annually', r.annualCost, r.comparison.annualCost],
+  ].map(([label,mine,theirs]) => {
+    let note='';
+    if (theirs<mine) note=`<span class="save-note">saves ${fmt(mine-theirs)}/${label.toLowerCase()}</span>`;
+    else if (theirs>mine) note=`<span class="more-note">+${fmt(theirs-mine)}/${label.toLowerCase()}</span>`;
+    const cls = theirs<mine?'save':(theirs>mine?'more':'');
+    return `<tr>
+      <td class="mine"><div class="tlabel">${label}</div>${fmt(mine)}</td>
+      <td><div class="tlabel">${label}</div><span class="${cls}">${fmt(theirs)}</span>${note}</td>
+    </tr>`;
+  }).join('');
+
+  const blurb = r.comparison.isEV
+    ? `<strong>Curious about switching to electric?</strong> A ${esc(r.comparison.label)} would cost <strong>${fmt(r.comparison.annualCost)}</strong> per year for the same commute — ${r.comparison.annualCost < r.annualCost ? `saving you ${fmt(r.annualCost-r.comparison.annualCost)} a year.` : `${fmt(r.comparison.annualCost-r.annualCost)} more per year.`} Plus zero tailpipe emissions.`
+    : `<strong>For comparison,</strong> a ${esc(r.comparison.label)} running on petrol would cost <strong>${fmt(r.comparison.annualCost)}</strong> per year for the same commute — ${r.comparison.annualCost > r.annualCost ? `${fmt(r.comparison.annualCost-r.annualCost)} more than your electric car.` : `${fmt(r.annualCost-r.comparison.annualCost)} less per year.`}`;
+
+  const h = r.hmrc;
+  const secondLine = h.secondTierMiles > 0
+    ? `<div class="hmrc-line"><span style="color:#6b7280">${h.secondTierMiles.toLocaleString()} miles (over ${h.threshold.toLocaleString()}-mile threshold)</span><span>×</span><span class="v">${h.secondTierPence}p</span><span>=</span><span class="v">${fmt(h.secondTierMiles*h.secondTierPence/100)}</span></div>`
+    : '';
+  const diffOk = h.difference >= 0;
+
+  $('results').innerHTML = `
+    <div class="rowsum">
+      <div><b>${r.distanceMiles.toFixed(1)}</b> <span>miles one-way</span></div>
+      <div><b>${Math.round(r.durationMinutes)}</b> <span>min drive</span></div>
+      ${co2line}
+    </div>
+    <div class="mapbox"><div id="map"></div></div>
+    <div class="tablebox">
+      <table>
+        <thead><tr>
+          <th class="mine">${esc(userCarLabel)}</th>
+          <th style="background:${compBg};color:${compColor}">${esc(r.comparison.label)}</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div class="blurb" style="background:${r.comparison.isEV?'#f0fdf4':'#fff0f6'};border-color:${r.comparison.isEV?'#bbf7d0':'#fbcfe8'};color:${r.comparison.isEV?'#166534':'#9d174d'}">${blurb}</div>
+    <div class="hmrc">
+      <div class="hmrc-head">🧾 HMRC Approved Mileage Rate — ${esc(h.taxYear)}</div>
+      <div class="hmrc-body">
+        <div class="hmrc-line">
+          <span style="color:#6b7280">${h.firstTierMiles.toLocaleString()} miles ${h.annualMiles<=h.threshold?`(all within the ${h.threshold.toLocaleString()}-mile threshold)`:`(first ${h.threshold.toLocaleString()} mi)`}</span>
+          <span>×</span><span class="v">${h.firstTierPence}p</span><span>=</span><span class="v">${fmt(h.firstTierMiles*h.firstTierPence/100)}</span>
+        </div>
+        ${secondLine}
+        <div class="hmrc-line hmrc-total">
+          <span style="color:#6b7280">Total HMRC value (${h.annualMiles.toLocaleString()} miles/year)</span><span>=</span>
+          <span class="v" style="font-size:16px;color:${diffOk?'#166534':'#9d174d'}">${fmt(h.hmrcAnnual)}</span>
+          <span class="badge" style="background:${diffOk?'#dcfce7':'#ffe4ec'};color:${diffOk?'#166534':'#9d174d'}">${diffOk?`${fmt(h.difference)} more than your fuel cost`:`${fmt(Math.abs(h.difference))} less than your fuel cost`}</span>
+        </div>
+        <p class="hmrc-note">HMRC mileage rates apply to business travel — not ordinary commuting — but are a useful benchmark when negotiating a car or mileage allowance with an employer. <a href="https://www.gov.uk/government/publications/rates-and-allowances-travel-mileage-and-fuel-allowances/travel-mileage-and-fuel-rates-and-allowances" target="_blank" rel="noopener noreferrer">HMRC rates guidance ↗</a></p>
+      </div>
+    </div>
+    <div><button type="button" class="copybtn" id="copyBtn">🔗 Copy shareable link</button></div>
+    <p class="attrib">Fuel prices: DESNZ gov.uk · Vehicle data: VCA (Open Government Licence) · Distances: OpenStreetMap contributors (ODbL)</p>
+  `;
+  $('results').classList.remove('hide');
+
+  $('copyBtn').addEventListener('click', async (e) => {
+    try { await navigator.clipboard.writeText(window.location.href);
+      e.target.textContent = '✓ Link copied!'; setTimeout(()=>{ e.target.textContent='🔗 Copy shareable link'; }, 2500);
+    } catch(_){}
+  });
+
+  drawMap(r);
+}
+
+function drawMap(r){
+  if (mapInstance){ mapInstance.remove(); mapInstance=null; }
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    iconUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  });
+  const map = L.map('map', { zoomControl:true, scrollWheelZoom:false });
+  mapInstance = map;
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom:19 }).addTo(map);
+  const latlngs = r.routeGeometry.coordinates.map(([lng,lat]) => [lat,lng]);
+  const line = L.polyline(latlngs, { color:'#1a3668', weight:4, opacity:.85 }).addTo(map);
+  const mk = (col) => L.divIcon({ className:'', iconSize:[28,28], iconAnchor:[14,28],
+    html:`<div style="width:28px;height:28px;background:${col};border:3px solid white;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>` });
+  L.marker(r.homeLatLng, { icon:mk('#df2681') }).addTo(map).bindPopup('Home');
+  L.marker(r.workLatLng, { icon:mk('#1a3668') }).addTo(map).bindPopup('Work');
+  map.fitBounds(line.getBounds(), { padding:[32,32] });
+  setTimeout(() => map.invalidateSize(), 100);
+}
+
+/* ====== Shareable URL ====== */
+function updateUrl(){
+  const p = new URLSearchParams();
+  p.set('days', String(state.days)); p.set('fuel', state.fuelType);
+  p.set('home', state.homePostcode.trim()); p.set('work', state.workPostcode.trim());
+  if (state.selectedCar){ p.set('make', state.selectedCar.make); p.set('cmodel', state.selectedCar.model); p.set('variant', state.selectedCar.variant); }
+  history.replaceState(null,'', location.pathname+'?'+p.toString());
+}
+
+/* ====== Init: last updated + URL prefill ====== */
+$('lastUpdated').textContent = 'Fuel prices last updated '+DATA.lastUpdated;
+(function prefill(){
+  const p = new URLSearchParams(location.search);
+  const d = p.get('days'); if (d){ const n=parseInt(d); state.days=n; const b=daysPills.children[n-1]; if(b) b.classList.add('active'); }
+  const ft = p.get('fuel');
+  if (ft && ['Petrol','Diesel','Electric'].includes(ft)){
+    const idx = ['Petrol','Diesel','Electric'].indexOf(ft); selectFuel(ft, fuelPills.children[idx]);
+  }
+  const hp = p.get('home'); if (hp){ state.homePostcode = hp.toUpperCase(); $('homePostcode').value = state.homePostcode; }
+  const wp = p.get('work'); if (wp){ state.workPostcode = wp.toUpperCase(); $('workPostcode').value = state.workPostcode; }
+  const cm = p.get('make'), cmo = p.get('cmodel'), cv = p.get('variant');
+  if (cm && cmo){
+    const match = CARS.find(c => c.make===cm && c.model===cmo && (!cv || c.variant===cv));
+    if (match) selectCar(match);
+  }
+})();
+</script>
+</body>
+</html>

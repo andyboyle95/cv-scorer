@@ -39,3 +39,6 @@ next-env.d.ts
 # claude code internals
 .claude/
 scripts/vca-source-*.csv
+
+# Generated standalone tool (regenerate via scripts/build-commute-html.js)
+cost-of-commuting.html
