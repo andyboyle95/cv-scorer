@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ChevronDown, List, Loader2 } from "lucide-react";
 import { Input } from "@/ui/input";
 import { Textarea } from "@/ui/textarea";
 import { Slider } from "@/ui/slider";
@@ -98,24 +98,27 @@ const IMPORTANCE = [
   { word: "Critical", className: "bg-[#df2681] text-white" },
 ] as const;
 
-// Each step lists the field name(s) to validate before advancing.
-const STEPS: { fields: (keyof JobSpecFormData)[] }[] = [
-  { fields: ["jobTitle"] },
-  { fields: ["industry"] },
-  { fields: ["workingArrangement"] },
-  { fields: ["jobFunction"] },
-  { fields: ["accountVolume"] },
-  { fields: ["seniority"] },
-  { fields: ["transactional"] },
-  { fields: ["sellingInto"] },
-  { fields: ["leadGeneration"] },
-  { fields: ["qualities"] },
-  { fields: ["salesCycle"] },
-  { fields: ["orderValue"] },
-  { fields: ["pointOfContact"] },
-  { fields: ["additionalNotes"] },
-  { fields: ["name", "email", "companyUrl"] },
+// Each step lists its short title and the field name(s) to validate.
+const STEPS: { title: string; fields: (keyof JobSpecFormData)[] }[] = [
+  { title: "Job title", fields: ["jobTitle"] },
+  { title: "Industry", fields: ["industry"] },
+  { title: "Working arrangement", fields: ["workingArrangement"] },
+  { title: "Job function", fields: ["jobFunction"] },
+  { title: "Accounts managed", fields: ["accountVolume"] },
+  { title: "Seniority", fields: ["seniority"] },
+  { title: "Transactional", fields: ["transactional"] },
+  { title: "Selling into", fields: ["sellingInto"] },
+  { title: "Lead generation", fields: ["leadGeneration"] },
+  { title: "Personal qualities", fields: ["qualities"] },
+  { title: "Sales cycle", fields: ["salesCycle"] },
+  { title: "Average order value", fields: ["orderValue"] },
+  { title: "Point of contact", fields: ["pointOfContact"] },
+  { title: "Additional notes", fields: ["additionalNotes"] },
+  { title: "Your details", fields: ["name", "email", "companyUrl"] },
 ];
+
+// Steps that are always considered "complete" (optional or pre-filled).
+const OPTIONAL_FIELDS = new Set(["additionalNotes", "qualities"]);
 
 interface JobSpecFormProps {
   onSubmit: (data: JobSpecFormData) => void;
@@ -130,6 +133,7 @@ export function JobSpecForm({
   initialValues,
 }: JobSpecFormProps) {
   const [step, setStep] = useState(0);
+  const [contentsOpen, setContentsOpen] = useState(false);
 
   const [showTest, setShowTest] = useState(false);
 
@@ -147,6 +151,7 @@ export function JobSpecForm({
     control,
     trigger,
     reset,
+    getValues,
     formState: { errors },
   } = useForm<JobSpecFormData>({
     resolver: zodResolver(schema),
@@ -197,6 +202,20 @@ export function JobSpecForm({
     if (target >= 0) setStep(target);
   };
 
+  const isStepComplete = (idx: number) => {
+    const values = getValues();
+    return STEPS[idx].fields.every((f) => {
+      if (OPTIONAL_FIELDS.has(f as string)) return true;
+      const v = values[f];
+      return typeof v === "string" ? v.trim().length > 0 : Boolean(v);
+    });
+  };
+
+  const goToStep = (idx: number) => {
+    setStep(idx);
+    setContentsOpen(false);
+  };
+
   return (
     <form
       onSubmit={handleSubmit(onSubmit, goToFirstError)}
@@ -209,7 +228,7 @@ export function JobSpecForm({
         }
       }}
     >
-      {showTest && (
+      {showTest && !submitting && (
         <div className="mb-3 flex justify-end">
           <button
             type="button"
@@ -220,6 +239,68 @@ export function JobSpecForm({
           </button>
         </div>
       )}
+
+      {/* Contents navigation — jump to any question */}
+      {!submitting && (
+        <div className="mb-3">
+          <button
+            type="button"
+            onClick={() => setContentsOpen((o) => !o)}
+            className="w-full flex items-center justify-between gap-2 rounded-lg border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm font-medium text-[#1a3668] shadow-sm hover:bg-gray-50"
+          >
+            <span className="flex items-center gap-2">
+              <List className="h-4 w-4" /> Contents — {STEPS[step].title}
+            </span>
+            <ChevronDown
+              className={`h-4 w-4 transition-transform ${contentsOpen ? "rotate-180" : ""}`}
+            />
+          </button>
+          {contentsOpen && (
+            <ol className="mt-2 rounded-lg border border-[#E2E8F0] bg-white shadow-sm divide-y divide-gray-100 overflow-hidden">
+              {STEPS.map((s, i) => {
+                const complete = isStepComplete(i);
+                return (
+                  <li key={s.title}>
+                    <button
+                      type="button"
+                      onClick={() => goToStep(i)}
+                      className={`w-full flex items-center gap-3 px-4 py-2 text-left text-sm transition-colors hover:bg-gray-50 ${
+                        i === step ? "bg-pink-50" : ""
+                      }`}
+                    >
+                      <span
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
+                          i === step
+                            ? "bg-[#df2681] text-white"
+                            : complete
+                            ? "bg-green-100 text-green-600"
+                            : "bg-gray-100 text-gray-400"
+                        }`}
+                      >
+                        {complete && i !== step ? (
+                          <Check className="h-3 w-3" />
+                        ) : (
+                          i + 1
+                        )}
+                      </span>
+                      <span
+                        className={
+                          i === step
+                            ? "font-semibold text-[#1a3668]"
+                            : "text-gray-600"
+                        }
+                      >
+                        {s.title}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </div>
+      )}
+
       <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-[#E2E8F0]">
         {/* Progress bar */}
         <div className="h-1.5 bg-gray-100">
@@ -229,60 +310,129 @@ export function JobSpecForm({
           />
         </div>
 
-        <div className="p-6 sm:p-10 min-h-[360px]">
-          <p className="text-xs font-semibold uppercase tracking-wider text-[#df2681] mb-6">
-            Step {step + 1} of {STEPS.length}
-          </p>
+        {submitting ? (
+          <GeneratingStatus />
+        ) : (
+          <>
+            <div className="p-6 sm:p-10 min-h-[360px]">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#df2681] mb-6">
+                Step {step + 1} of {STEPS.length}
+              </p>
 
-          {/* key={step} forces each step to mount fresh so Controllers don't
-              share an instance across steps (which dropped earlier answers). */}
-          <StepContent
-            key={step}
-            step={step}
-            register={register}
-            control={control}
-            errors={errors}
-          />
-        </div>
+              {/* key={step} forces each step to mount fresh so Controllers don't
+                  share an instance across steps (which dropped earlier answers). */}
+              <StepContent
+                key={step}
+                step={step}
+                register={register}
+                control={control}
+                errors={errors}
+              />
+            </div>
 
-        {/* Footer nav */}
-        <div className="flex items-stretch border-t border-gray-100 bg-[#df2681] text-white">
-          <button
-            type="button"
-            onClick={back}
-            disabled={step === 0 || submitting}
-            className="flex-1 flex items-center justify-center gap-2 py-4 px-6 font-semibold tracking-wide uppercase text-sm transition-colors hover:bg-[#C0005A] disabled:opacity-40 disabled:hover:bg-transparent"
-          >
-            <ArrowLeft className="h-4 w-4" /> Previous
-          </button>
-          <div className="w-px bg-white/20" />
-          {isLast ? (
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex-1 flex items-center justify-center gap-2 py-4 px-6 font-semibold tracking-wide uppercase text-sm transition-colors hover:bg-[#C0005A] disabled:opacity-60"
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Generating…
-                </>
+            {/* Footer nav */}
+            <div className="flex items-stretch border-t border-gray-100 bg-[#df2681] text-white">
+              <button
+                type="button"
+                onClick={back}
+                disabled={step === 0}
+                className="flex-1 flex items-center justify-center gap-2 py-4 px-6 font-semibold tracking-wide uppercase text-sm transition-colors hover:bg-[#C0005A] disabled:opacity-40 disabled:hover:bg-transparent"
+              >
+                <ArrowLeft className="h-4 w-4" /> Previous
+              </button>
+              <div className="w-px bg-white/20" />
+              {isLast ? (
+                <button
+                  type="submit"
+                  className="flex-1 flex items-center justify-center gap-2 py-4 px-6 font-semibold tracking-wide uppercase text-sm transition-colors hover:bg-[#C0005A]"
+                >
+                  Create Job Spec
+                </button>
               ) : (
-                <>Create Job Spec</>
+                <button
+                  type="button"
+                  onClick={next}
+                  className="flex-1 flex items-center justify-center gap-2 py-4 px-6 font-semibold tracking-wide uppercase text-sm transition-colors hover:bg-[#C0005A]"
+                >
+                  Next <ArrowRight className="h-4 w-4" />
+                </button>
               )}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={next}
-              disabled={submitting}
-              className="flex-1 flex items-center justify-center gap-2 py-4 px-6 font-semibold tracking-wide uppercase text-sm transition-colors hover:bg-[#C0005A]"
-            >
-              Next <ArrowRight className="h-4 w-4" />
-            </button>
-          )}
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </form>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Generating status — shown inside the wizard card while the AI works.
+// ---------------------------------------------------------------------------
+const GEN_STEPS = [
+  "Reading your brief",
+  "Researching the company website",
+  "Writing the job specification",
+  "Shaping the person specification",
+  "Adding the finishing touches",
+];
+
+function GeneratingStatus() {
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setActive((i) => Math.min(i + 1, GEN_STEPS.length - 1));
+    }, 6000);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="p-6 sm:p-10 min-h-[360px]">
+      <div className="flex items-center gap-3 mb-1">
+        <Loader2 className="h-5 w-5 animate-spin text-[#df2681]" />
+        <h2 className="text-lg font-semibold text-[#1a3668]">
+          Building your job spec
+        </h2>
+      </div>
+      <p className="text-sm text-gray-500 mb-6">
+        This usually takes around 30 seconds — hang tight.
+      </p>
+
+      <ul className="space-y-3">
+        {GEN_STEPS.map((s, i) => {
+          const done = i < active;
+          const current = i === active;
+          return (
+            <li key={s} className="flex items-center gap-3">
+              <span
+                className={`flex h-5 w-5 items-center justify-center rounded-full text-xs shrink-0 ${
+                  done
+                    ? "bg-[#df2681] text-white"
+                    : current
+                    ? "bg-pink-100 text-[#df2681]"
+                    : "bg-gray-100 text-gray-400"
+                }`}
+              >
+                {done ? (
+                  <Check className="h-3 w-3" />
+                ) : current ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  i + 1
+                )}
+              </span>
+              <span
+                className={`text-sm ${
+                  done || current ? "text-[#1a3668] font-medium" : "text-gray-400"
+                }`}
+              >
+                {s}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 

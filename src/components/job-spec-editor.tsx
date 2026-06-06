@@ -17,14 +17,12 @@ import {
   ArrowLeft,
   FileDown,
   FileText,
-  List,
   Loader2,
   Pencil,
   Phone,
   RotateCcw,
   SeparatorHorizontal,
   Sparkles,
-  Tag,
   Trash2,
   Undo2,
 } from "lucide-react";
@@ -184,10 +182,6 @@ export function JobSpecEditor({
       return next;
     });
 
-  const scrollTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
   // ── Per-section AI regeneration ────────────────────────────────────────
   const regenerate = async (section: SpecSection) => {
     setRegenSection(section);
@@ -326,16 +320,6 @@ export function JobSpecEditor({
             <Button variant="outline" size="sm" onClick={onRestart} className="text-xs gap-1.5">
               <RotateCcw className="h-3.5 w-3.5" /> Start over
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setBranded((b) => !b)}
-              className={`text-xs gap-1.5 ${branded ? "" : "border-[#df2681]/40 text-[#df2681]"}`}
-              title="Toggle Aaron Wallis branding on the document"
-            >
-              <Tag className="h-3.5 w-3.5" />
-              {branded ? "White-label" : "AW branding"}
-            </Button>
             <Button variant="outline" size="sm" onClick={handleWord} className="text-xs gap-1.5">
               <FileText className="h-3.5 w-3.5" /> Word
             </Button>
@@ -368,25 +352,23 @@ export function JobSpecEditor({
         <div className="flex flex-1 flex-col lg:flex-row overflow-hidden">
           {/* LEFT: editable form */}
           <div ref={panelRef} className="w-full lg:w-[470px] shrink-0 bg-white border-r border-gray-200 overflow-y-auto">
-            {/* Contents nav */}
-            <div className="px-5 py-3 border-b border-gray-100 sticky top-0 bg-white z-10">
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-2">
-                <List className="h-3.5 w-3.5" /> Contents
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                <button onClick={() => scrollTo("edit-heading")} className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200">
-                  Heading
-                </button>
-                {visibleSections.map((s) => (
-                  <button
-                    key={s.key}
-                    onClick={() => scrollTo(`edit-${s.key}`)}
-                    className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  >
-                    {s.title}
-                  </button>
-                ))}
-              </div>
+            {/* White-label option */}
+            <div className="px-5 py-3 border-b border-gray-100">
+              <label className="flex items-center gap-2.5 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={!branded}
+                  onChange={(e) => setBranded(!e.target.checked)}
+                  className="h-4 w-4 rounded shrink-0"
+                  style={{ accentColor: "#df2681" }}
+                />
+                <span className="text-sm text-[#1a3668] group-hover:text-[#df2681]">
+                  White-label{" "}
+                  <span className="text-gray-400 text-xs">
+                    (remove Aaron Wallis branding)
+                  </span>
+                </span>
+              </label>
             </div>
 
             {/* Inputs hint */}
@@ -517,17 +499,19 @@ function SectionEditor({
 
   return (
     <div id={id} className="px-5 py-4 border-b border-gray-100 space-y-2 scroll-mt-16">
+      {/* Obvious page-break indicator */}
+      {pageBreak && (
+        <div className="flex items-center gap-2 -mt-1 mb-1">
+          <div className="flex-1 border-t-2 border-dashed border-[#df2681]/60" />
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#df2681]">
+            New page starts here
+          </span>
+          <div className="flex-1 border-t-2 border-dashed border-[#df2681]/60" />
+        </div>
+      )}
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-[#1a3668]">{title}</h3>
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={onTogglePageBreak}
-            title="Start this section on a new page"
-            className={`flex items-center ${pageBreak ? "text-[#df2681]" : "text-gray-300 hover:text-gray-500"}`}
-          >
-            <SeparatorHorizontal className="h-3.5 w-3.5" />
-          </button>
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onRegenerate}
@@ -548,9 +532,19 @@ function SectionEditor({
           </button>
         </div>
       </div>
-      {pageBreak && (
-        <p className="text-[10px] text-[#df2681] font-medium">↧ Starts on a new page</p>
-      )}
+      {/* Page-break toggle — labelled pill so it's easy to spot */}
+      <button
+        type="button"
+        onClick={onTogglePageBreak}
+        className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${
+          pageBreak
+            ? "bg-[#df2681] text-white border-[#df2681]"
+            : "text-gray-500 border-gray-200 hover:border-[#df2681]/40 hover:text-[#df2681]"
+        }`}
+      >
+        <SeparatorHorizontal className="h-3.5 w-3.5" />
+        {pageBreak ? "Starts on a new page" : "Start on a new page"}
+      </button>
       {isList && <p className="text-[10px] text-gray-400">One item per line</p>}
       <Textarea
         value={text}
