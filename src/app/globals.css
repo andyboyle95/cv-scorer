@@ -36,3 +36,15 @@
     font-family: 'Inter', sans-serif;
   }
 }
+
+/* Each generated A4 page prints on its own sheet (job spec + CV tools). */
+@media print {
+  .spec-page {
+    page-break-after: always;
+    break-after: page;
+  }
+  .spec-page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+}
