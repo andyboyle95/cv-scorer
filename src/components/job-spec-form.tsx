@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -219,7 +220,7 @@ export function JobSpecForm({
   return (
     <form
       onSubmit={handleSubmit(onSubmit, goToFirstError)}
-      className="w-full max-w-2xl mx-auto"
+      className="w-full max-w-5xl mx-auto"
       onKeyDown={(e) => {
         // Prevent Enter from submitting early on intermediate steps.
         if (e.key === "Enter" && !isLast) {
@@ -228,80 +229,101 @@ export function JobSpecForm({
         }
       }}
     >
-      {showTest && !submitting && (
-        <div className="mb-3 flex justify-end">
-          <button
-            type="button"
-            onClick={fillTestData}
-            className="text-xs font-semibold text-[#df2681] border border-[#df2681]/40 rounded-md px-3 py-1.5 hover:bg-pink-50 transition-colors"
-          >
-            Fill test data
-          </button>
-        </div>
-      )}
+      <div className="flex flex-col lg:flex-row gap-5">
+        {/* Sidebar — Aaron Wallis branding + contents navigation */}
+        <aside className="lg:w-64 shrink-0">
+          <div className="lg:sticky lg:top-6 space-y-4">
+            {/* Branding */}
+            <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-4">
+              <Image
+                src="/aaron-wallis-logo.png"
+                alt="Aaron Wallis"
+                width={180}
+                height={56}
+                className="h-9 w-auto object-contain"
+                unoptimized
+                priority
+              />
+              <h1 className="mt-3 text-base font-semibold text-[#1a3668]">
+                Job Spec Creator
+              </h1>
+              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                Build a tailored job &amp; person spec for your sales role.
+              </p>
+            </div>
 
-      {/* Contents navigation — jump to any question */}
-      {!submitting && (
-        <div className="mb-3">
-          <button
-            type="button"
-            onClick={() => setContentsOpen((o) => !o)}
-            className="w-full flex items-center justify-between gap-2 rounded-lg border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm font-medium text-[#1a3668] shadow-sm hover:bg-gray-50"
-          >
-            <span className="flex items-center gap-2">
-              <List className="h-4 w-4" /> Contents — {STEPS[step].title}
-            </span>
-            <ChevronDown
-              className={`h-4 w-4 transition-transform ${contentsOpen ? "rotate-180" : ""}`}
-            />
-          </button>
-          {contentsOpen && (
-            <ol className="mt-2 rounded-lg border border-[#E2E8F0] bg-white shadow-sm divide-y divide-gray-100 overflow-hidden">
-              {STEPS.map((s, i) => {
-                const complete = isStepComplete(i);
-                return (
-                  <li key={s.title}>
-                    <button
-                      type="button"
-                      onClick={() => goToStep(i)}
-                      className={`w-full flex items-center gap-3 px-4 py-2 text-left text-sm transition-colors hover:bg-gray-50 ${
-                        i === step ? "bg-pink-50" : ""
-                      }`}
-                    >
-                      <span
-                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
-                          i === step
-                            ? "bg-[#df2681] text-white"
-                            : complete
-                            ? "bg-green-100 text-green-600"
-                            : "bg-gray-100 text-gray-400"
-                        }`}
-                      >
-                        {complete && i !== step ? (
-                          <Check className="h-3 w-3" />
-                        ) : (
-                          i + 1
-                        )}
-                      </span>
-                      <span
-                        className={
-                          i === step
-                            ? "font-semibold text-[#1a3668]"
-                            : "text-gray-600"
-                        }
-                      >
-                        {s.title}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ol>
+            {/* Desktop contents */}
+            {!submitting && (
+              <nav className="hidden lg:block bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-2">
+                <p className="px-2 pt-1 pb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                  Contents
+                </p>
+                <ol className="space-y-0.5">
+                  {STEPS.map((s, i) => (
+                    <li key={s.title}>
+                      <StepNavButton
+                        index={i}
+                        title={s.title}
+                        active={i === step}
+                        complete={isStepComplete(i)}
+                        onClick={() => setStep(i)}
+                      />
+                    </li>
+                  ))}
+                </ol>
+              </nav>
+            )}
+
+            {/* Mobile contents (collapsible) */}
+            {!submitting && (
+              <div className="lg:hidden">
+                <button
+                  type="button"
+                  onClick={() => setContentsOpen((o) => !o)}
+                  className="w-full flex items-center justify-between gap-2 rounded-lg border border-[#E2E8F0] bg-white px-4 py-2.5 text-sm font-medium text-[#1a3668] shadow-sm hover:bg-gray-50"
+                >
+                  <span className="flex items-center gap-2">
+                    <List className="h-4 w-4" /> Contents — {STEPS[step].title}
+                  </span>
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${contentsOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+                {contentsOpen && (
+                  <ol className="mt-2 rounded-lg border border-[#E2E8F0] bg-white shadow-sm p-2 space-y-0.5">
+                    {STEPS.map((s, i) => (
+                      <li key={s.title}>
+                        <StepNavButton
+                          index={i}
+                          title={s.title}
+                          active={i === step}
+                          complete={isStepComplete(i)}
+                          onClick={() => goToStep(i)}
+                        />
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            )}
+          </div>
+        </aside>
+
+        {/* Main column */}
+        <div className="flex-1 min-w-0">
+          {showTest && !submitting && (
+            <div className="mb-3 flex justify-end">
+              <button
+                type="button"
+                onClick={fillTestData}
+                className="text-xs font-semibold text-[#df2681] border border-[#df2681]/40 rounded-md px-3 py-1.5 hover:bg-pink-50 transition-colors"
+              >
+                Fill test data
+              </button>
+            </div>
           )}
-        </div>
-      )}
 
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-[#E2E8F0]">
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-[#E2E8F0]">
         {/* Progress bar */}
         <div className="h-1.5 bg-gray-100">
           <div
@@ -360,8 +382,56 @@ export function JobSpecForm({
             </div>
           </>
         )}
+          </div>
+        </div>
       </div>
     </form>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Contents nav button (shared by desktop sidebar + mobile dropdown)
+// ---------------------------------------------------------------------------
+function StepNavButton({
+  index,
+  title,
+  active,
+  complete,
+  onClick,
+}: {
+  index: number;
+  title: string;
+  active: boolean;
+  complete: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-md text-left text-sm transition-colors hover:bg-gray-50 ${
+        active ? "bg-pink-50" : ""
+      }`}
+    >
+      <span
+        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
+          active
+            ? "bg-[#df2681] text-white"
+            : complete
+            ? "bg-green-100 text-green-600"
+            : "bg-gray-100 text-gray-400"
+        }`}
+      >
+        {complete && !active ? <Check className="h-3 w-3" /> : index + 1}
+      </span>
+      <span
+        className={
+          active ? "font-semibold text-[#1a3668]" : "text-gray-600"
+        }
+      >
+        {title}
+      </span>
+    </button>
   );
 }
 

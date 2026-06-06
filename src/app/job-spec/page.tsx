@@ -68,18 +68,8 @@ export default function JobSpecPage() {
 
   return (
     <div className="min-h-screen bg-[#F7F7F7] py-10 px-4">
-      <div className="max-w-2xl mx-auto mb-8 text-center">
-        <h1 className="text-3xl font-semibold text-[#1a3668]">
-          Job Spec Creator
-        </h1>
-        <p className="text-gray-500 mt-2">
-          Answer a few questions and we&apos;ll instantly draft a tailored job
-          spec and person specification for your sales role.
-        </p>
-      </div>
-
       {error && (
-        <div className="max-w-2xl mx-auto mb-4">
+        <div className="max-w-5xl mx-auto mb-4">
           <div className="rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm px-4 py-3">
             {error}
           </div>
