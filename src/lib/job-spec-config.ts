@@ -203,10 +203,13 @@ export const ORDER_VALUES: Option[] = [
 
 // --- 13) Point of contact ---------------------------------------------------
 export const POINTS_OF_CONTACT: Option[] = [
-  { value: "manager", label: "Manager" },
-  { value: "head", label: "Head of Department" },
-  { value: "director", label: "Director" },
-  { value: "exec-director", label: "Executive / Board Director" },
+  { value: "manager-hod", label: "Manager / Head of Department" },
+  { value: "procurement", label: "Procurement / Professional Buyers" },
+  { value: "director-small", label: "Director of small companies" },
+  {
+    value: "exec-large",
+    label: "Executive / Board Director of larger companies",
+  },
 ];
 
 // --- 10) Personal qualities (sliders 1–5) ----------------------------------
@@ -382,12 +385,16 @@ const SIGNAL_RULES: SignalRule[] = [
     return null;
   },
 
-  // 13) Point of contact
+  // 13) Point of contact — each implies a very different selling approach
   (a) => {
-    if (a.pointOfContact === "director" || a.pointOfContact === "exec-director")
-      return "Sells to Director / Board level: the candidate must be credible and confident engaging senior decision-makers, talking commercial outcomes and strategy.";
-    if (a.pointOfContact === "manager")
-      return "Sells to Manager level: emphasise practical, operational conversations and building rapport with day-to-day users and budget-holders.";
+    if (a.pointOfContact === "manager-hod")
+      return "Sells to Managers / Heads of Department: emphasise practical, operational conversations, solving day-to-day problems for the people who actually use the product, and building rapport with departmental budget-holders rather than pitching high-level strategy.";
+    if (a.pointOfContact === "procurement")
+      return "Sells to Procurement / professional Buyers: this is a commercially hard-nosed, process-driven sale. Emphasise commercial acumen, negotiation, defending margin and value (total cost of ownership, not just price), navigating tenders/RFPs and frameworks, and the resilience to handle professional buyers whose job is to drive the price down.";
+    if (a.pointOfContact === "director-small")
+      return "Sells to owner-Directors of small companies: decisions are made quickly by one pragmatic person who is spending their own money. Emphasise building personal trust and rapport, clear and fast ROI, flexibility, and speaking the language of an entrepreneur who wears many hats — not corporate process.";
+    if (a.pointOfContact === "exec-large")
+      return "Sells to Executive / Board Directors of larger companies: a strategic, high-stakes, often long and committee-driven sale. Emphasise gravitas and board-level credibility, building a compelling business case, articulating strategic and commercial outcomes, and the patience to navigate multiple senior stakeholders and procurement in parallel.";
     return null;
   },
 

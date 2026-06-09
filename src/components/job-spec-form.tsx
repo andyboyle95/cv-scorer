@@ -81,11 +81,11 @@ const PRESET: JobSpecFormData = {
   },
   salesCycle: "medium",
   orderValue: "10k-50k",
-  pointOfContact: "director",
+  pointOfContact: "exec-large",
   additionalNotes:
     "Must have experience selling SaaS into financial services. £55k base, £90k OTE, car allowance.",
-  name: "Andy Boyle",
-  email: "andyboyleaw@gmail.com",
+  name: "Jane Smith",
+  email: "name@companyname.com",
   companyUrl: "www.aaronwallis.co.uk",
 };
 
@@ -633,7 +633,7 @@ function StepContent({ step, register, control, errors }: StepProps) {
       return (
         <Question
           title="Personal qualities"
-          subtitle="How important is each quality for the ideal candidate? Drag each slider from Unimportant to Critical."
+          subtitle={`How important is each quality for the ideal candidate? Drag each slider from 1 (Unimportant) to 5 (Critical). Please be highly selective with your ratings. For this evaluation to work effectively, not every quality can be a top priority. Reserve a score of 5 strictly for the absolute "make-or-break" differentiators, and use 1 or 2 for qualities that are merely "nice to have." A successful profile requires clear trade-offs, so please avoid clustering your scores around 3 or 5.`}
         >
           {/* Scale legend */}
           <div className="flex items-center justify-between text-[11px] font-medium text-gray-400 mb-6 px-0.5">
