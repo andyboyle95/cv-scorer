@@ -26,13 +26,6 @@
   };
   const flag = (c) => FLAGS[c] || "⚽";
 
-  const DEMO = [
-    ["GK", "Galíndez", "Ecuador"], ["GK", "Crépeau", "Canada"],
-    ["DEF", "Olivera", "Uruguay"], ["DEF", "Kimmich", "Germany"], ["DEF", "Elvedi", "Switzerland"], ["DEF", "Gabriel Magalhães", "Brazil"], ["DEF", "Møller Wolfe", "Norway"],
-    ["MID", "Wirtz", "Germany"], ["MID", "Bruno Fernandes", "Portugal"], ["MID", "James Rodríguez", "Colombia"], ["MID", "Bellingham", "England"], ["MID", "Raphinha", "Brazil"],
-    ["FWD", "Mbappé", "France"], ["FWD", "Haaland", "Norway"], ["FWD", "Mikel Oyarzabal", "Spain"],
-  ];
-
   let DATA = null;
   let COUNTRIES = [];
   let slots = loadSlots();
@@ -139,7 +132,6 @@
     $("round").addEventListener("change", (e) => { round = e.target.value; renderAll(); });
     $("hideKicked").addEventListener("change", (e) => { hidePlayed = e.target.checked; renderAll(); });
     $("clearBtn").addEventListener("click", () => { slots = blankSlots(); saveSlots(); renderBuilder(); renderAll(); });
-    $("demoBtn").addEventListener("click", fillDemo);
     renderSavedTeams();
     $("saveBtn").addEventListener("click", saveTeam);
     $("delSavedBtn").addEventListener("click", deleteSavedTeam);
@@ -154,14 +146,6 @@
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
-
-  function fillDemo() {
-    slots = blankSlots();
-    const byPos = {}; slots.forEach((s) => { (byPos[s.pos] = byPos[s.pos] || []).push(s); });
-    const idx = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
-    for (const [pos, name, country] of DEMO) { const s = byPos[pos][idx[pos]++]; if (s) { s.name = name; s.country = country; } }
-    saveSlots(); renderBuilder(); renderAll();
-  }
 
   // ---- builder + autocomplete ---------------------------------------------
   function renderBuilder() {
@@ -250,11 +234,68 @@
     if (!DATA) {
       $("hero").className = "hero idle";
       $("hero").innerHTML = '<div class="label">Almost ready</div><div class="team" style="font-size:20px;">Loading fixtures… ⏳</div><div class="meta">Build your squad above while this loads.</div>';
+      $("timeline").innerHTML = '<p class="empty">Loading fixtures…</p>';
       $("pitch").innerHTML = '<p class="empty">Loading fixtures…</p>';
       $("queue").innerHTML = '<p class="empty">Loading fixtures…</p>';
       return;
     }
-    renderHero(); renderPitch(); renderQueue();
+    renderHero(); renderTimeline(); renderPitch(); renderQueue();
+  }
+
+  // Horizontal round timeline: matches as blocks on a time axis, a live "now"
+  // line, played matches greyed. Whole round legible at a glance.
+  function renderTimeline() {
+    const el = $("timeline");
+    const xs = withMatch(); // ignore "hide played" so the whole round shows
+    if (!xs.length) { el.innerHTML = '<p class="empty">Add your squad to see the timeline.</p>'; return; }
+    const MATCH_MS = 2 * 3600000;
+    const start = Math.min(...xs.map((x) => ko(x.m)));
+    const end = Math.max(...xs.map((x) => ko(x.m))) + MATCH_MS;
+    const span = Math.max(end - start, 3600000);
+    const pxPerHour = 9;
+    const W = Math.max(660, Math.round((span / 3600000) * pxPerHour));
+    const xpos = (t) => ((t - start) / span) * W;
+
+    // lanes (greedy) so overlapping matches don't collide
+    const blocks = xs.map((x) => ({ x, s: ko(x.m), e: ko(x.m) + MATCH_MS }));
+    const laneEnd = [];
+    blocks.forEach((b) => {
+      let lane = laneEnd.findIndex((e) => e <= b.s);
+      if (lane < 0) { lane = laneEnd.length; laneEnd.push(0); }
+      laneEnd[lane] = b.e; b.lane = lane;
+    });
+    const lanes = Math.max(1, laneEnd.length);
+    const laneH = 44, axisH = 18, height = lanes * laneH + axisH;
+    const nx = nextX();
+
+    // day gridlines
+    let grids = "";
+    const d0 = new Date(start); d0.setHours(0, 0, 0, 0);
+    for (let t = d0.getTime(); t <= end; t += 86400000) {
+      const left = xpos(t);
+      if (left < -1 || left > W) continue;
+      const lbl = new Date(t).toLocaleDateString(undefined, { weekday: "short", day: "numeric" });
+      grids += `<div class="tlgrid" style="left:${left}px"><span>${esc(lbl)}</span></div>`;
+    }
+
+    const blockHtml = blocks.map((b) => {
+      const left = xpos(b.s);
+      const w = Math.max(58, ((MATCH_MS) / span) * W);
+      const top = axisH + b.lane * laneH + 2;
+      const isPlayed = ko(b.x.m) <= now();
+      const isNext = nx && b.x.s.id === nx.s.id;
+      const ft = fmtTime(b.x.m);
+      return `<div class="tlblock ${isPlayed ? "played" : ""}${isNext ? " next" : ""}" style="left:${left}px;top:${top}px;width:${w}px" title="${esc(label(b.x.s))} vs ${esc(opponentOf(b.x.m, b.x.s.country))} · ${ft.t} ${ft.d}">
+        <span class="tlf">${flag(b.x.s.country)}</span><span class="tlt">${ft.t}</span>
+        <span class="tlnm">${esc(label(b.x.s))}</span>
+      </div>`;
+    }).join("");
+
+    let nowLine = "";
+    if (now() >= start && now() <= end) nowLine = `<div class="tlnow" style="left:${xpos(now())}px"><span>now</span></div>`;
+
+    el.innerHTML = `<div class="tlscroll"><div class="tltrack" style="width:${W}px;height:${height}px">${grids}${blockHtml}${nowLine}</div></div>
+      <p class="pitch-note">Left → right = earlier → later. The red line is now; greyed blocks have kicked off (locked).</p>`;
   }
 
   function pad(n) { return String(n).padStart(2, "0"); }
@@ -262,7 +303,7 @@
 
   function renderHero() {
     const el = $("hero");
-    if (!filled().length) { heroKey = "none"; el.className = "hero idle"; el.innerHTML = '<div class="label">Your captain</div><div class="team" style="font-size:20px;">Add your squad to begin 🚀</div><div class="meta">Type your players above — names autocomplete to their country.</div>'; return; }
+    if (!filled().length) { heroKey = "none"; el.className = "hero idle"; el.innerHTML = '<div class="label">Next to play</div><div class="team" style="font-size:20px;">Add your squad to begin 🚀</div><div class="meta">Type your players above — names autocomplete to their country.</div>'; return; }
     const x = nextX();
     if (!x) { heroKey = "done"; el.className = "hero idle"; el.innerHTML = '<div class="label">All done</div><div class="team" style="font-size:20px;">Everyone has kicked off 🎉</div><div class="meta">No players left to play in this round.</div>'; return; }
     const opp = opponentOf(x.m, x.s.country);
@@ -273,7 +314,7 @@
       : "";
     heroKey = x.m.kickoff_utc + x.s.id;
     el.className = "hero";
-    el.innerHTML = `<div class="crown">👑</div><div class="label">Captain next</div>
+    el.innerHTML = `<div class="crown">⏭️</div><div class="label">Plays next — captain or sub?</div>
       <div class="team">${flag(x.s.country)} ${esc(label(x.s))}</div>
       <div class="meta">${x.s.name ? esc(x.s.country) + " · " : ""}vs ${esc(opp)} · ${fmtTime(x.m).t} ${fmtTime(x.m).d}</div>
       <div class="cd" id="cdv"></div>${swapHtml}`;
@@ -286,7 +327,7 @@
     const key = x ? x.m.kickoff_utc + x.s.id : (filled().length ? "done" : "none");
     if (key !== heroKey) { renderHero(); return; }
     const c = $("cdv");
-    if (x && c) { const p = cd(ko(x.m) - now()); const big = p.d > 0 ? `<span class="seg">${p.d}d</span> ` : ""; c.innerHTML = `${big}<span class="seg">${pad(p.h)}</span><small>h</small> <span class="seg">${pad(p.m)}</span><small>m</small> <span class="seg">${pad(p.s)}</span><small>s</small> <small>until kickoff 🔒</small>`; }
+    if (x && c) { const p = cd(ko(x.m) - now()); const big = p.d > 0 ? `<span class="seg">${p.d}d</span> ` : ""; c.innerHTML = `${big}<span class="seg">${pad(p.h)}</span><small>h</small> <span class="seg">${pad(p.m)}</span><small>m</small> <span class="seg">${pad(p.s)}</span><small>s</small> <small>to move the armband 🔁</small>`; }
   }
 
   function renderPitch() {
@@ -302,7 +343,7 @@
         const played = ko(x.m) <= now();
         const isNext = nx && x.s.id === nx.s.id;
         const ft = fmtTime(x.m);
-        const st = played ? '<span class="cstat ok">✓ Played</span>' : isNext ? '<span class="cstat next">👑 Captain</span>' : '<span class="cstat">To play</span>';
+        const st = played ? '<span class="cstat ok">✓ Played</span>' : isNext ? '<span class="cstat next">⏭️ Next</span>' : '<span class="cstat">To play</span>';
         return `<div class="fcard ${played ? "played" : isNext ? "isnext" : ""}">
           <span class="ford">${order.get(x.s.id)}</span>
           <div class="fflag">${flag(x.s.country)}</div>
@@ -350,7 +391,7 @@
           <span class="qnum">${n}</span>
           <span class="qname">${flag(x.s.country)} ${esc(label(x.s))}${x.s.name ? ` <small>${esc(x.s.country)}</small>` : ""}</span>
           <span class="qvs">vs ${esc(opponentOf(x.m, x.s.country))}</span>
-          ${isNext ? '<span class="badge-next">Captain next</span>' : ""}
+          ${isNext ? '<span class="badge-next">Next to play</span>' : ""}
           ${played ? '<span class="badge-played">Played</span>' : ""}
           <span class="qtime"><span class="t">${ft.t}</span><br/><span class="d">${ft.d}</span></span>
         </div>`;

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex" />
   <meta name="theme-color" content="#0a0726" />
-  <title>👑 Captain Planner — World Cup 2026</title>
+  <title>Andy's Captain / Sub-Out Planner — World Cup 2026</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23ff2d9b'/><stop offset='.5' stop-color='%23a855f7'/><stop offset='1' stop-color='%2322d3ee'/></linearGradient></defs><rect width='64' height='64' rx='15' fill='url(%23g)'/><text x='32' y='45' font-size='34' text-anchor='middle' font-family='Arial' font-weight='bold' fill='white'>C</text><text x='46' y='24' font-size='22' text-anchor='middle'>👑</text></svg>" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -13,9 +13,10 @@
   <div class="bg-orbs"><i class="o1"></i><i class="o2"></i><i class="o3"></i></div>
 
   <main class="wrap">
+    <a class="navback" href="/">← Aaron Wallis Apps</a>
     <header>
-      <h1><span class="kicker">World Cup 2026 · Fantasy</span>👑 Captain Planner</h1>
-      <p class="sub">Add your squad, then see your players in <strong>kickoff order</strong> — captain whoever plays next, and move the armband down after each game.</p>
+      <h1><span class="kicker">World Cup 2026 · Fantasy</span>Andy's Captain / Sub-Out Planner</h1>
+      <p class="sub">See your players in <strong>kickoff order</strong> — whoever plays next is your call to captain or sub out, then move down the list after each game.</p>
       <p class="tz">🌍 <b id="tz">—</b> · <span id="now">—</span></p>
     </header>
 
@@ -24,7 +25,6 @@
       <div class="row" style="justify-content:space-between;margin-bottom:6px;">
         <h2 style="margin:0;">Build your squad <span id="filledCount" class="count"></span></h2>
         <div class="row" style="gap:8px;">
-          <button class="btn" id="demoBtn">Try a demo</button>
           <button class="btn" id="clearBtn">Clear</button>
         </div>
       </div>
@@ -52,8 +52,14 @@
       </div>
     </section>
 
-    <!-- Captain hero -->
+    <!-- Next-to-play hero -->
     <div id="hero"></div>
+
+    <!-- Round timeline -->
+    <section class="card">
+      <h2>🕒 Round timeline</h2>
+      <div id="timeline"></div>
+    </section>
 
     <!-- Formation pitch -->
     <section class="card">
@@ -61,15 +67,14 @@
       <div id="pitch"></div>
     </section>
 
-    <!-- Captain queue -->
+    <!-- Play order -->
     <section class="card">
-      <h2>🧭 Captain queue — soonest first</h2>
+      <h2>🧭 Play order — soonest first</h2>
       <div id="queue"></div>
     </section>
 
     <footer>
-      Made by <strong>Andy Boyle</strong><br />
-      Independent &amp; unofficial · not affiliated with FIFA or EA
+      Made by <strong>Andy Boyle</strong>
     </footer>
   </main>
 
