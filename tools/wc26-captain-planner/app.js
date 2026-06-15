@@ -203,7 +203,9 @@
     renderPicker(); renderAll();
     const added = players.length || teams.length;
     const r = data.read ? `<br/><span style="color:#7c789f;">Read: “${esc(data.read)}”</span>` : "";
-    msg.innerHTML = `✅ Added ${added} — adjust below if needed.${r}`;
+    msg.innerHTML = `✅ Added ${added}. <a class="link jumpadd" style="cursor:pointer">➕ Add any we missed</a>${r}`;
+    const j = msg.querySelector(".jumpadd");
+    if (j) j.addEventListener("click", () => { const b = document.querySelector('.tab[data-tab="build"]'); if (b) b.click(); });
   }
 
   // ---- render --------------------------------------------------------------
@@ -211,16 +213,17 @@
 
   function renderPicker() {
     const el = $("picker");
+    const inSquad = (t) => squad.some((e) => e.country === t);
     el.innerHTML = Object.entries(DATA.groups).map(([g, teams]) => {
-      const chips = teams.map((t) => `<span class="chip${hasNamelessCountry(t) ? " sel" : ""}" data-team="${esc(t)}">${esc(t)}</span>`).join("");
+      const chips = teams.map((t) => `<span class="chip${inSquad(t) ? " sel" : ""}" data-team="${esc(t)}">${esc(t)}</span>`).join("");
       return `<div class="group"><div class="glabel">Group ${g}</div><div class="chips">${chips}</div></div>`;
     }).join("");
     el.querySelectorAll(".chip").forEach((chip) => {
       chip.addEventListener("click", () => {
         const t = chip.getAttribute("data-team");
-        if (hasNamelessCountry(t)) squad = squad.filter((e) => !(e.country === t && !e.name));
+        if (inSquad(t)) squad = squad.filter((e) => e.country !== t); // toggle whole country off
         else addEntry(null, t);
-        saveSquad(); chip.classList.toggle("sel"); renderAll();
+        saveSquad(); renderPicker(); renderAll();
       });
     });
   }
