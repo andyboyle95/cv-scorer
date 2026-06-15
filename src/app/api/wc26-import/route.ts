@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { WC26_PLAYERS } from "@/lib/wc26-players";
 
 export const maxDuration = 30;
 
@@ -74,6 +75,79 @@ function matchTeams(text: string): string[] {
   return hits;
 }
 
+// --- Player-name matching (best-effort screenshot import) -------------------
+function norm(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "") // strip combining diacritics
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const PLAYER_INDEX = Object.entries(WC26_PLAYERS).flatMap(([country, names]) =>
+  names.map((n) => {
+    const key = norm(n);
+    return { country, key, multi: key.includes(" ") };
+  })
+);
+
+function matchPlayers(text: string): string[] {
+  const t = norm(text);
+  const words = t.split(/[^a-z0-9-]+/).filter(Boolean);
+  const wordSet = new Set(words);
+  const triggers = new Map<string, Set<string>>();
+  const add = (trig: string, country: string) => {
+    if (!triggers.has(trig)) triggers.set(trig, new Set());
+    triggers.get(trig)!.add(country);
+  };
+
+  for (const e of PLAYER_INDEX) {
+    if (e.multi) {
+      // Multi-word key: require the lead word(s) present and the last word
+      // present (allowing a truncated/prefix match for "Bruno Fernand…").
+      const parts = e.key.split(" ");
+      const last = parts[parts.length - 1];
+      const leadOk = parts.slice(0, -1).every((w) => wordSet.has(w));
+      const lastOk = words.some(
+        (w) =>
+          w === last ||
+          (w.length >= 4 && last.length >= 4 && (last.startsWith(w) || w.startsWith(last)))
+      );
+      if (t.includes(e.key) || (leadOk && lastOk)) add(e.key, e.country); // distinctive trigger
+    } else if (e.key.length < 5) {
+      if (wordSet.has(e.key)) add(e.key, e.country); // short key → exact only
+    } else {
+      for (const w of words) {
+        if (w.length >= 5 && (w === e.key || e.key.startsWith(w) || w.startsWith(e.key))) {
+          add(w, e.country); // group by OCR token to catch prefix collisions
+          break;
+        }
+      }
+    }
+  }
+
+  // Accept a trigger only if it points to exactly one country (skip ambiguous).
+  const out = new Set<string>();
+  for (const [, countries] of triggers) {
+    if (countries.size === 1) out.add([...countries][0]);
+  }
+  return [...out];
+}
+
+// Remove "v OPP" opponent labels (e.g. "v KSA") so the opponent's code/name
+// isn't mistaken for one of the user's teams.
+function scrubOpponents(text: string): string {
+  return text.replace(/\bv\.?\s+[A-Za-z]{3}\b/g, " ");
+}
+
+// Combined resolver: country names/codes + player names, opponent labels removed.
+function resolveTeams(text: string): string[] {
+  const cleaned = scrubOpponents(text);
+  return Array.from(new Set([...matchTeams(cleaned), ...matchPlayers(cleaned)]));
+}
+
 // Best-effort OCR via OCR.space. Free demo key "helloworld" works out of the
 // box (heavily rate-limited); set OCR_SPACE_API_KEY in env for a real key.
 async function ocrImage(dataUrl: string): Promise<string> {
@@ -123,7 +197,7 @@ export async function POST(req: NextRequest) {
     try {
       const ocrText = await ocrImage(body.image);
       text += " " + ocrText;
-      const teams = matchTeams(text);
+      const teams = resolveTeams(text);
       if (!teams.length) {
         return NextResponse.json({
           teams: [],
@@ -189,5 +263,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ teams: [], note: "Nothing to read." });
   }
 
-  return NextResponse.json({ teams: matchTeams(text) });
+  return NextResponse.json({ teams: resolveTeams(text) });
 }
