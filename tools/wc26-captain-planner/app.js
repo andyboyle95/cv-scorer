@@ -156,7 +156,7 @@
     const msg = $("shotMsg");
     msg.innerHTML = '<span class="spin"></span> Reading your screenshot…';
     try {
-      const dataUrl = await scaleImage(file, 1100);
+      const dataUrl = await scaleImage(file, 1500);
       await postImport({ image: dataUrl }, msg);
     } catch {
       msg.textContent = "Couldn't read that image — try another screenshot or use Pick teams.";

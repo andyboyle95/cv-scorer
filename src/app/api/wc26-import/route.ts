@@ -3,57 +3,60 @@ import { WC26_PLAYERS } from "@/lib/wc26-players";
 
 export const maxDuration = 30;
 
-// Canonical team names (must match fixtures.json) + accepted aliases,
-// including FIFA 3-letter codes so flag/code screenshots resolve via OCR.
+// Canonical team names (must match fixtures.json) + textual aliases only.
+// NOTE: FIFA 3-letter codes (KSA, IRQ, COD…) are deliberately NOT matched —
+// in fantasy team screenshots those codes are the OPPONENT ("v KSA"), so
+// matching them would select the wrong teams. We rely on full country names
+// (paste) and player names (screenshots) instead.
 const TEAMS: Record<string, string[]> = {
-  Mexico: ["mexico", "mex"],
-  "South Africa": ["south africa", "rsa"],
-  "South Korea": ["south korea", "korea republic", "republic of korea", "kor"],
-  "Czech Republic": ["czech republic", "czechia", "cze"],
-  Canada: ["canada", "can"],
-  "Bosnia and Herzegovina": ["bosnia and herzegovina", "bosnia", "bih"],
-  Qatar: ["qatar", "qat"],
-  Switzerland: ["switzerland", "sui"],
-  Brazil: ["brazil", "bra"],
-  Morocco: ["morocco", "mar"],
-  Haiti: ["haiti", "hai"],
-  Scotland: ["scotland", "sco"],
-  "United States": ["united states", "usa", "usmnt"],
-  Paraguay: ["paraguay", "par"],
-  Australia: ["australia", "aus"],
-  Turkey: ["turkey", "türkiye", "turkiye", "tur"],
-  Germany: ["germany", "ger"],
-  Curaçao: ["curaçao", "curacao", "cuw"],
-  "Ivory Coast": ["ivory coast", "côte d'ivoire", "cote d'ivoire", "civ"],
-  Ecuador: ["ecuador", "ecu"],
-  Netherlands: ["netherlands", "holland", "ned"],
-  Japan: ["japan", "jpn"],
-  Sweden: ["sweden", "swe"],
-  Tunisia: ["tunisia", "tun"],
-  Belgium: ["belgium", "bel"],
-  Egypt: ["egypt", "egy"],
-  Iran: ["iran", "irn"],
-  "New Zealand": ["new zealand", "nzl"],
-  Spain: ["spain", "esp"],
-  "Cape Verde": ["cape verde", "cabo verde", "cpv"],
-  "Saudi Arabia": ["saudi arabia", "ksa"],
-  Uruguay: ["uruguay", "uru"],
-  France: ["france", "fra"],
-  Senegal: ["senegal", "sen"],
-  Iraq: ["iraq", "irq"],
-  Norway: ["norway", "nor"],
-  Argentina: ["argentina", "arg"],
-  Algeria: ["algeria", "alg"],
-  Austria: ["austria", "aut"],
-  Jordan: ["jordan", "jor"],
-  Portugal: ["portugal", "por"],
-  "DR Congo": ["dr congo", "democratic republic of the congo", "congo dr", "cod"],
-  Uzbekistan: ["uzbekistan", "uzb"],
-  Colombia: ["colombia", "col"],
-  England: ["england", "eng"],
-  Croatia: ["croatia", "cro"],
-  Ghana: ["ghana", "gha"],
-  Panama: ["panama", "pan"],
+  Mexico: ["mexico"],
+  "South Africa": ["south africa"],
+  "South Korea": ["south korea", "korea republic", "republic of korea"],
+  "Czech Republic": ["czech republic", "czechia"],
+  Canada: ["canada"],
+  "Bosnia and Herzegovina": ["bosnia and herzegovina", "bosnia"],
+  Qatar: ["qatar"],
+  Switzerland: ["switzerland"],
+  Brazil: ["brazil"],
+  Morocco: ["morocco"],
+  Haiti: ["haiti"],
+  Scotland: ["scotland"],
+  "United States": ["united states", "usmnt"],
+  Paraguay: ["paraguay"],
+  Australia: ["australia"],
+  Turkey: ["turkey", "türkiye", "turkiye"],
+  Germany: ["germany"],
+  Curaçao: ["curaçao", "curacao"],
+  "Ivory Coast": ["ivory coast", "côte d'ivoire", "cote d'ivoire"],
+  Ecuador: ["ecuador"],
+  Netherlands: ["netherlands", "holland"],
+  Japan: ["japan"],
+  Sweden: ["sweden"],
+  Tunisia: ["tunisia"],
+  Belgium: ["belgium"],
+  Egypt: ["egypt"],
+  Iran: ["iran"],
+  "New Zealand": ["new zealand"],
+  Spain: ["spain"],
+  "Cape Verde": ["cape verde", "cabo verde"],
+  "Saudi Arabia": ["saudi arabia"],
+  Uruguay: ["uruguay"],
+  France: ["france"],
+  Senegal: ["senegal"],
+  Iraq: ["iraq"],
+  Norway: ["norway"],
+  Argentina: ["argentina"],
+  Algeria: ["algeria"],
+  Austria: ["austria"],
+  Jordan: ["jordan"],
+  Portugal: ["portugal"],
+  "DR Congo": ["dr congo", "democratic republic of the congo", "congo dr"],
+  Uzbekistan: ["uzbekistan"],
+  Colombia: ["colombia"],
+  England: ["england"],
+  Croatia: ["croatia"],
+  Ghana: ["ghana"],
+  Panama: ["panama"],
 };
 
 function escapeRe(s: string): string {
@@ -139,7 +142,8 @@ function matchPlayers(text: string): string[] {
 // Remove "v OPP" opponent labels (e.g. "v KSA") so the opponent's code/name
 // isn't mistaken for one of the user's teams.
 function scrubOpponents(text: string): string {
-  return text.replace(/\bv\.?\s+[A-Za-z]{3}\b/g, " ");
+  // case-insensitive; \s covers spaces and newlines from OCR line breaks
+  return text.replace(/\bv\.?\s+[a-z]{3}\b/gi, " ");
 }
 
 // Combined resolver: country names/codes + player names, opponent labels removed.
