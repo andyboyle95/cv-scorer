@@ -42,7 +42,7 @@
   const mdByMatch = new Map();
 
   // ---- storage / model -----------------------------------------------------
-  const uid = () => Math.random().toString(36).slice(2, 9);
+  function uid() { return Math.random().toString(36).slice(2, 9); }
   function blankSlots() {
     const s = [];
     POSN.forEach(([pos, , n]) => { for (let i = 0; i < n; i++) s.push({ id: uid(), pos, name: null, country: null }); });
@@ -86,6 +86,7 @@
     return up ? String(mdByMatch.get(up)) : "all";
   }
   function matchForCountry(c) {
+    if (!DATA) return null;
     const ms = DATA.matches.filter((m) => m.home === c || m.away === c);
     if (round !== "all") return ms.find((m) => mdByMatch.get(m) === Number(round)) || null;
     const up = ms.filter((m) => ko(m) > now()).sort((a, b) => ko(a) - ko(b))[0];
@@ -98,12 +99,10 @@
   const nextX = () => withMatch().filter((x) => ko(x.m) > now())[0] || null;
 
   // ---- boot ----------------------------------------------------------------
-  function boot(data) {
-    DATA = data;
-    COUNTRIES = Object.values(DATA.groups).flat().sort();
-    computeMatchdays();
-    round = defaultRound();
-    $("round").value = round;
+  // The builder works immediately; fixtures load in the background for the
+  // match-based views (hero / pitch / queue).
+  function init() {
+    COUNTRIES = Object.keys(FLAGS).sort();
     $("tz").textContent = Intl.DateTimeFormat().resolvedOptions().timeZone || "your device";
     renderBuilder();
     renderAll();
@@ -113,8 +112,14 @@
     $("demoBtn").addEventListener("click", fillDemo);
     setInterval(tick, 1000);
     setInterval(renderAll, 30000);
+
+    fetch(FIXTURES_URL)
+      .then((r) => r.json())
+      .then((d) => { DATA = d; computeMatchdays(); round = defaultRound(); $("round").value = round; renderAll(); })
+      .catch(() => { $("pitch").innerHTML = '<p class="empty">Could not load fixtures — refresh to retry.</p>'; });
   }
-  fetch(FIXTURES_URL).then((r) => r.json()).then(boot).catch(() => { $("pitch").innerHTML = '<p class="empty">Could not load fixtures.</p>'; });
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
 
   function fillDemo() {
     slots = blankSlots();
@@ -207,7 +212,16 @@
   }
 
   // ---- render --------------------------------------------------------------
-  function renderAll() { renderHero(); renderPitch(); renderQueue(); }
+  function renderAll() {
+    if (!DATA) {
+      $("hero").className = "hero idle";
+      $("hero").innerHTML = '<div class="label">Almost ready</div><div class="team" style="font-size:20px;">Loading fixtures… ⏳</div><div class="meta">Build your squad above while this loads.</div>';
+      $("pitch").innerHTML = '<p class="empty">Loading fixtures…</p>';
+      $("queue").innerHTML = '<p class="empty">Loading fixtures…</p>';
+      return;
+    }
+    renderHero(); renderPitch(); renderQueue();
+  }
 
   function pad(n) { return String(n).padStart(2, "0"); }
   function cd(ms) { const s = Math.max(0, Math.floor(ms / 1000)); return { d: Math.floor(s / 86400), h: Math.floor((s % 86400) / 3600), m: Math.floor((s % 3600) / 60), s: s % 60 }; }
