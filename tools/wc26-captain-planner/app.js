@@ -43,20 +43,19 @@
       hideKicked = e.target.checked;
       renderAll();
     });
-    $("pasteLoad").addEventListener("click", loadPasted);
+    $("pasteLoad").addEventListener("click", loadImport);
   }
 
-  if (window.__FIXTURES__) {
-    boot(window.__FIXTURES__);
-  } else {
-    fetch("fixtures.json")
-      .then((r) => r.json())
-      .then(boot)
-      .catch(() => {
-        $("timeline").innerHTML =
-          '<p class="empty">Could not load fixtures.</p>';
-      });
-  }
+  const FIXTURES_URL = window.__FIXTURES_URL__ || "fixtures.json";
+  const IMPORT_URL = window.__IMPORT_URL__ || "/api/wc26-import";
+
+  fetch(FIXTURES_URL)
+    .then((r) => r.json())
+    .then(boot)
+    .catch(() => {
+      $("timeline").innerHTML =
+        '<p class="empty">Could not load fixtures. Please refresh.</p>';
+    });
 
   // ---- helpers -------------------------------------------------------------
   function loadSelected() {
@@ -269,27 +268,36 @@
       .join("");
   }
 
-  function loadPasted() {
-    const raw = $("pasteBox").value || "";
-    const wanted = raw
-      .split(/[\n,]+/)
-      .map((s) => s.trim().toLowerCase())
-      .filter(Boolean);
-    if (!wanted.length) return;
-    const all = Object.values(DATA.groups).flat();
-    const matched = [];
-    const missed = [];
-    for (const w of wanted) {
-      const hit = all.find((t) => t.toLowerCase() === w);
-      if (hit) {
-        selected.add(hit);
-        matched.push(hit);
-      } else missed.push(w);
+  async function loadImport() {
+    const raw = ($("pasteBox").value || "").trim();
+    const msg = $("pasteMsg");
+    if (!raw) return;
+    const isUrl = /^(https?:\/\/|www\.)\S+$/i.test(raw);
+    msg.textContent = "Searching…";
+    try {
+      const res = await fetch(IMPORT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(isUrl ? { url: raw } : { text: raw }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        msg.textContent = data.error;
+        return;
+      }
+      const teams = data.teams || [];
+      if (!teams.length) {
+        msg.textContent =
+          "No countries recognised — check spelling, or tap them above.";
+        return;
+      }
+      teams.forEach((t) => selected.add(t));
+      saveSelected();
+      renderPicker();
+      renderAll();
+      msg.textContent = `Added ${teams.length}: ${teams.join(", ")}`;
+    } catch {
+      msg.textContent = "Import failed — please pick your teams above.";
     }
-    saveSelected();
-    renderPicker();
-    renderAll();
-    $("pasteMsg").textContent =
-      `Added ${matched.length}.` + (missed.length ? ` Not found: ${missed.join(", ")}` : "");
   }
 })();

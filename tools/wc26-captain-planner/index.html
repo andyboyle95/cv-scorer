@@ -28,10 +28,13 @@
       <div id="picker" class="groups"></div>
       <div class="paste">
         <details>
-          <summary class="muted" style="cursor:pointer;font-size:13px;">Paste your team instead</summary>
-          <p class="hint">Type or paste your countries (one per line or comma-separated). Auto-import from a FIFA Fantasy URL or screenshot isn't possible in a fully offline tool, so this is the quick alternative.</p>
-          <textarea id="pasteBox" placeholder="England&#10;Brazil&#10;France"></textarea>
-          <div class="row" style="margin-top:8px;"><button class="btn primary" id="pasteLoad">Load these teams</button><span id="pasteMsg" class="hint"></span></div>
+          <summary class="muted" style="cursor:pointer;font-size:13px;">Import my team</summary>
+          <p class="hint">Paste the countries in your squad (one per line or comma-separated), or paste a public link to your team. We'll match countries like "USA", "Türkiye" or "Czechia" automatically. Tip: your FIFA Fantasy team loads privately in your browser, so pasting your countries is the most reliable.</p>
+          <textarea id="pasteBox" placeholder="England, Brazil, France&#10;or paste a team link…"></textarea>
+          <div class="row" style="margin-top:8px;">
+            <button class="btn primary" id="pasteLoad">Find my teams</button>
+            <span id="pasteMsg" class="hint"></span>
+          </div>
         </details>
       </div>
     </section>
