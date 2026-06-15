@@ -172,6 +172,12 @@
     }
     teams.forEach((t) => selected.add(t));
     saveSelected();
+    // Use the round detected from the screenshot's opponent codes so the
+    // fixtures / captain order reflect the right matchday.
+    if (data.round && ["1", "2", "3"].includes(String(data.round))) {
+      round = String(data.round);
+      $("round").value = round;
+    }
     renderPicker();
     renderAll();
     msg.innerHTML = `✅ Added <strong>${teams.length}</strong>: ${esc(teams.join(", "))}`;

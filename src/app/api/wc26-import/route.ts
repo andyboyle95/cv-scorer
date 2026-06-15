@@ -1,5 +1,65 @@
 import { NextRequest, NextResponse } from "next/server";
 import { WC26_PLAYERS } from "@/lib/wc26-players";
+import { WC26_FIXTURES } from "@/lib/wc26-fixtures";
+
+// FIFA 3-letter codes → country (used ONLY to decode "v XXX" opponent labels).
+const CODE_TO_COUNTRY: Record<string, string> = {
+  mex: "Mexico", rsa: "South Africa", kor: "South Korea", cze: "Czech Republic",
+  can: "Canada", bih: "Bosnia and Herzegovina", qat: "Qatar", sui: "Switzerland",
+  bra: "Brazil", mar: "Morocco", hai: "Haiti", sco: "Scotland", usa: "United States",
+  par: "Paraguay", aus: "Australia", tur: "Turkey", ger: "Germany", cuw: "Curaçao",
+  civ: "Ivory Coast", ecu: "Ecuador", ned: "Netherlands", jpn: "Japan", swe: "Sweden",
+  tun: "Tunisia", bel: "Belgium", egy: "Egypt", irn: "Iran", nzl: "New Zealand",
+  esp: "Spain", cpv: "Cape Verde", ksa: "Saudi Arabia", uru: "Uruguay", fra: "France",
+  sen: "Senegal", irq: "Iraq", nor: "Norway", arg: "Argentina", alg: "Algeria",
+  aut: "Austria", jor: "Jordan", por: "Portugal", cod: "DR Congo", uzb: "Uzbekistan",
+  col: "Colombia", eng: "England", cro: "Croatia", gha: "Ghana", pan: "Panama",
+};
+
+// Precompute matchday + each team's opponent per matchday from the fixtures.
+const KO = (m: { kickoff_utc: string }) => new Date(m.kickoff_utc).getTime();
+const TEAM_ROUND_OPP: Record<string, Record<number, string>> = (() => {
+  const perTeam: Record<string, { kickoff_utc: string; home: string; away: string }[]> = {};
+  for (const m of WC26_FIXTURES.matches) {
+    (perTeam[m.home] ||= []).push(m);
+    (perTeam[m.away] ||= []).push(m);
+  }
+  const pos = new Map<string, number>();
+  for (const t of Object.keys(perTeam)) {
+    perTeam[t].slice().sort((a, b) => KO(a) - KO(b)).forEach((m, i) => pos.set(t + "|" + m.kickoff_utc, i + 1));
+  }
+  const out: Record<string, Record<number, string>> = {};
+  for (const m of WC26_FIXTURES.matches) {
+    const md = Math.max(pos.get(m.home + "|" + m.kickoff_utc)!, pos.get(m.away + "|" + m.kickoff_utc)!);
+    (out[m.home] ||= {})[md] = m.away;
+    (out[m.away] ||= {})[md] = m.home;
+  }
+  return out;
+})();
+
+function defaultRound(): number {
+  const now = Date.now();
+  let best: { md: number; ko: number } | null = null;
+  for (const m of WC26_FIXTURES.matches) {
+    if (KO(m) <= now) continue;
+    const md = Object.entries(TEAM_ROUND_OPP[m.home]).find(([, opp]) => opp === m.away)?.[0];
+    const mdNum = md ? Number(md) : 1;
+    if (!best || KO(m) < best.ko) best = { md: mdNum, ko: KO(m) };
+  }
+  return best ? best.md : 1;
+}
+
+// Decode "v XXX" opponent labels → the opponent countries.
+function opponentCountries(text: string): string[] {
+  const out: string[] = [];
+  const re = /\bv\.?\s+([a-z]{3})\b/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text))) {
+    const c = CODE_TO_COUNTRY[m[1].toLowerCase()];
+    if (c) out.push(c);
+  }
+  return out;
+}
 
 export const maxDuration = 30;
 
@@ -146,10 +206,29 @@ function scrubOpponents(text: string): string {
   return text.replace(/\bv\.?\s+[a-z]{3}\b/gi, " ");
 }
 
-// Combined resolver: country names/codes + player names, opponent labels removed.
-function resolveTeams(text: string): string[] {
+// Combined resolver. Strategy:
+//  1. Country names + player names (opponent labels scrubbed) → name matches.
+//  2. Decode "v XXX" opponent codes; pick the matchday whose opponent-derived
+//     teams best overlap the name matches; resolve every opponent → the team
+//     facing it that round (fills in unread/ambiguous players, e.g. Colombia
+//     via "Rodriguez v UZB"). Also returns the detected round.
+function resolveTeams(text: string): { teams: string[]; round?: number } {
   const cleaned = scrubOpponents(text);
-  return Array.from(new Set([...matchTeams(cleaned), ...matchPlayers(cleaned)]));
+  const nameMatched = new Set<string>([...matchTeams(cleaned), ...matchPlayers(cleaned)]);
+
+  const opps = opponentCountries(text);
+  if (opps.length === 0) return { teams: [...nameMatched] };
+
+  let best = { round: defaultRound(), score: -1 };
+  for (const r of [1, 2, 3]) {
+    const resolved = opps.map((oc) => TEAM_ROUND_OPP[oc]?.[r]).filter(Boolean) as string[];
+    const score = resolved.filter((t) => nameMatched.has(t)).length;
+    if (score > best.score) best = { round: r, score };
+  }
+  const round = best.score > 0 ? best.round : defaultRound();
+  const resolvedTeams = opps.map((oc) => TEAM_ROUND_OPP[oc]?.[round]).filter(Boolean) as string[];
+
+  return { teams: Array.from(new Set([...nameMatched, ...resolvedTeams])), round };
 }
 
 // Best-effort OCR via OCR.space. Free demo key "helloworld" works out of the
@@ -201,15 +280,15 @@ export async function POST(req: NextRequest) {
     try {
       const ocrText = await ocrImage(body.image);
       text += " " + ocrText;
-      const teams = resolveTeams(text);
-      if (!teams.length) {
+      const resolved = resolveTeams(text);
+      if (!resolved.teams.length) {
         return NextResponse.json({
           teams: [],
           error:
-            "Couldn't read any countries from that screenshot. It works best when country names or 3-letter codes (e.g. ENG, BRA) are visible — otherwise paste your countries below.",
+            "Couldn't read your team from that screenshot. Make sure the player names / opponent codes are legible, or use the Pick teams tab.",
         });
       }
-      return NextResponse.json({ teams });
+      return NextResponse.json(resolved);
     } catch (e) {
       return NextResponse.json({
         teams: [],
@@ -267,5 +346,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ teams: [], note: "Nothing to read." });
   }
 
-  return NextResponse.json({ teams: resolveTeams(text) });
+  return NextResponse.json(resolveTeams(text));
 }
