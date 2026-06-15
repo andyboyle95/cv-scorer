@@ -10,6 +10,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async rewrites() {
+    // Hidden tool: serve the inlined single-file app at a clean, unlinked path.
+    return [
+      {
+        source: "/tools/wc26-d25bb010b528",
+        destination: "/tools/wc26-d25bb010b528.html",
+      },
+    ];
+  },
   async headers() {
     // Allow these tools to be embedded via <iframe> on the Aaron Wallis site.
     // X-Robots-Tag: noindex keeps the Render-hosted tool URLs out of search so

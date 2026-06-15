@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>World Cup 2026 — Captain Planner</title>
+  <style>
+:root {
+  --bg: #0b0f17;
+  --panel: #151b29;
+  --panel-2: #1c2435;
+  --line: #2a3650;
+  --text: #e7ecf5;
+  --muted: #8a97b0;
+  --dim: #5a6478;
+  --accent: #22c55e;     /* captain-next / live */
+  --accent-2: #38bdf8;
+  --pink: #df2681;
+  --navy: #1a3668;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+.accent-bar { height: 4px; background: linear-gradient(90deg, var(--accent-2), var(--pink)); }
+.wrap { max-width: 760px; margin: 0 auto; padding: 18px 16px 60px; }
+
+header h1 { font-size: 22px; margin: 14px 0 4px; }
+header .sub { color: var(--muted); font-size: 14px; margin: 0; }
+.tz { color: var(--muted); font-size: 12px; margin-top: 8px; }
+.tz b { color: var(--accent-2); }
+.disclaimer { color: #6b7689; font-size: 11px; margin-top: 6px; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-top: 16px; }
+.card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 12px; }
+
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.spacer { flex: 1; }
+
+button, select { font: inherit; }
+.btn {
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+  border-radius: 10px; padding: 9px 14px; cursor: pointer; font-size: 14px;
+}
+.btn:hover { border-color: var(--accent-2); }
+.btn.primary { background: var(--accent-2); color: #06121c; border-color: var(--accent-2); font-weight: 600; }
+
+select {
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+  border-radius: 10px; padding: 9px 12px; font-size: 14px;
+}
+label.toggle { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; cursor: pointer; }
+label.toggle input { width: 16px; height: 16px; accent-color: var(--accent-2); }
+
+/* Team picker */
+.groups { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.group { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--panel-2); }
+.group .glabel { font-size: 12px; color: var(--muted); margin-bottom: 8px; font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  background: #0f1726; border: 1px solid var(--line); color: var(--text);
+  border-radius: 999px; padding: 6px 12px; font-size: 13px; cursor: pointer; user-select: none;
+}
+.chip:hover { border-color: var(--accent-2); }
+.chip.sel { background: var(--accent-2); color: #06121c; border-color: var(--accent-2); font-weight: 600; }
+
+.muted { color: var(--muted); }
+.count { color: var(--accent-2); font-weight: 600; }
+
+.paste { margin-top: 12px; }
+.paste textarea {
+  width: 100%; min-height: 60px; background: #0f1726; color: var(--text);
+  border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 13px; resize: vertical;
+}
+.hint { color: #6b7689; font-size: 12px; margin: 6px 0 0; }
+
+/* Captain order */
+.order-item, .match {
+  display: flex; align-items: center; gap: 12px; padding: 11px 12px;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); margin-bottom: 8px;
+}
+.order-item .rank { width: 22px; height: 22px; border-radius: 50%; background: #0f1726; border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--muted); flex-shrink: 0; }
+.order-item .team { font-weight: 600; }
+.order-item .vs, .match .meta { color: var(--muted); font-size: 13px; }
+.order-item .time, .match .time { margin-left: auto; text-align: right; font-size: 13px; white-space: nowrap; }
+.time .t { font-weight: 600; }
+.time .d { color: var(--muted); font-size: 12px; }
+
+.next { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.badge-next { background: var(--accent); color: #052e14; font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; padding: 2px 7px; border-radius: 999px; }
+.played { opacity: .45; }
+.played .badge-played { background: #33405c; color: var(--muted); font-size: 10px; font-weight: 700;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 999px; }
+
+.daygroup { margin-top: 14px; }
+.daygroup .dayhead { font-size: 13px; color: var(--accent-2); font-weight: 600; margin: 0 0 8px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+
+.match .teams { font-weight: 600; }
+.match .grp { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; margin-left: 6px; }
+.empty { color: var(--muted); font-size: 14px; padding: 8px 0; }
+
+footer { text-align: center; color: #5a6478; font-size: 12px; margin-top: 30px; }
+@media (max-width: 480px) {
+  .order-item .vs { display: none; }
+}
+
+</style>
+</head>
+<body>
+  <div class="accent-bar"></div>
+  <div class="wrap">
+    <header>
+      <h1>⚽ World Cup 2026 — Captain Planner</h1>
+      <p class="sub">Captain the player who kicks off <em>soonest</em>. If they blank, move the armband to a team whose match hasn't started yet.</p>
+      <p class="tz">Times shown in your local zone: <b id="tz">—</b> · <span id="now">—</span></p>
+      <p class="disclaimer">Not affiliated with FIFA or EA. Fixture data sourced from public schedules — always double-check kick-off times before locking your captain.</p>
+    </header>
+
+    <!-- Team picker -->
+    <section class="card">
+      <h2>Your squad <span class="count" id="selCount"></span></h2>
+      <div class="row" style="margin-bottom:12px;">
+        <button class="btn" id="togglePicker">Choose teams</button>
+        <button class="btn" id="clearTeams">Clear</button>
+        <span class="spacer"></span>
+      </div>
+      <div id="picker" class="groups"></div>
+      <div class="paste">
+        <details>
+          <summary class="muted" style="cursor:pointer;font-size:13px;">Paste your team instead</summary>
+          <p class="hint">Type or paste your countries (one per line or comma-separated). Auto-import from a FIFA Fantasy URL or screenshot isn't possible in a fully offline tool, so this is the quick alternative.</p>
+          <textarea id="pasteBox" placeholder="England&#10;Brazil&#10;France"></textarea>
+          <div class="row" style="margin-top:8px;"><button class="btn primary" id="pasteLoad">Load these teams</button><span id="pasteMsg" class="hint"></span></div>
+        </details>
+      </div>
+    </section>
+
+    <!-- Controls -->
+    <section class="card">
+      <div class="row">
+        <label class="muted" for="round" style="font-size:14px;">Round</label>
+        <select id="round">
+          <option value="all">All matchdays</option>
+          <option value="1">Matchday 1</option>
+          <option value="2">Matchday 2</option>
+          <option value="3">Matchday 3</option>
+        </select>
+        <span class="spacer"></span>
+        <label class="toggle"><input type="checkbox" id="hideKicked" /> Hide kicked-off</label>
+      </div>
+    </section>
+
+    <!-- Captain order -->
+    <section class="card">
+      <h2>Captain order — soonest first</h2>
+      <div id="captainOrder"></div>
+    </section>
+
+    <!-- Timeline -->
+    <section class="card">
+      <h2>Fixtures timeline</h2>
+      <div id="timeline"></div>
+    </section>
+
+    <footer>
+      World Cup 2026 Captain Planner · independent &amp; unofficial
+    </footer>
+  </div>
+
+  <!-- In the inlined build, fixtures are injected here as window.__FIXTURES__ -->
+  <script>window.__FIXTURES__ = {
+  "groups": {
+    "A": [
+      "Mexico",
+      "South Africa",
+      "South Korea",
+      "Czech Republic"
+    ],
+    "B": [
+      "Canada",
+      "Bosnia and Herzegovina",
+      "Qatar",
+      "Switzerland"
+    ],
+    "C": [
+      "Brazil",
+      "Morocco",
+      "Haiti",
+      "Scotland"
+    ],
+    "D": [
+      "United States",
+      "Paraguay",
+      "Australia",
+      "Turkey"
+    ],
+    "E": [
+      "Germany",
+      "Curaçao",
+      "Ivory Coast",
+      "Ecuador"
+    ],
+    "F": [
+      "Netherlands",
+      "Japan",
+      "Sweden",
+      "Tunisia"
+    ],
+    "G": [
+      "Belgium",
+      "Egypt",
+      "Iran",
+      "New Zealand"
+    ],
+    "H": [
+      "Spain",
+      "Cape Verde",
+      "Saudi Arabia",
+      "Uruguay"
+    ],
+    "I": [
+      "France",
+      "Senegal",
+      "Iraq",
+      "Norway"
+    ],
+    "J": [
+      "Argentina",
+      "Algeria",
+      "Austria",
+      "Jordan"
+    ],
+    "K": [
+      "Portugal",
+      "DR Congo",
+      "Uzbekistan",
+      "Colombia"
+    ],
+    "L": [
+      "England",
+      "Croatia",
+      "Ghana",
+      "Panama"
+    ]
+  },
+  "matches": [
+    {
+      "group": "A",
+      "date": "2026-06-11",
+      "kickoff_utc": "2026-06-11T19:00:00Z",
+      "home": "Mexico",
+      "away": "South Africa",
+      "city": "Mexico City",
+      "venue": "Estadio Azteca"
+    },
+    {
+      "group": "A",
+      "date": "2026-06-11",
+      "kickoff_utc": "2026-06-12T02:00:00Z",
+      "home": "South Korea",
+      "away": "Czech Republic",
+      "city": "Zapopan",
+      "venue": "Estadio Akron"
+    },
+    {
+      "group": "A",
+      "date": "2026-06-18",
+      "kickoff_utc": "2026-06-18T16:00:00Z",
+      "home": "Czech Republic",
+      "away": "South Africa",
+      "city": "Atlanta",
+      "venue": "Mercedes-Benz Stadium"
+    },
+    {
+      "group": "A",
+      "date": "2026-06-18",
+      "kickoff_utc": "2026-06-19T01:00:00Z",
+      "home": "Mexico",
+      "away": "South Korea",
+      "city": "Zapopan",
+      "venue": "Estadio Akron"
+    },
+    {
+      "group": "A",
+      "date": "2026-06-24",
+      "kickoff_utc": "2026-06-25T01:00:00Z",
+      "home": "Czech Republic",
+      "away": "Mexico",
+      "city": "Mexico City",
+      "venue": "Estadio Azteca"
+    },
+    {
+      "group": "A",
+      "date": "2026-06-24",
+      "kickoff_utc": "2026-06-25T01:00:00Z",
+      "home": "South Africa",
+      "away": "South Korea",
+      "city": "Guadalupe",
+      "venue": "Estadio BBVA"
+    },
+    {
+      "group": "B",
+      "date": "2026-06-12",
+      "kickoff_utc": "2026-06-12T19:00:00Z",
+      "home": "Canada",
+      "away": "Bosnia and Herzegovina",
+      "city": "Toronto",
+      "venue": "BMO Field"
+    },
+    {
+      "group": "B",
+      "date": "2026-06-13",
+      "kickoff_utc": "2026-06-13T19:00:00Z",
+      "home": "Qatar",
+      "away": "Switzerland",
+      "city": "Santa Clara",
+      "venue": "Levi's Stadium"
+    },
+    {
+      "group": "B",
+      "date": "2026-06-18",
+      "kickoff_utc": "2026-06-18T19:00:00Z",
+      "home": "Switzerland",
+      "away": "Bosnia and Herzegovina",
+      "city": "Inglewood",
+      "venue": "SoFi Stadium"
+    },
+    {
+      "group": "B",
+      "date": "2026-06-18",
+      "kickoff_utc": "2026-06-18T22:00:00Z",
+      "home": "Canada",
+      "away": "Qatar",
+      "city": "Vancouver",
+      "venue": "BC Place"
+    },
+    {
+      "group": "B",
+      "date": "2026-06-24",
+      "kickoff_utc": "2026-06-24T19:00:00Z",
+      "home": "Switzerland",
+      "away": "Canada",
+      "city": "Vancouver",
+      "venue": "BC Place"
+    },
+    {
+      "group": "B",
+      "date": "2026-06-24",
+      "kickoff_utc": "2026-06-24T19:00:00Z",
+      "home": "Bosnia and Herzegovina",
+      "away": "Qatar",
+      "city": "Seattle",
+      "venue": "Lumen Field"
+    },
+    {
+      "group": "C",
+      "date": "2026-06-13",
+      "kickoff_utc": "2026-06-13T22:00:00Z",
+      "home": "Brazil",
+      "away": "Morocco",
+      "city": "East Rutherford",
+      "venue": "MetLife Stadium"
+    },
+    {
+      "group": "C",
+      "date": "2026-06-13",
+      "kickoff_utc": "2026-06-14T01:00:00Z",
+      "home": "Haiti",
+      "away": "Scotland",
+      "city": "Foxborough",
+      "venue": "Gillette Stadium"
+    },
+    {
+      "group": "C",
+      "date": "2026-06-19",
+      "kickoff_utc": "2026-06-19T22:00:00Z",
+      "home": "Scotland",
+      "away": "Morocco",
+      "city": "Foxborough",
+      "venue": "Gillette Stadium"
+    },
+    {
+      "group": "C",
+      "date": "2026-06-19",
+      "kickoff_utc": "2026-06-20T00:30:00Z",
+      "home": "Brazil",
+      "away": "Haiti",
+      "city": "Philadelphia",
+      "venue": "Lincoln Financial Field"
+    },
+    {
+      "group": "C",
+      "date": "2026-06-24",
+      "kickoff_utc": "2026-06-24T22:00:00Z",
+      "home": "Scotland",
+      "away": "Brazil",
+      "city": "Miami Gardens",
+      "venue": "Hard Rock Stadium"
+    },
+    {
+      "group": "C",
+      "date": "2026-06-24",
+      "kickoff_utc": "2026-06-24T22:00:00Z",
+      "home": "Morocco",
+      "away": "Haiti",
+      "city": "Atlanta",
+      "venue": "Mercedes-Benz Stadium"
+    },
+    {
+      "group": "D",
+      "date": "2026-06-12",
+      "kickoff_utc": "2026-06-13T01:00:00Z",
+      "home": "United States",
+      "away": "Paraguay",
+      "city": "Inglewood",
+      "venue": "SoFi Stadium"
+    },
+    {
+      "group": "D",
+      "date": "2026-06-13",
+      "kickoff_utc": "2026-06-14T04:00:00Z",
+      "home": "Australia",
+      "away": "Turkey",
+      "city": "Vancouver",
+      "venue": "BC Place"
+    },
+    {
+      "group": "D",
+      "date": "2026-06-19",
+      "kickoff_utc": "2026-06-19T19:00:00Z",
+      "home": "United States",
+      "away": "Australia",
+      "city": "Seattle",
+      "venue": "Lumen Field"
+    },
+    {
+      "group": "D",
+      "date": "2026-06-19",
+      "kickoff_utc": "2026-06-20T03:00:00Z",
+      "home": "Turkey",
+      "away": "Paraguay",
+      "city": "Santa Clara",
+      "venue": "Levi's Stadium"
+    },
+    {
+      "group": "D",
+      "date": "2026-06-25",
+      "kickoff_utc": "2026-06-26T02:00:00Z",
+      "home": "Turkey",
+      "away": "United States",
+      "city": "Inglewood",
+      "venue": "SoFi Stadium"
+    },
+    {
+      "group": "D",
+      "date": "2026-06-25",
+      "kickoff_utc": "2026-06-26T02:00:00Z",
+      "home": "Paraguay",
+      "away": "Australia",
+      "city": "Santa Clara",
+      "venue": "Levi's Stadium"
+    },
+    {
+      "group": "E",
+      "date": "2026-06-14",
+      "kickoff_utc": "2026-06-14T17:00:00Z",
+      "home": "Germany",
+      "away": "Curaçao",
+      "city": "Houston",
+      "venue": "NRG Stadium"
+    },
+    {
+      "group": "E",
+      "date": "2026-06-14",
+      "kickoff_utc": "2026-06-14T23:00:00Z",
+      "home": "Ivory Coast",
+      "away": "Ecuador",
+      "city": "Philadelphia",
+      "venue": "Lincoln Financial Field"
+    },
+    {
+      "group": "E",
+      "date": "2026-06-20",
+      "kickoff_utc": "2026-06-20T20:00:00Z",
+      "home": "Germany",
+      "away": "Ivory Coast",
+      "city": "Toronto",
+      "venue": "BMO Field"
+    },
+    {
+      "group": "E",
+      "date": "2026-06-20",
+      "kickoff_utc": "2026-06-21T00:00:00Z",
+      "home": "Ecuador",
+      "away": "Curaçao",
+      "city": "Kansas City",
+      "venue": "Arrowhead Stadium"
+    },
+    {
+      "group": "E",
+      "date": "2026-06-25",
+      "kickoff_utc": "2026-06-25T20:00:00Z",
+      "home": "Curaçao",
+      "away": "Ivory Coast",
+      "city": "Philadelphia",
+      "venue": "Lincoln Financial Field"
+    },
+    {
+      "group": "E",
+      "date": "2026-06-25",
+      "kickoff_utc": "2026-06-25T20:00:00Z",
+      "home": "Ecuador",
+      "away": "Germany",
+      "city": "East Rutherford",
+      "venue": "MetLife Stadium"
+    },
+    {
+      "group": "F",
+      "date": "2026-06-14",
+      "kickoff_utc": "2026-06-14T20:00:00Z",
+      "home": "Netherlands",
+      "away": "Japan",
+      "city": "Arlington",
+      "venue": "AT&T Stadium"
+    },
+    {
+      "group": "F",
+      "date": "2026-06-14",
+      "kickoff_utc": "2026-06-15T02:00:00Z",
+      "home": "Sweden",
+      "away": "Tunisia",
+      "city": "Guadalupe",
+      "venue": "Estadio BBVA"
+    },
+    {
+      "group": "F",
+      "date": "2026-06-20",
+      "kickoff_utc": "2026-06-20T17:00:00Z",
+      "home": "Netherlands",
+      "away": "Sweden",
+      "city": "Houston",
+      "venue": "NRG Stadium"
+    },
+    {
+      "group": "F",
+      "date": "2026-06-20",
+      "kickoff_utc": "2026-06-21T04:00:00Z",
+      "home": "Tunisia",
+      "away": "Japan",
+      "city": "Guadalupe",
+      "venue": "Estadio BBVA"
+    },
+    {
+      "group": "F",
+      "date": "2026-06-25",
+      "kickoff_utc": "2026-06-25T23:00:00Z",
+      "home": "Japan",
+      "away": "Sweden",
+      "city": "Arlington",
+      "venue": "AT&T Stadium"
+    },
+    {
+      "group": "F",
+      "date": "2026-06-25",
+      "kickoff_utc": "2026-06-25T23:00:00Z",
+      "home": "Tunisia",
+      "away": "Netherlands",
+      "city": "Kansas City",
+      "venue": "Arrowhead Stadium"
+    },
+    {
+      "group": "G",
+      "date": "2026-06-15",
+      "kickoff_utc": "2026-06-15T19:00:00Z",
+      "home": "Belgium",
+      "away": "Egypt",
+      "city": "Seattle",
+      "venue": "Lumen Field"
+    },
+    {
+      "group": "G",
+      "date": "2026-06-15",
+      "kickoff_utc": "2026-06-16T01:00:00Z",
+      "home": "Iran",
+      "away": "New Zealand",
+      "city": "Inglewood",
+      "venue": "SoFi Stadium"
+    },
+    {
+      "group": "G",
+      "date": "2026-06-21",
+      "kickoff_utc": "2026-06-21T19:00:00Z",
+      "home": "Belgium",
+      "away": "Iran",
+      "city": "Inglewood",
+      "venue": "SoFi Stadium"
+    },
+    {
+      "group": "G",
+      "date": "2026-06-21",
+      "kickoff_utc": "2026-06-22T01:00:00Z",
+      "home": "New Zealand",
+      "away": "Egypt",
+      "city": "Vancouver",
+      "venue": "BC Place"
+    },
+    {
+      "group": "G",
+      "date": "2026-06-26",
+      "kickoff_utc": "2026-06-27T03:00:00Z",
+      "home": "Egypt",
+      "away": "Iran",
+      "city": "Seattle",
+      "venue": "Lumen Field"
+    },
+    {
+      "group": "G",
+      "date": "2026-06-26",
+      "kickoff_utc": "2026-06-27T03:00:00Z",
+      "home": "New Zealand",
+      "away": "Belgium",
+      "city": "Vancouver",
+      "venue": "BC Place"
+    },
+    {
+      "group": "H",
+      "date": "2026-06-15",
+      "kickoff_utc": "2026-06-15T16:00:00Z",
+      "home": "Spain",
+      "away": "Cape Verde",
+      "city": "Atlanta",
+      "venue": "Mercedes-Benz Stadium"
+    },
+    {
+      "group": "H",
+      "date": "2026-06-15",
+      "kickoff_utc": "2026-06-15T22:00:00Z",
+      "home": "Saudi Arabia",
+      "away": "Uruguay",
+      "city": "Miami Gardens",
+      "venue": "Hard Rock Stadium"
+    },
+    {
+      "group": "H",
+      "date": "2026-06-21",
+      "kickoff_utc": "2026-06-21T16:00:00Z",
+      "home": "Spain",
+      "away": "Saudi Arabia",
+      "city": "Atlanta",
+      "venue": "Mercedes-Benz Stadium"
+    },
+    {
+      "group": "H",
+      "date": "2026-06-21",
+      "kickoff_utc": "2026-06-21T22:00:00Z",
+      "home": "Uruguay",
+      "away": "Cape Verde",
+      "city": "Miami Gardens",
+      "venue": "Hard Rock Stadium"
+    },
+    {
+      "group": "H",
+      "date": "2026-06-26",
+      "kickoff_utc": "2026-06-27T00:00:00Z",
+      "home": "Cape Verde",
+      "away": "Saudi Arabia",
+      "city": "Houston",
+      "venue": "NRG Stadium"
+    },
+    {
+      "group": "H",
+      "date": "2026-06-26",
+      "kickoff_utc": "2026-06-27T00:00:00Z",
+      "home": "Uruguay",
+      "away": "Spain",
+      "city": "Zapopan",
+      "venue": "Estadio Akron"
+    },
+    {
+      "group": "I",
+      "date": "2026-06-16",
+      "kickoff_utc": "2026-06-16T19:00:00Z",
+      "home": "France",
+      "away": "Senegal",
+      "city": "East Rutherford",
+      "venue": "MetLife Stadium"
+    },
+    {
+      "group": "I",
+      "date": "2026-06-16",
+      "kickoff_utc": "2026-06-16T22:00:00Z",
+      "home": "Iraq",
+      "away": "Norway",
+      "city": "Foxborough",
+      "venue": "Gillette Stadium"
+    },
+    {
+      "group": "I",
+      "date": "2026-06-22",
+      "kickoff_utc": "2026-06-22T21:00:00Z",
+      "home": "France",
+      "away": "Iraq",
+      "city": "Philadelphia",
+      "venue": "Lincoln Financial Field"
+    },
+    {
+      "group": "I",
+      "date": "2026-06-22",
+      "kickoff_utc": "2026-06-23T00:00:00Z",
+      "home": "Norway",
+      "away": "Senegal",
+      "city": "East Rutherford",
+      "venue": "MetLife Stadium"
+    },
+    {
+      "group": "I",
+      "date": "2026-06-26",
+      "kickoff_utc": "2026-06-26T19:00:00Z",
+      "home": "Norway",
+      "away": "France",
+      "city": "Foxborough",
+      "venue": "Gillette Stadium"
+    },
+    {
+      "group": "I",
+      "date": "2026-06-26",
+      "kickoff_utc": "2026-06-26T19:00:00Z",
+      "home": "Senegal",
+      "away": "Iraq",
+      "city": "Toronto",
+      "venue": "BMO Field"
+    },
+    {
+      "group": "J",
+      "date": "2026-06-16",
+      "kickoff_utc": "2026-06-17T01:00:00Z",
+      "home": "Argentina",
+      "away": "Algeria",
+      "city": "Kansas City",
+      "venue": "Arrowhead Stadium"
+    },
+    {
+      "group": "J",
+      "date": "2026-06-16",
+      "kickoff_utc": "2026-06-17T04:00:00Z",
+      "home": "Austria",
+      "away": "Jordan",
+      "city": "Santa Clara",
+      "venue": "Levi's Stadium"
+    },
+    {
+      "group": "J",
+      "date": "2026-06-22",
+      "kickoff_utc": "2026-06-22T17:00:00Z",
+      "home": "Argentina",
+      "away": "Austria",
+      "city": "Arlington",
+      "venue": "AT&T Stadium"
+    },
+    {
+      "group": "J",
+      "date": "2026-06-22",
+      "kickoff_utc": "2026-06-23T03:00:00Z",
+      "home": "Jordan",
+      "away": "Algeria",
+      "city": "Santa Clara",
+      "venue": "Levi's Stadium"
+    },
+    {
+      "group": "J",
+      "date": "2026-06-27",
+      "kickoff_utc": "2026-06-28T02:00:00Z",
+      "home": "Algeria",
+      "away": "Austria",
+      "city": "Kansas City",
+      "venue": "Arrowhead Stadium"
+    },
+    {
+      "group": "J",
+      "date": "2026-06-27",
+      "kickoff_utc": "2026-06-28T02:00:00Z",
+      "home": "Jordan",
+      "away": "Argentina",
+      "city": "Arlington",
+      "venue": "AT&T Stadium"
+    },
+    {
+      "group": "K",
+      "date": "2026-06-17",
+      "kickoff_utc": "2026-06-17T17:00:00Z",
+      "home": "Portugal",
+      "away": "DR Congo",
+      "city": "Houston",
+      "venue": "NRG Stadium"
+    },
+    {
+      "group": "K",
+      "date": "2026-06-17",
+      "kickoff_utc": "2026-06-18T02:00:00Z",
+      "home": "Uzbekistan",
+      "away": "Colombia",
+      "city": "Mexico City",
+      "venue": "Estadio Azteca"
+    },
+    {
+      "group": "K",
+      "date": "2026-06-23",
+      "kickoff_utc": "2026-06-23T17:00:00Z",
+      "home": "Portugal",
+      "away": "Uzbekistan",
+      "city": "Houston",
+      "venue": "NRG Stadium"
+    },
+    {
+      "group": "K",
+      "date": "2026-06-23",
+      "kickoff_utc": "2026-06-24T02:00:00Z",
+      "home": "Colombia",
+      "away": "DR Congo",
+      "city": "Zapopan",
+      "venue": "Estadio Akron"
+    },
+    {
+      "group": "K",
+      "date": "2026-06-27",
+      "kickoff_utc": "2026-06-27T23:30:00Z",
+      "home": "Colombia",
+      "away": "Portugal",
+      "city": "Miami Gardens",
+      "venue": "Hard Rock Stadium"
+    },
+    {
+      "group": "K",
+      "date": "2026-06-27",
+      "kickoff_utc": "2026-06-27T23:30:00Z",
+      "home": "DR Congo",
+      "away": "Uzbekistan",
+      "city": "Atlanta",
+      "venue": "Mercedes-Benz Stadium"
+    },
+    {
+      "group": "L",
+      "date": "2026-06-17",
+      "kickoff_utc": "2026-06-17T20:00:00Z",
+      "home": "England",
+      "away": "Croatia",
+      "city": "Arlington",
+      "venue": "AT&T Stadium"
+    },
+    {
+      "group": "L",
+      "date": "2026-06-17",
+      "kickoff_utc": "2026-06-17T23:00:00Z",
+      "home": "Ghana",
+      "away": "Panama",
+      "city": "Toronto",
+      "venue": "BMO Field"
+    },
+    {
+      "group": "L",
+      "date": "2026-06-23",
+      "kickoff_utc": "2026-06-23T20:00:00Z",
+      "home": "England",
+      "away": "Ghana",
+      "city": "Foxborough",
+      "venue": "Gillette Stadium"
+    },
+    {
+      "group": "L",
+      "date": "2026-06-23",
+      "kickoff_utc": "2026-06-23T23:00:00Z",
+      "home": "Panama",
+      "away": "Croatia",
+      "city": "Toronto",
+      "venue": "BMO Field"
+    },
+    {
+      "group": "L",
+      "date": "2026-06-27",
+      "kickoff_utc": "2026-06-27T21:00:00Z",
+      "home": "Panama",
+      "away": "England",
+      "city": "East Rutherford",
+      "venue": "MetLife Stadium"
+    },
+    {
+      "group": "L",
+      "date": "2026-06-27",
+      "kickoff_utc": "2026-06-27T21:00:00Z",
+      "home": "Croatia",
+      "away": "Ghana",
+      "city": "Philadelphia",
+      "venue": "Lincoln Financial Field"
+    }
+  ]
+};</script>
+  <script>
+/* World Cup 2026 — Captain Planner (vanilla JS, no framework). */
+(function () {
+  "use strict";
+
+  const LS_KEY = "wc26.captain.teams";
+  const $ = (id) => document.getElementById(id);
+
+  let DATA = null;
+  let selected = loadSelected();
+  let round = "all";
+  let hideKicked = false;
+  const mdByMatch = new Map(); // match -> matchday (1..3)
+
+  // ---- boot ----------------------------------------------------------------
+  function boot(data) {
+    DATA = data;
+    computeMatchdays();
+    round = defaultRound();
+    $("round").value = round;
+    $("tz").textContent =
+      Intl.DateTimeFormat().resolvedOptions().timeZone || "your device";
+    tickClock();
+    setInterval(tickClock, 30000);
+
+    renderPicker();
+    renderAll();
+
+    $("togglePicker").addEventListener("click", () => {
+      const p = $("picker");
+      p.style.display = p.style.display === "none" ? "" : "none";
+    });
+    $("clearTeams").addEventListener("click", () => {
+      selected = new Set();
+      saveSelected();
+      renderPicker();
+      renderAll();
+    });
+    $("round").addEventListener("change", (e) => {
+      round = e.target.value;
+      renderAll();
+    });
+    $("hideKicked").addEventListener("change", (e) => {
+      hideKicked = e.target.checked;
+      renderAll();
+    });
+    $("pasteLoad").addEventListener("click", loadPasted);
+  }
+
+  if (window.__FIXTURES__) {
+    boot(window.__FIXTURES__);
+  } else {
+    fetch("fixtures.json")
+      .then((r) => r.json())
+      .then(boot)
+      .catch(() => {
+        $("timeline").innerHTML =
+          '<p class="empty">Could not load fixtures.</p>';
+      });
+  }
+
+  // ---- helpers -------------------------------------------------------------
+  function loadSelected() {
+    try {
+      return new Set(JSON.parse(localStorage.getItem(LS_KEY) || "[]"));
+    } catch {
+      return new Set();
+    }
+  }
+  function saveSelected() {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify([...selected]));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const ko = (m) => new Date(m.kickoff_utc).getTime();
+  const now = () => Date.now();
+
+  // Matchday: each team's Nth chronological match = MD N; a fixture's MD = max
+  // of its two teams' running counts.
+  function computeMatchdays() {
+    const perTeam = {};
+    for (const m of DATA.matches) {
+      (perTeam[m.home] = perTeam[m.home] || []).push(m);
+      (perTeam[m.away] = perTeam[m.away] || []).push(m);
+    }
+    const pos = new Map(); // `${team}|${kickoff}` -> position
+    for (const team of Object.keys(perTeam)) {
+      perTeam[team]
+        .slice()
+        .sort((a, b) => ko(a) - ko(b))
+        .forEach((m, i) => pos.set(team + "|" + m.kickoff_utc, i + 1));
+    }
+    for (const m of DATA.matches) {
+      const ph = pos.get(m.home + "|" + m.kickoff_utc);
+      const pa = pos.get(m.away + "|" + m.kickoff_utc);
+      mdByMatch.set(m, Math.max(ph, pa));
+    }
+  }
+
+  // Default to the round containing the next upcoming match (or last if over).
+  function defaultRound() {
+    const upcoming = DATA.matches
+      .filter((m) => ko(m) > now())
+      .sort((a, b) => ko(a) - ko(b))[0];
+    if (upcoming) return String(mdByMatch.get(upcoming));
+    return "all";
+  }
+
+  function tickClock() {
+    $("now").textContent = new Date().toLocaleString(undefined, {
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  function selectedMatches() {
+    return DATA.matches
+      .filter((m) => selected.has(m.home) || selected.has(m.away))
+      .filter((m) => round === "all" || mdByMatch.get(m) === Number(round))
+      .sort((a, b) => ko(a) - ko(b));
+  }
+
+  // The soonest not-yet-started match among the user's teams (global).
+  function nextMatch() {
+    return DATA.matches
+      .filter((m) => selected.has(m.home) || selected.has(m.away))
+      .filter((m) => ko(m) > now())
+      .sort((a, b) => ko(a) - ko(b))[0];
+  }
+
+  function fmtTime(m) {
+    const d = new Date(m.kickoff_utc);
+    return {
+      t: d.toLocaleString(undefined, { hour: "2-digit", minute: "2-digit" }),
+      d: d.toLocaleDateString(undefined, {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+      }),
+    };
+  }
+  const dayKey = (m) =>
+    new Date(m.kickoff_utc).toLocaleDateString(undefined, {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    });
+  const esc = (s) =>
+    String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  const opponentOf = (m, team) => (m.home === team ? m.away : m.home);
+
+  // ---- render --------------------------------------------------------------
+  function renderAll() {
+    $("selCount").textContent = selected.size ? `(${selected.size} selected)` : "";
+    renderCaptainOrder();
+    renderTimeline();
+  }
+
+  function renderPicker() {
+    const el = $("picker");
+    el.innerHTML = Object.entries(DATA.groups)
+      .map(([g, teams]) => {
+        const chips = teams
+          .map(
+            (t) =>
+              `<span class="chip${selected.has(t) ? " sel" : ""}" data-team="${esc(t)}">${esc(t)}</span>`
+          )
+          .join("");
+        return `<div class="group"><div class="glabel">Group ${g}</div><div class="chips">${chips}</div></div>`;
+      })
+      .join("");
+    el.querySelectorAll(".chip").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        const t = chip.getAttribute("data-team");
+        if (selected.has(t)) selected.delete(t);
+        else selected.add(t);
+        saveSelected();
+        chip.classList.toggle("sel");
+        renderAll();
+      });
+    });
+  }
+
+  function renderCaptainOrder() {
+    const el = $("captainOrder");
+    if (!selected.size) {
+      el.innerHTML = '<p class="empty">Pick your teams above to see the captain order.</p>';
+      return;
+    }
+    const next = nextMatch();
+    // One row per selected team that plays in this round, soonest first.
+    let rows = [];
+    for (const m of selectedMatches()) {
+      for (const team of [m.home, m.away]) {
+        if (selected.has(team)) rows.push({ team, m });
+      }
+    }
+    rows.sort((a, b) => ko(a.m) - ko(b.m));
+    if (!rows.length) {
+      el.innerHTML = '<p class="empty">None of your teams play in this round.</p>';
+      return;
+    }
+    el.innerHTML = rows
+      .map((r, i) => {
+        const played = ko(r.m) <= now();
+        const isNext = r.m === next;
+        const ft = fmtTime(r.m);
+        return `<div class="order-item${played ? " played" : ""}${isNext ? " next" : ""}">
+          <span class="rank">${i + 1}</span>
+          <span class="team">${esc(r.team)}</span>
+          <span class="vs">vs ${esc(opponentOf(r.m, r.team))}</span>
+          ${isNext ? '<span class="badge-next">Captain next</span>' : ""}
+          ${played ? '<span class="badge-played">Kicked off</span>' : ""}
+          <span class="time"><span class="t">${ft.t}</span><br/><span class="d">${ft.d}</span></span>
+        </div>`;
+      })
+      .join("");
+  }
+
+  function renderTimeline() {
+    const el = $("timeline");
+    if (!selected.size) {
+      el.innerHTML = '<p class="empty">No teams selected yet.</p>';
+      return;
+    }
+    const next = nextMatch();
+    let matches = selectedMatches();
+    if (hideKicked) matches = matches.filter((m) => ko(m) > now());
+    if (!matches.length) {
+      el.innerHTML = '<p class="empty">No matches to show for this round.</p>';
+      return;
+    }
+    // group by local day
+    const days = [];
+    let cur = null;
+    for (const m of matches) {
+      const k = dayKey(m);
+      if (!cur || cur.key !== k) {
+        cur = { key: k, items: [] };
+        days.push(cur);
+      }
+      cur.items.push(m);
+    }
+    el.innerHTML = days
+      .map((day) => {
+        const items = day.items
+          .map((m) => {
+            const played = ko(m) <= now();
+            const isNext = m === next;
+            const ft = fmtTime(m);
+            const yours = [m.home, m.away].filter((t) => selected.has(t)).join(", ");
+            return `<div class="match${played ? " played" : ""}${isNext ? " next" : ""}">
+              <div>
+                <div class="teams">${esc(m.home)} <span class="muted">v</span> ${esc(m.away)}<span class="grp">${m.group} · MD${mdByMatch.get(m)}</span></div>
+                <div class="meta">${esc(m.city)} · ${esc(m.venue)} · your team: ${esc(yours)}
+                  ${isNext ? '<span class="badge-next">Captain next</span>' : ""}
+                  ${played ? '<span class="badge-played">Kicked off</span>' : ""}
+                </div>
+              </div>
+              <span class="time"><span class="t">${ft.t}</span><br/><span class="d">${ft.d}</span></span>
+            </div>`;
+          })
+          .join("");
+        return `<div class="daygroup"><p class="dayhead">${esc(day.key)}</p>${items}</div>`;
+      })
+      .join("");
+  }
+
+  function loadPasted() {
+    const raw = $("pasteBox").value || "";
+    const wanted = raw
+      .split(/[\n,]+/)
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+    if (!wanted.length) return;
+    const all = Object.values(DATA.groups).flat();
+    const matched = [];
+    const missed = [];
+    for (const w of wanted) {
+      const hit = all.find((t) => t.toLowerCase() === w);
+      if (hit) {
+        selected.add(hit);
+        matched.push(hit);
+      } else missed.push(w);
+    }
+    saveSelected();
+    renderPicker();
+    renderAll();
+    $("pasteMsg").textContent =
+      `Added ${matched.length}.` + (missed.length ? ` Not found: ${missed.join(", ")}` : "");
+  }
+})();
+
+</script>
+</body>
+</html>

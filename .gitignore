@@ -42,3 +42,6 @@ scripts/vca-source-*.csv
 
 # Generated standalone tool (regenerate via scripts/build-commute-html.js)
 cost-of-commuting.html
+
+# WC26 planner build artifact (regenerate via tools/wc26-captain-planner/build.js)
+tools/wc26-captain-planner/dist/

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>World Cup 2026 — Captain Planner</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="accent-bar"></div>
+  <div class="wrap">
+    <header>
+      <h1>⚽ World Cup 2026 — Captain Planner</h1>
+      <p class="sub">Captain the player who kicks off <em>soonest</em>. If they blank, move the armband to a team whose match hasn't started yet.</p>
+      <p class="tz">Times shown in your local zone: <b id="tz">—</b> · <span id="now">—</span></p>
+      <p class="disclaimer">Not affiliated with FIFA or EA. Fixture data sourced from public schedules — always double-check kick-off times before locking your captain.</p>
+    </header>
+
+    <!-- Team picker -->
+    <section class="card">
+      <h2>Your squad <span class="count" id="selCount"></span></h2>
+      <div class="row" style="margin-bottom:12px;">
+        <button class="btn" id="togglePicker">Choose teams</button>
+        <button class="btn" id="clearTeams">Clear</button>
+        <span class="spacer"></span>
+      </div>
+      <div id="picker" class="groups"></div>
+      <div class="paste">
+        <details>
+          <summary class="muted" style="cursor:pointer;font-size:13px;">Paste your team instead</summary>
+          <p class="hint">Type or paste your countries (one per line or comma-separated). Auto-import from a FIFA Fantasy URL or screenshot isn't possible in a fully offline tool, so this is the quick alternative.</p>
+          <textarea id="pasteBox" placeholder="England&#10;Brazil&#10;France"></textarea>
+          <div class="row" style="margin-top:8px;"><button class="btn primary" id="pasteLoad">Load these teams</button><span id="pasteMsg" class="hint"></span></div>
+        </details>
+      </div>
+    </section>
+
+    <!-- Controls -->
+    <section class="card">
+      <div class="row">
+        <label class="muted" for="round" style="font-size:14px;">Round</label>
+        <select id="round">
+          <option value="all">All matchdays</option>
+          <option value="1">Matchday 1</option>
+          <option value="2">Matchday 2</option>
+          <option value="3">Matchday 3</option>
+        </select>
+        <span class="spacer"></span>
+        <label class="toggle"><input type="checkbox" id="hideKicked" /> Hide kicked-off</label>
+      </div>
+    </section>
+
+    <!-- Captain order -->
+    <section class="card">
+      <h2>Captain order — soonest first</h2>
+      <div id="captainOrder"></div>
+    </section>
+
+    <!-- Timeline -->
+    <section class="card">
+      <h2>Fixtures timeline</h2>
+      <div id="timeline"></div>
+    </section>
+
+    <footer>
+      World Cup 2026 Captain Planner · independent &amp; unofficial
+    </footer>
+  </div>
+
+  <!-- In the inlined build, fixtures are injected here as window.__FIXTURES__ -->
+  <script src="app.js"></script>
+</body>
+</html>
