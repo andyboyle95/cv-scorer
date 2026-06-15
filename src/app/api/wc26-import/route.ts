@@ -86,6 +86,18 @@ export async function POST(req: NextRequest) {
   if (body.url) {
     let url = body.url.trim();
     if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+
+    // FIFA Fantasy team pages are client-rendered and the underlying team API
+    // (play.fifa.com/api/.../fantasy/team/{id}) requires a logged-in FIFA
+    // session token — so a public link can't be read server-side. Tell the
+    // user clearly rather than returning a confusing "nothing found".
+    if (/fifa\.com/i.test(url) && /(fantasy|public-team|\/team\/)/i.test(url)) {
+      return NextResponse.json({
+        error:
+          "Your FIFA Fantasy team is behind FIFA's login and loads privately in your browser, so it can't be read from a link. Paste the countries in your squad instead — e.g. England, Brazil, France.",
+      });
+    }
+
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 12000);
