@@ -15,47 +15,21 @@
   <main class="wrap">
     <header>
       <h1><span class="kicker">World Cup 2026 · Fantasy</span>👑 Captain Planner</h1>
-      <p class="sub">See your players in <strong>kickoff order</strong> — captain whoever plays next, then move the armband to the next player still to play.</p>
+      <p class="sub">Add your squad, then see your players in <strong>kickoff order</strong> — captain whoever plays next, and move the armband down after each game.</p>
       <p class="tz">🌍 <b id="tz">—</b> · <span id="now">—</span></p>
     </header>
 
-    <!-- Build your squad -->
+    <!-- Builder -->
     <section class="card">
-      <div class="tabs" role="tablist">
-        <button class="tab active" data-tab="shot">📷 Screenshot</button>
-        <button class="tab" data-tab="build">✍️ Add players</button>
-        <button class="tab" data-tab="paste">📋 Paste</button>
-      </div>
-
-      <div class="panel active" id="panel-shot">
-        <div class="dropzone" id="dropzone">
-          <input type="file" id="shotInput" accept="image/*" hidden />
-          <div class="dz-emoji">📷</div>
-          <div class="dz-title">Drop a screenshot of your team</div>
-          <div class="dz-sub">or <span class="link">browse</span> — we read your players &amp; who they play. Paste an image too (Ctrl/⌘+V).</div>
-        </div>
-        <p class="hint" id="shotMsg"></p>
-      </div>
-
-      <div class="panel" id="panel-build">
-        <div class="addrow">
-          <input type="text" id="playerName" placeholder="Player name (optional)" />
-          <select id="playerCountry"></select>
-          <button class="btn primary" id="addPlayer">Add</button>
-        </div>
-        <p class="hint">Or tap a country to add it quickly:</p>
-        <div id="picker" class="groups"></div>
-      </div>
-
-      <div class="panel" id="panel-paste">
-        <textarea id="pasteBox" placeholder="England, Brazil, France&#10;or paste a team link…"></textarea>
-        <div class="row" style="margin-top:8px;">
-          <button class="btn primary" id="pasteLoad">Find my teams</button>
-          <span id="pasteMsg" class="hint"></span>
+      <div class="row" style="justify-content:space-between;margin-bottom:6px;">
+        <h2 style="margin:0;">Build your squad <span id="filledCount" class="count"></span></h2>
+        <div class="row" style="gap:8px;">
+          <button class="btn" id="demoBtn">Try a demo</button>
+          <button class="btn" id="clearBtn">Clear</button>
         </div>
       </div>
-
-      <div class="squadbar" id="squadbar"></div>
+      <p class="hint">Type a player's name — we'll find their country. Don't know the player? Just type the country. 🇫🇷</p>
+      <div id="builder"></div>
     </section>
 
     <!-- Controls -->
@@ -73,18 +47,18 @@
       </div>
     </section>
 
-    <!-- Captain hero (live countdown) -->
+    <!-- Captain hero -->
     <div id="hero"></div>
 
-    <!-- Formation / pitch in kickoff order -->
+    <!-- Formation pitch -->
     <section class="card">
-      <h2>🏟️ Your XI — in kickoff order</h2>
+      <h2>🏟️ Your formation</h2>
       <div id="pitch"></div>
     </section>
 
     <!-- Captain queue -->
     <section class="card">
-      <h2>🧭 Captain queue</h2>
+      <h2>🧭 Captain queue — soonest first</h2>
       <div id="queue"></div>
     </section>
 
@@ -94,7 +68,7 @@
     </footer>
   </main>
 
-  <!-- build.js injects window.__FIXTURES_URL__ / window.__IMPORT_URL__ before this -->
+  <!-- build.js injects window.__FIXTURES_URL__ / window.__PLAYERS__ before this -->
   <script src="app.js"></script>
 </body>
 </html>

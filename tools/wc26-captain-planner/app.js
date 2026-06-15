@@ -1,359 +1,285 @@
-/* World Cup 2026 — Captain Planner. Player-squad model, vanilla JS. */
+/* World Cup 2026 — Captain Planner. Autocomplete squad builder, vanilla JS. */
 (function () {
   "use strict";
 
-  const LS = "wc26.squad.v2";
-  const LS_OLD = "wc26.captain.teams";
+  const LS = "wc26.slots.v3";
   const $ = (id) => document.getElementById(id);
   const FIXTURES_URL = window.__FIXTURES_URL__ || "fixtures.json";
-  const IMPORT_URL = window.__IMPORT_URL__ || "/api/wc26-import";
+  const PLAYERS = window.__PLAYERS__ || [];
+
+  const POSN = [["GK", "Goalkeepers", 2], ["DEF", "Defenders", 5], ["MID", "Midfielders", 5], ["FWD", "Forwards", 3]];
+
+  // Country → flag emoji
+  const FLAGS = {
+    "Mexico": "🇲🇽", "South Africa": "🇿🇦", "South Korea": "🇰🇷", "Czech Republic": "🇨🇿",
+    "Canada": "🇨🇦", "Bosnia and Herzegovina": "🇧🇦", "Qatar": "🇶🇦", "Switzerland": "🇨🇭",
+    "Brazil": "🇧🇷", "Morocco": "🇲🇦", "Haiti": "🇭🇹", "Scotland": "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+    "United States": "🇺🇸", "Paraguay": "🇵🇾", "Australia": "🇦🇺", "Turkey": "🇹🇷",
+    "Germany": "🇩🇪", "Curaçao": "🇨🇼", "Ivory Coast": "🇨🇮", "Ecuador": "🇪🇨",
+    "Netherlands": "🇳🇱", "Japan": "🇯🇵", "Sweden": "🇸🇪", "Tunisia": "🇹🇳",
+    "Belgium": "🇧🇪", "Egypt": "🇪🇬", "Iran": "🇮🇷", "New Zealand": "🇳🇿",
+    "Spain": "🇪🇸", "Cape Verde": "🇨🇻", "Saudi Arabia": "🇸🇦", "Uruguay": "🇺🇾",
+    "France": "🇫🇷", "Senegal": "🇸🇳", "Iraq": "🇮🇶", "Norway": "🇳🇴",
+    "Argentina": "🇦🇷", "Algeria": "🇩🇿", "Austria": "🇦🇹", "Jordan": "🇯🇴",
+    "Portugal": "🇵🇹", "DR Congo": "🇨🇩", "Uzbekistan": "🇺🇿", "Colombia": "🇨🇴",
+    "England": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "Croatia": "🇭🇷", "Ghana": "🇬🇭", "Panama": "🇵🇦",
+  };
+  const flag = (c) => FLAGS[c] || "⚽";
+
+  const DEMO = [
+    ["GK", "Galíndez", "Ecuador"], ["GK", "Crépeau", "Canada"],
+    ["DEF", "Olivera", "Uruguay"], ["DEF", "Kimmich", "Germany"], ["DEF", "Bellingham", "England"], ["DEF", "Elvedi", "Switzerland"], ["DEF", "Gabriel Magalhães", "Brazil"],
+    ["MID", "Wirtz", "Germany"], ["MID", "Bruno Fernandes", "Portugal"], ["MID", "James Rodríguez", "Colombia"], ["MID", "Bellingham", "England"], ["MID", "Raphinha", "Brazil"],
+    ["FWD", "Mbappé", "France"], ["FWD", "Haaland", "Norway"], ["FWD", "Mikel Oyarzabal", "Spain"],
+  ];
 
   let DATA = null;
-  let squad = loadSquad();          // [{ id, name|null, country }]
-  let round = "all";                 // 'all' = each team's next match
+  let COUNTRIES = [];
+  let slots = loadSlots();
+  let round = "all";
   let hidePlayed = false;
   let heroKey = "";
   const mdByMatch = new Map();
 
-  // ---- storage -------------------------------------------------------------
-  function loadSquad() {
+  // ---- storage / model -----------------------------------------------------
+  const uid = () => Math.random().toString(36).slice(2, 9);
+  function blankSlots() {
+    const s = [];
+    POSN.forEach(([pos, , n]) => { for (let i = 0; i < n; i++) s.push({ id: uid(), pos, name: null, country: null }); });
+    return s;
+  }
+  function loadSlots() {
     try {
       const v = JSON.parse(localStorage.getItem(LS) || "null");
-      if (Array.isArray(v)) return v;
-      // migrate old country-set
-      const old = JSON.parse(localStorage.getItem(LS_OLD) || "[]");
-      return old.map((c) => ({ id: uid(), name: null, country: c }));
-    } catch { return []; }
+      if (Array.isArray(v) && v.length === 15) return v;
+      const old = JSON.parse(localStorage.getItem("wc26.squad.v2") || "null")
+        || (JSON.parse(localStorage.getItem("wc26.captain.teams") || "[]")).map((c) => ({ name: null, country: c }));
+      const s = blankSlots();
+      if (Array.isArray(old)) old.slice(0, 15).forEach((e, i) => { s[i].name = e.name || null; s[i].country = e.country || null; });
+      return s;
+    } catch { return blankSlots(); }
   }
-  function saveSquad() { try { localStorage.setItem(LS, JSON.stringify(squad)); } catch { /* */ } }
-  function uid() { return Math.random().toString(36).slice(2, 9); }
+  const saveSlots = () => { try { localStorage.setItem(LS, JSON.stringify(slots)); } catch { /* */ } };
+  const filled = () => slots.filter((s) => s.country);
 
   // ---- helpers -------------------------------------------------------------
   const ko = (m) => new Date(m.kickoff_utc).getTime();
   const now = () => Date.now();
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
-  const opponentOf = (m, team) => (m.home === team ? m.away : m.home);
-  const title = (s) => s.replace(/\b\w/g, (c) => c.toUpperCase());
+  const norm = (s) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const opponentOf = (m, t) => (m.home === t ? m.away : m.home);
+  const label = (s) => s.name || s.country;
   function fmtTime(m) {
     const d = new Date(m.kickoff_utc);
-    return {
-      t: d.toLocaleString(undefined, { hour: "2-digit", minute: "2-digit" }),
-      d: d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }),
-    };
+    return { t: d.toLocaleString(undefined, { hour: "2-digit", minute: "2-digit" }), d: d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }) };
   }
-  const ordinal = (n) => n + (["th", "st", "nd", "rd"][(n % 100 > 10 && n % 100 < 14) || n % 10 > 3 ? 0 : n % 10] || "th");
 
   function computeMatchdays() {
     const perTeam = {};
-    for (const m of DATA.matches) {
-      (perTeam[m.home] = perTeam[m.home] || []).push(m);
-      (perTeam[m.away] = perTeam[m.away] || []).push(m);
-    }
+    for (const m of DATA.matches) { (perTeam[m.home] = perTeam[m.home] || []).push(m); (perTeam[m.away] = perTeam[m.away] || []).push(m); }
     const pos = new Map();
-    for (const t of Object.keys(perTeam)) {
-      perTeam[t].slice().sort((a, b) => ko(a) - ko(b)).forEach((m, i) => pos.set(t + "|" + m.kickoff_utc, i + 1));
-    }
-    for (const m of DATA.matches) {
-      mdByMatch.set(m, Math.max(pos.get(m.home + "|" + m.kickoff_utc), pos.get(m.away + "|" + m.kickoff_utc)));
-    }
+    for (const t of Object.keys(perTeam)) perTeam[t].slice().sort((a, b) => ko(a) - ko(b)).forEach((m, i) => pos.set(t + "|" + m.kickoff_utc, i + 1));
+    for (const m of DATA.matches) mdByMatch.set(m, Math.max(pos.get(m.home + "|" + m.kickoff_utc), pos.get(m.away + "|" + m.kickoff_utc)));
   }
   function defaultRound() {
     const up = DATA.matches.filter((m) => ko(m) > now()).sort((a, b) => ko(a) - ko(b))[0];
     return up ? String(mdByMatch.get(up)) : "all";
   }
-  // The match to show for a country given the current round.
-  function matchForCountry(country) {
-    const ms = DATA.matches.filter((m) => m.home === country || m.away === country);
+  function matchForCountry(c) {
+    const ms = DATA.matches.filter((m) => m.home === c || m.away === c);
     if (round !== "all") return ms.find((m) => mdByMatch.get(m) === Number(round)) || null;
     const up = ms.filter((m) => ko(m) > now()).sort((a, b) => ko(a) - ko(b))[0];
     return up || ms.sort((a, b) => ko(b) - ko(a))[0] || null;
   }
-  // entries (with resolved match), sorted by kickoff
-  function entriesWithMatch() {
-    return squad
-      .map((e) => ({ e, m: matchForCountry(e.country) }))
-      .filter((x) => x.m)
-      .sort((a, b) => ko(a.m) - ko(b.m));
+  // filled slots with their match, sorted by kickoff
+  function withMatch() {
+    return filled().map((s) => ({ s, m: matchForCountry(s.country) })).filter((x) => x.m).sort((a, b) => ko(a.m) - ko(b.m));
   }
-  function nextEntry() {
-    return entriesWithMatch().filter((x) => ko(x.m) > now())[0] || null;
-  }
-  const label = (e) => e.name || e.country;
-
-  // ---- squad ops -----------------------------------------------------------
-  function addEntry(name, country) {
-    if (!country) return;
-    const n = name && name.trim() ? name.trim() : null;
-    const dup = squad.some((e) => e.country === country && (e.name || "").toLowerCase() === (n || "").toLowerCase());
-    if (dup) return;
-    squad.push({ id: uid(), name: n, country });
-  }
-  function removeEntry(id) { squad = squad.filter((e) => e.id !== id); }
-  function hasNamelessCountry(country) { return squad.some((e) => e.country === country && !e.name); }
+  const nextX = () => withMatch().filter((x) => ko(x.m) > now())[0] || null;
 
   // ---- boot ----------------------------------------------------------------
   function boot(data) {
     DATA = data;
+    COUNTRIES = Object.values(DATA.groups).flat().sort();
     computeMatchdays();
     round = defaultRound();
     $("round").value = round;
     $("tz").textContent = Intl.DateTimeFormat().resolvedOptions().timeZone || "your device";
-
-    populateCountrySelect();
-    renderPicker();
+    renderBuilder();
     renderAll();
-    setupTabs();
-    setupDropzone();
-
     $("round").addEventListener("change", (e) => { round = e.target.value; renderAll(); });
     $("hideKicked").addEventListener("change", (e) => { hidePlayed = e.target.checked; renderAll(); });
-    $("pasteLoad").addEventListener("click", loadImport);
-    $("addPlayer").addEventListener("click", () => {
-      addEntry($("playerName").value, $("playerCountry").value);
-      $("playerName").value = "";
-      saveSquad(); renderPicker(); renderAll();
-    });
-
+    $("clearBtn").addEventListener("click", () => { slots = blankSlots(); saveSlots(); renderBuilder(); renderAll(); });
+    $("demoBtn").addEventListener("click", fillDemo);
     setInterval(tick, 1000);
     setInterval(renderAll, 30000);
   }
-  fetch(FIXTURES_URL).then((r) => r.json()).then(boot).catch(() => {
-    $("pitch").innerHTML = '<p class="empty">Could not load fixtures. Please refresh.</p>';
-  });
+  fetch(FIXTURES_URL).then((r) => r.json()).then(boot).catch(() => { $("pitch").innerHTML = '<p class="empty">Could not load fixtures.</p>'; });
 
-  // ---- tabs / inputs -------------------------------------------------------
-  function setupTabs() {
-    document.querySelectorAll(".tab").forEach((tab) => {
-      tab.addEventListener("click", () => {
-        document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
-        document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
-        tab.classList.add("active");
-        $("panel-" + tab.dataset.tab).classList.add("active");
-      });
-    });
-  }
-  function populateCountrySelect() {
-    const all = Object.values(DATA.groups).flat().sort();
-    $("playerCountry").innerHTML = all.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
-  }
-  function setupDropzone() {
-    const dz = $("dropzone"), input = $("shotInput");
-    dz.addEventListener("click", () => input.click());
-    input.addEventListener("change", (e) => { const f = e.target.files && e.target.files[0]; if (f) loadShot(f); e.target.value = ""; });
-    ["dragenter", "dragover"].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add("drag"); }));
-    ["dragleave", "drop"].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.remove("drag"); }));
-    dz.addEventListener("drop", (e) => { const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f && f.type.startsWith("image/")) loadShot(f); });
-    document.addEventListener("paste", (e) => {
-      const items = e.clipboardData && e.clipboardData.items;
-      if (!items) return;
-      for (const it of items) if (it.type.startsWith("image/")) { loadShot(it.getAsFile()); break; }
-    });
+  function fillDemo() {
+    slots = blankSlots();
+    const byPos = {}; slots.forEach((s) => { (byPos[s.pos] = byPos[s.pos] || []).push(s); });
+    const idx = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
+    for (const [pos, name, country] of DEMO) { const s = byPos[pos][idx[pos]++]; if (s) { s.name = name; s.country = country; } }
+    saveSlots(); renderBuilder(); renderAll();
   }
 
-  // Preprocess for OCR: upscale, then BINARISE (white-on-dark cards → crisp
-  // black-on-white, which OCR engines read far better) and output lossless PNG
-  // (JPEG smears small text). This is the biggest lever for these screenshots.
-  function preprocess(file) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      img.onload = () => {
-        const maxW = 2000;
-        const scale = Math.min(2.2, Math.max(1, maxW / img.width));
-        const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
-        const c = document.createElement("canvas");
-        c.width = w; c.height = h;
-        const ctx = c.getContext("2d");
-        ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
-        ctx.drawImage(img, 0, 0, w, h);
-        try {
-          const im = ctx.getImageData(0, 0, w, h);
-          const d = im.data;
-          for (let i = 0; i < d.length; i += 4) {
-            const lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-            const v = lum > 165 ? 0 : 255; // bright text → black, everything else → white
-            d[i] = d[i + 1] = d[i + 2] = v;
-          }
-          ctx.putImageData(im, 0, 0);
-        } catch { /* canvas read blocked — fall back to the drawn image */ }
-        URL.revokeObjectURL(url);
-        resolve(c.toDataURL("image/png"));
-      };
-      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("bad image")); };
-      img.src = url;
-    });
+  // ---- builder + autocomplete ---------------------------------------------
+  function renderBuilder() {
+    const total = filled().length;
+    $("filledCount").textContent = total ? `(${total}/15)` : "";
+    const el = $("builder");
+    el.innerHTML = POSN.map(([pos, labelTxt]) => {
+      const list = slots.filter((s) => s.pos === pos);
+      const count = list.filter((s) => s.country).length;
+      const rows = list.map((s) => slotHtml(s)).join("");
+      return `<div class="posgroup"><div class="poshead">${labelTxt} <span class="poscount">${count}/${list.length}</span></div><div class="slots">${rows}</div></div>`;
+    }).join("");
+    bindSlots();
   }
-  async function loadShot(file) {
-    const msg = $("shotMsg");
-    msg.innerHTML = '<span class="spin"></span> Reading your screenshot…';
-    try { await postImport({ image: await preprocess(file) }, msg); }
-    catch { msg.textContent = "Couldn't read that image — try Add players."; }
-  }
-  function loadImport() {
-    const raw = ($("pasteBox").value || "").trim();
-    if (!raw) return;
-    const isUrl = /^(https?:\/\/|www\.)\S+$/i.test(raw);
-    $("pasteMsg").textContent = "Searching…";
-    postImport(isUrl ? { url: raw } : { text: raw }, $("pasteMsg"));
-  }
-  async function postImport(payload, msg) {
-    try {
-      const res = await fetch(IMPORT_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      applyImport(await res.json(), msg);
-    } catch { msg.textContent = "Import failed — please use Add players."; }
-  }
-  function applyImport(data, msg) {
-    const players = data.players || [];
-    const teams = data.teams || [];
-    if (!players.length && !teams.length) {
-      const r = data.read ? `<br/><span style="color:#7c789f;">Read from image: “${esc(data.read)}”</span>` : "";
-      msg.innerHTML = (data.error || "Nothing recognised — try Add players.") + r;
-      return;
+  function slotHtml(s) {
+    if (s.country) {
+      return `<div class="slot filled" data-id="${s.id}">
+        <span class="flag">${flag(s.country)}</span>
+        <span class="slotmain"><span class="pname">${esc(label(s))}</span>${s.name ? `<span class="pcty">${esc(s.country)}</span>` : ""}</span>
+        <button class="slotclear" data-id="${s.id}" aria-label="Clear">×</button>
+      </div>`;
     }
-    for (const p of players) addEntry(p.name ? title(p.name) : null, p.country);
-    for (const c of teams) if (!squad.some((e) => e.country === c)) addEntry(null, c);
-    saveSquad();
-    if (data.round && ["1", "2", "3"].includes(String(data.round))) { round = String(data.round); $("round").value = round; }
-    renderPicker(); renderAll();
-    const added = players.length || teams.length;
-    const r = data.read ? `<br/><span style="color:#7c789f;">Read: “${esc(data.read)}”</span>` : "";
-    msg.innerHTML = `✅ Added ${added}. <a class="link jumpadd" style="cursor:pointer">➕ Add any we missed</a>${r}`;
-    const j = msg.querySelector(".jumpadd");
-    if (j) j.addEventListener("click", () => { const b = document.querySelector('.tab[data-tab="build"]'); if (b) b.click(); });
+    return `<div class="slot" data-id="${s.id}">
+      <input class="ac-input" data-id="${s.id}" type="text" placeholder="Player or country…" autocomplete="off" spellcheck="false" />
+      <div class="ac hidden" data-id="${s.id}"></div>
+    </div>`;
+  }
+  function bindSlots() {
+    $("builder").querySelectorAll(".slotclear").forEach((b) =>
+      b.addEventListener("click", () => { const s = slots.find((x) => x.id === b.dataset.id); if (s) { s.name = null; s.country = null; } saveSlots(); renderBuilder(); renderAll(); }));
+    $("builder").querySelectorAll(".ac-input").forEach((inp) => {
+      inp.addEventListener("input", () => openAc(inp));
+      inp.addEventListener("focus", () => openAc(inp));
+      inp.addEventListener("keydown", (e) => acKeydown(inp, e));
+      inp.addEventListener("blur", () => setTimeout(() => closeAc(inp), 150));
+    });
+  }
+  function suggestions(q) {
+    const n = norm(q.trim());
+    if (!n) return [];
+    const ps = PLAYERS.filter((p) => norm(p.n).includes(n)).slice(0, 6).map((p) => ({ type: "p", name: p.n, country: p.c }));
+    const cs = COUNTRIES.filter((c) => norm(c).includes(n)).slice(0, 4).map((c) => ({ type: "c", country: c }));
+    return [...ps, ...cs].slice(0, 8);
+  }
+  function openAc(inp) {
+    const box = inp.parentElement.querySelector(".ac");
+    const items = suggestions(inp.value);
+    inp._items = items; inp._ai = 0;
+    if (!items.length) { box.classList.add("hidden"); box.innerHTML = ""; return; }
+    box.innerHTML = items.map((it, i) =>
+      it.type === "p"
+        ? `<div class="acitem${i === 0 ? " on" : ""}" data-i="${i}"><span class="flag">${flag(it.country)}</span><span class="acn">${esc(it.name)}</span><span class="acc">${esc(it.country)}</span></div>`
+        : `<div class="acitem${i === 0 ? " on" : ""}" data-i="${i}"><span class="flag">${flag(it.country)}</span><span class="acn">${esc(it.country)}</span><span class="acc">team</span></div>`
+    ).join("");
+    box.classList.remove("hidden");
+    box.querySelectorAll(".acitem").forEach((d) => d.addEventListener("mousedown", (e) => { e.preventDefault(); pick(inp, Number(d.dataset.i)); }));
+  }
+  function closeAc(inp) { const box = inp.parentElement && inp.parentElement.querySelector(".ac"); if (box) box.classList.add("hidden"); }
+  function acKeydown(inp, e) {
+    const items = inp._items || [];
+    if (e.key === "ArrowDown") { e.preventDefault(); inp._ai = Math.min((inp._ai || 0) + 1, items.length - 1); paintAc(inp); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); inp._ai = Math.max((inp._ai || 0) - 1, 0); paintAc(inp); }
+    else if (e.key === "Enter") { e.preventDefault(); if (items.length) pick(inp, inp._ai || 0); }
+    else if (e.key === "Escape") closeAc(inp);
+  }
+  function paintAc(inp) {
+    const box = inp.parentElement.querySelector(".ac");
+    box.querySelectorAll(".acitem").forEach((d, i) => d.classList.toggle("on", i === (inp._ai || 0)));
+  }
+  function pick(inp, i) {
+    const it = (inp._items || [])[i];
+    if (!it) return;
+    const s = slots.find((x) => x.id === inp.dataset.id);
+    if (!s) return;
+    if (it.type === "p") { s.name = it.name; s.country = it.country; }
+    else { s.country = it.country; const typed = inp.value.trim(); s.name = typed && norm(typed) !== norm(it.country) ? typed : null; }
+    saveSlots();
+    renderBuilder();
+    renderAll();
+    const nextInput = $("builder").querySelector(".ac-input");
+    if (nextInput) nextInput.focus();
   }
 
   // ---- render --------------------------------------------------------------
-  function renderAll() { renderSquadbar(); renderHero(); renderPitch(); renderQueue(); }
-
-  function renderPicker() {
-    const el = $("picker");
-    const inSquad = (t) => squad.some((e) => e.country === t);
-    el.innerHTML = Object.entries(DATA.groups).map(([g, teams]) => {
-      const chips = teams.map((t) => `<span class="chip${inSquad(t) ? " sel" : ""}" data-team="${esc(t)}">${esc(t)}</span>`).join("");
-      return `<div class="group"><div class="glabel">Group ${g}</div><div class="chips">${chips}</div></div>`;
-    }).join("");
-    el.querySelectorAll(".chip").forEach((chip) => {
-      chip.addEventListener("click", () => {
-        const t = chip.getAttribute("data-team");
-        if (inSquad(t)) squad = squad.filter((e) => e.country !== t); // toggle whole country off
-        else addEntry(null, t);
-        saveSquad(); renderPicker(); renderAll();
-      });
-    });
-  }
-
-  function renderSquadbar() {
-    const el = $("squadbar");
-    if (!squad.length) { el.innerHTML = '<span class="hint">No players yet — add your team above 👆</span>'; return; }
-    el.innerHTML = squad.map((e) =>
-      `<span class="squadchip">${esc(label(e))}${e.name ? ` <small style="color:var(--muted)">${esc(e.country)}</small>` : ""}<button data-id="${e.id}" aria-label="Remove">×</button></span>`
-    ).join("") + `<button class="clearall" id="clearAll">Clear all</button>`;
-    el.querySelectorAll(".squadchip button").forEach((b) =>
-      b.addEventListener("click", () => { removeEntry(b.getAttribute("data-id")); saveSquad(); renderPicker(); renderAll(); }));
-    $("clearAll").addEventListener("click", () => { squad = []; saveSquad(); renderPicker(); renderAll(); });
-  }
+  function renderAll() { renderHero(); renderPitch(); renderQueue(); }
 
   function pad(n) { return String(n).padStart(2, "0"); }
-  function cdParts(ms) { const s = Math.max(0, Math.floor(ms / 1000)); return { d: Math.floor(s / 86400), h: Math.floor((s % 86400) / 3600), m: Math.floor((s % 3600) / 60), s: s % 60 }; }
+  function cd(ms) { const s = Math.max(0, Math.floor(ms / 1000)); return { d: Math.floor(s / 86400), h: Math.floor((s % 86400) / 3600), m: Math.floor((s % 3600) / 60), s: s % 60 }; }
 
   function renderHero() {
     const el = $("hero");
-    if (!squad.length) {
-      heroKey = "none"; el.className = "hero idle";
-      el.innerHTML = '<div class="label">Your captain</div><div class="team" style="font-size:20px;">Add your team to begin 🚀</div><div class="meta">Upload a screenshot, add players, or paste your countries above.</div>';
-      return;
-    }
-    const x = nextEntry();
-    if (!x) {
-      heroKey = "done"; el.className = "hero idle";
-      el.innerHTML = '<div class="label">All done</div><div class="team" style="font-size:20px;">Everyone has kicked off 🎉</div><div class="meta">No players left to play in this round.</div>';
-      return;
-    }
-    const opp = opponentOf(x.m, x.e.country);
-    const sameTime = entriesWithMatch().filter((y) => ko(y.m) === ko(x.m) && ko(y.m) > now());
-    const others = sameTime.length - 1;
-    heroKey = x.m.kickoff_utc + x.e.id;
+    if (!filled().length) { heroKey = "none"; el.className = "hero idle"; el.innerHTML = '<div class="label">Your captain</div><div class="team" style="font-size:20px;">Add your squad to begin 🚀</div><div class="meta">Type your players above — names autocomplete to their country.</div>'; return; }
+    const x = nextX();
+    if (!x) { heroKey = "done"; el.className = "hero idle"; el.innerHTML = '<div class="label">All done</div><div class="team" style="font-size:20px;">Everyone has kicked off 🎉</div><div class="meta">No players left to play in this round.</div>'; return; }
+    const opp = opponentOf(x.m, x.s.country);
+    heroKey = x.m.kickoff_utc + x.s.id;
     el.className = "hero";
-    el.innerHTML = `
-      <div class="crown">👑</div>
-      <div class="label">Captain next</div>
-      <div class="team">${esc(label(x.e))}</div>
-      <div class="meta">${x.e.name ? esc(x.e.country) + " · " : ""}vs ${esc(opp)} · ${fmtTime(x.m).t} ${fmtTime(x.m).d}${others > 0 ? ` · +${others} more at this time` : ""}</div>
-      <div class="cd" id="cd"></div>`;
+    el.innerHTML = `<div class="crown">👑</div><div class="label">Captain next</div>
+      <div class="team">${flag(x.s.country)} ${esc(label(x.s))}</div>
+      <div class="meta">${x.s.name ? esc(x.s.country) + " · " : ""}vs ${esc(opp)} · ${fmtTime(x.m).t} ${fmtTime(x.m).d}</div>
+      <div class="cd" id="cdv"></div>`;
     tick();
   }
   function tick() {
-    const d = new Date();
-    $("now").textContent = d.toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" });
+    $("now").textContent = new Date().toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" });
     if (!DATA) return;
-    const x = nextEntry();
-    const key = x ? x.m.kickoff_utc + x.e.id : (squad.length ? "done" : "none");
+    const x = nextX();
+    const key = x ? x.m.kickoff_utc + x.s.id : (filled().length ? "done" : "none");
     if (key !== heroKey) { renderHero(); return; }
-    const cd = $("cd");
-    if (x && cd) {
-      const p = cdParts(ko(x.m) - now());
-      const big = p.d > 0 ? `<span class="seg">${p.d}d</span> ` : "";
-      cd.innerHTML = `${big}<span class="seg">${pad(p.h)}</span><small>h</small> <span class="seg">${pad(p.m)}</span><small>m</small> <span class="seg">${pad(p.s)}</span><small>s</small> <small>until kickoff — lock your armband 🔒</small>`;
-    }
+    const c = $("cdv");
+    if (x && c) { const p = cd(ko(x.m) - now()); const big = p.d > 0 ? `<span class="seg">${p.d}d</span> ` : ""; c.innerHTML = `${big}<span class="seg">${pad(p.h)}</span><small>h</small> <span class="seg">${pad(p.m)}</span><small>m</small> <span class="seg">${pad(p.s)}</span><small>s</small> <small>until kickoff 🔒</small>`; }
   }
 
   function renderPitch() {
     const el = $("pitch");
-    let items = entriesWithMatch();
-    if (hidePlayed) items = items.filter((x) => ko(x.m) > now());
-    if (!items.length) { el.innerHTML = '<p class="empty">Add your team to see the formation.</p>'; return; }
-
-    // group by kickoff time
-    const groups = [];
-    let cur = null;
-    for (const x of items) {
-      if (!cur || cur.ko !== ko(x.m)) { cur = { ko: ko(x.m), m: x.m, items: [] }; groups.push(cur); }
-      cur.items.push(x);
-    }
-    const nx = nextEntry();
-    const nextKo = nx ? ko(nx.m) : null;
-
-    const rows = groups.map((g, i) => {
-      const played = g.ko <= now();
-      const isNext = !played && g.ko === nextKo;
-      const ft = fmtTime(g.m);
-      const status = played ? "✓ Played" : isNext ? "👑 Captain now" : "To play";
-      const cards = g.items.map(({ e, m }) => `
-        <div class="fcard">
-          ${isNext ? '<span class="arm">👑</span>' : ""}
-          <div class="pn">${esc(label(e))}</div>
-          ${e.name ? `<div class="cty">${esc(e.country)}</div>` : ""}
-          <div class="vop">vs ${esc(opponentOf(m, e.country))}</div>
-        </div>`).join("");
-      return `<div class="frow ${played ? "played" : isNext ? "next" : "upcoming"}">
-        <div class="frail">
-          <div class="ord">${ordinal(i + 1)} to play</div>
-          <div class="ftime">${ft.t}</div>
-          <div class="fdate">${ft.d}</div>
-          <div class="fstatus">${status}</div>
-        </div>
-        <div class="fcards">${cards}</div>
-      </div>`;
+    let xs = withMatch();
+    if (hidePlayed) xs = xs.filter((x) => ko(x.m) > now());
+    if (!xs.length) { el.innerHTML = '<p class="empty">Add your squad to see the formation.</p>'; return; }
+    // play-order rank by kickoff
+    const order = new Map(); withMatch().forEach((x, i) => order.set(x.s.id, i + 1));
+    const nx = nextX();
+    const rows = POSN.map(([pos, labelTxt]) => {
+      const cards = xs.filter((x) => x.s.pos === pos).map((x) => {
+        const played = ko(x.m) <= now();
+        const isNext = nx && x.s.id === nx.s.id;
+        const ft = fmtTime(x.m);
+        const st = played ? '<span class="cstat ok">✓ Played</span>' : isNext ? '<span class="cstat next">👑 Captain</span>' : '<span class="cstat">To play</span>';
+        return `<div class="fcard ${played ? "played" : isNext ? "isnext" : ""}">
+          <span class="ford">${order.get(x.s.id)}</span>
+          <div class="fflag">${flag(x.s.country)}</div>
+          <div class="fpn">${esc(label(x.s))}</div>
+          <div class="fop">vs ${esc(opponentOf(x.m, x.s.country))}</div>
+          <div class="ftime">${ft.t} · ${ft.d}</div>
+          ${st}
+        </div>`;
+      }).join("");
+      if (!cards) return "";
+      return `<div class="prow"><div class="plabel">${labelTxt}</div><div class="pcards">${cards}</div></div>`;
     }).join("");
-
     el.innerHTML = `<div class="formation">${rows}</div>
-      <p class="pitch-note">Top = plays first. 👑 = captain next; once they kick off, move the armband to the next row down. ✓ = already played.</p>`;
+      <p class="pitch-note">Number = kickoff order (1 plays first). 👑 = captain next; after they play, move the armband to the next number. ✓ = already played.</p>`;
   }
 
   function renderQueue() {
     const el = $("queue");
-    let items = entriesWithMatch();
-    if (hidePlayed) items = items.filter((x) => ko(x.m) > now());
-    if (!items.length) { el.innerHTML = '<p class="empty">Add your team to see the captain queue.</p>'; return; }
-    const nx = nextEntry();
-    el.innerHTML = items.map((x, i) => {
+    let xs = withMatch();
+    if (hidePlayed) xs = xs.filter((x) => ko(x.m) > now());
+    if (!xs.length) { el.innerHTML = '<p class="empty">Add your squad to see the captain queue.</p>'; return; }
+    const nx = nextX();
+    el.innerHTML = xs.map((x, i) => {
       const played = ko(x.m) <= now();
-      const isNext = nx && x.e.id === nx.e.id && x.m === nx.m;
+      const isNext = nx && x.s.id === nx.s.id;
       const ft = fmtTime(x.m);
       return `<div class="qitem ${played ? "played" : ""}${isNext ? " next" : ""}">
         <span class="qnum">${i + 1}</span>
-        <span class="qname">${esc(label(x.e))}${x.e.name ? ` <small>${esc(x.e.country)}</small>` : ""}</span>
-        <span class="qvs">vs ${esc(opponentOf(x.m, x.e.country))}</span>
+        <span class="qname">${flag(x.s.country)} ${esc(label(x.s))}${x.s.name ? ` <small>${esc(x.s.country)}</small>` : ""}</span>
+        <span class="qvs">vs ${esc(opponentOf(x.m, x.s.country))}</span>
         ${isNext ? '<span class="badge-next">Captain next</span>' : ""}
         ${played ? '<span class="badge-played">Played</span>' : ""}
         <span class="qtime"><span class="t">${ft.t}</span><br/><span class="d">${ft.d}</span></span>

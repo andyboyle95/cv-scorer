@@ -22,8 +22,9 @@ const html = fs.readFileSync(path.join(dir, "index.html"), "utf8");
 const css = fs.readFileSync(path.join(dir, "styles.css"), "utf8");
 const js = fs.readFileSync(path.join(dir, "app.js"), "utf8");
 const fixtures = fs.readFileSync(path.join(dir, "fixtures.json"), "utf8").trim();
+const players = fs.readFileSync(path.join(dir, "players.json"), "utf8").trim();
 
-const config = `<script>window.__FIXTURES_URL__="/tools/${SLUG}.fixtures.json";window.__IMPORT_URL__="/api/wc26-import";</script>`;
+const config = `<script>window.__FIXTURES_URL__="/tools/${SLUG}.fixtures.json";window.__PLAYERS__=${players};</script>`;
 
 let out = html
   .replace(/<link rel="stylesheet" href="styles\.css"\s*\/>/, `<style>\n${css}\n</style>`)
