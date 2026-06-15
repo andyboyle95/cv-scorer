@@ -181,47 +181,57 @@ const PLAYER_INDEX = Object.entries(WC26_PLAYERS).flatMap(([country, names]) =>
   })
 );
 
-function matchPlayers(text: string): string[] {
+function titleCase(s: string): string {
+  return s.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// Returns matched countries plus named players (for the formation view).
+function matchPlayersDetailed(text: string): {
+  countries: Set<string>;
+  players: { name: string; country: string }[];
+} {
   const t = norm(text);
   const words = t.split(/[^a-z0-9-]+/).filter(Boolean);
   const wordSet = new Set(words);
-  const triggers = new Map<string, Set<string>>();
-  const add = (trig: string, country: string) => {
-    if (!triggers.has(trig)) triggers.set(trig, new Set());
-    triggers.get(trig)!.add(country);
+  const triggers = new Map<string, Map<string, string>>(); // trigger → (country → key)
+  const add = (trig: string, country: string, key: string) => {
+    if (!triggers.has(trig)) triggers.set(trig, new Map());
+    const mp = triggers.get(trig)!;
+    if (!mp.has(country)) mp.set(country, key);
   };
 
   for (const e of PLAYER_INDEX) {
     if (e.multi) {
-      // Multi-word key: require the lead word(s) present and the last word
-      // present (allowing a truncated/prefix match for "Bruno Fernand…").
       const parts = e.key.split(" ");
       const last = parts[parts.length - 1];
       const leadOk = parts.slice(0, -1).every((w) => wordSet.has(w));
       const lastOk = words.some(
-        (w) =>
-          w === last ||
-          (w.length >= 4 && last.length >= 4 && (last.startsWith(w) || w.startsWith(last)))
+        (w) => w === last || (w.length >= 4 && last.length >= 4 && (last.startsWith(w) || w.startsWith(last)))
       );
-      if (t.includes(e.key) || (leadOk && lastOk)) add(e.key, e.country); // distinctive trigger
+      if (t.includes(e.key) || (leadOk && lastOk)) add(e.key, e.country, e.key);
     } else if (e.key.length < 5) {
-      if (wordSet.has(e.key)) add(e.key, e.country); // short key → exact only
+      if (wordSet.has(e.key)) add(e.key, e.country, e.key);
     } else {
       for (const w of words) {
         if (w.length >= 5 && (w === e.key || e.key.startsWith(w) || w.startsWith(e.key))) {
-          add(w, e.country); // group by OCR token to catch prefix collisions
+          add(w, e.country, e.key);
           break;
         }
       }
     }
   }
 
-  // Accept a trigger only if it points to exactly one country (skip ambiguous).
-  const out = new Set<string>();
-  for (const [, countries] of triggers) {
-    if (countries.size === 1) out.add([...countries][0]);
+  const countries = new Set<string>();
+  const players: { name: string; country: string }[] = [];
+  const seen = new Set<string>();
+  for (const [, cmap] of triggers) {
+    if (cmap.size !== 1) continue; // skip ambiguous triggers
+    const [[country, key]] = [...cmap.entries()];
+    countries.add(country);
+    const id = key + "|" + country;
+    if (!seen.has(id)) { seen.add(id); players.push({ name: titleCase(key), country }); }
   }
-  return [...out];
+  return { countries, players };
 }
 
 // Remove "v OPP" opponent labels (e.g. "v KSA") so the opponent's code/name
@@ -237,12 +247,17 @@ function scrubOpponents(text: string): string {
 //     teams best overlap the name matches; resolve every opponent → the team
 //     facing it that round (fills in unread/ambiguous players, e.g. Colombia
 //     via "Rodriguez v UZB"). Also returns the detected round.
-function resolveTeams(text: string): { teams: string[]; round?: number } {
+function resolveTeams(text: string): {
+  teams: string[];
+  round?: number;
+  players: { name: string; country: string }[];
+} {
   const cleaned = scrubOpponents(text);
-  const nameMatched = new Set<string>([...matchTeams(cleaned), ...matchPlayers(cleaned)]);
+  const pd = matchPlayersDetailed(cleaned);
+  const nameMatched = new Set<string>([...matchTeams(cleaned), ...pd.countries]);
 
   const opps = opponentCountries(text);
-  if (opps.length === 0) return { teams: [...nameMatched] };
+  if (opps.length === 0) return { teams: [...nameMatched], players: pd.players };
 
   let best = { round: defaultRound(), score: -1 };
   for (const r of [1, 2, 3]) {
@@ -253,7 +268,7 @@ function resolveTeams(text: string): { teams: string[]; round?: number } {
   const round = best.score > 0 ? best.round : defaultRound();
   const resolvedTeams = opps.map((oc) => TEAM_ROUND_OPP[oc]?.[round]).filter(Boolean) as string[];
 
-  return { teams: Array.from(new Set([...nameMatched, ...resolvedTeams])), round };
+  return { teams: Array.from(new Set([...nameMatched, ...resolvedTeams])), round, players: pd.players };
 }
 
 // Best-effort OCR via OCR.space. Free demo key "helloworld" works out of the
