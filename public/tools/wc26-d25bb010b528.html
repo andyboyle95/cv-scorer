@@ -471,20 +471,34 @@ footer strong { background: linear-gradient(90deg, var(--pink), var(--cyan)); -w
     });
   }
 
-  function scaleImage(file, maxW) {
+  // Preprocess for OCR: upscale, then BINARISE (white-on-dark cards → crisp
+  // black-on-white, which OCR engines read far better) and output lossless PNG
+  // (JPEG smears small text). This is the biggest lever for these screenshots.
+  function preprocess(file) {
     return new Promise((resolve, reject) => {
       const img = new Image();
       const url = URL.createObjectURL(file);
       img.onload = () => {
-        const scale = Math.min(1.5, maxW / img.width);
+        const maxW = 2000;
+        const scale = Math.min(2.2, Math.max(1, maxW / img.width));
         const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
         const c = document.createElement("canvas");
         c.width = w; c.height = h;
         const ctx = c.getContext("2d");
-        ctx.filter = "grayscale(1) contrast(1.6) brightness(1.05)";
+        ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
         ctx.drawImage(img, 0, 0, w, h);
+        try {
+          const im = ctx.getImageData(0, 0, w, h);
+          const d = im.data;
+          for (let i = 0; i < d.length; i += 4) {
+            const lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+            const v = lum > 165 ? 0 : 255; // bright text → black, everything else → white
+            d[i] = d[i + 1] = d[i + 2] = v;
+          }
+          ctx.putImageData(im, 0, 0);
+        } catch { /* canvas read blocked — fall back to the drawn image */ }
         URL.revokeObjectURL(url);
-        resolve(c.toDataURL("image/jpeg", 0.85));
+        resolve(c.toDataURL("image/png"));
       };
       img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("bad image")); };
       img.src = url;
@@ -493,7 +507,7 @@ footer strong { background: linear-gradient(90deg, var(--pink), var(--cyan)); -w
   async function loadShot(file) {
     const msg = $("shotMsg");
     msg.innerHTML = '<span class="spin"></span> Reading your screenshot…';
-    try { await postImport({ image: await scaleImage(file, 1500) }, msg); }
+    try { await postImport({ image: await preprocess(file) }, msg); }
     catch { msg.textContent = "Couldn't read that image — try Add players."; }
   }
   function loadImport() {
