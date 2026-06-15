@@ -198,8 +198,59 @@
   function renderAll() {
     renderSquadbar();
     renderHero();
+    renderPitch();
     renderCaptainOrder();
     renderTimeline();
+  }
+
+  // One representative match per country for the formation view.
+  function repMatch(team) {
+    const ms = DATA.matches.filter((m) => m.home === team || m.away === team);
+    if (round !== "all") {
+      const m = ms.find((x) => mdByMatch.get(x) === Number(round));
+      if (m) return m;
+    }
+    const up = ms.filter((m) => ko(m) > now()).sort((a, b) => ko(a) - ko(b))[0];
+    return up || ms.sort((a, b) => ko(b) - ko(a))[0];
+  }
+
+  function chunk(arr, size) {
+    const out = [];
+    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+    return out;
+  }
+
+  function renderPitch() {
+    const el = $("pitch");
+    if (!selected.size) { el.innerHTML = '<p class="empty">Add your teams to see the formation.</p>'; return; }
+    const next = nextMatch();
+    const cards = [...selected]
+      .map((t) => ({ t, m: repMatch(t) }))
+      .filter((x) => x.m)
+      .sort((a, b) => ko(a.m) - ko(b.m)); // soonest at the front (top)
+    if (!cards.length) { el.innerHTML = '<p class="empty">No matches for this round.</p>'; return; }
+
+    // Lay out up to 4 per row, soonest-to-play rows first.
+    const rows = chunk(cards, 4);
+    const rowsHtml = rows.map((row) => {
+      const c = row.map(({ t, m }) => {
+        const played = ko(m) <= now();
+        const isNext = m === next && (selected.has(m.home) || selected.has(m.away)) && (m.home === t || m.away === t);
+        const ft = fmtTime(m);
+        const status = played ? '<div class="st">✓ Played</div>' : `<div class="st">⏳ ${ft.t}</div>`;
+        return `<div class="pcard ${played ? "played" : "upcoming"}${isNext ? " next" : ""}">
+          ${isNext ? '<span class="arm">👑</span>' : ""}
+          <div class="nm">${esc(t)}</div>
+          <div class="op">vs ${esc(opponentOf(m, t))}</div>
+          <div class="dt">${ft.d}</div>
+          ${status}
+        </div>`;
+      }).join("");
+      return `<div class="pitch-row">${c}</div>`;
+    }).join("");
+
+    el.innerHTML = `<div class="pitch"><div class="pitch-rows">${rowsHtml}</div></div>
+      <p class="pitch-note">✓ marks teams that have already kicked off · 👑 = captain next. Live fantasy points aren't available from FIFA, so they're not shown.</p>`;
   }
 
   function renderPicker() {

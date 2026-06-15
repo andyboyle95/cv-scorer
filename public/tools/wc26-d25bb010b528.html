@@ -177,6 +177,36 @@ label.toggle input { width: 16px; height: 16px; accent-color: var(--cyan); }
 .grp { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; margin-left: 6px; }
 .empty { color: var(--muted); font-size: 14px; padding: 6px 0; }
 
+/* Pitch / formation view */
+.pitch {
+  background: linear-gradient(180deg, #169a45 0%, #0c5e2a 100%);
+  border-radius: 16px; padding: 22px 12px; position: relative; overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background-image: linear-gradient(180deg, #169a45, #0c5e2a),
+    repeating-linear-gradient(180deg, rgba(255,255,255,0.05) 0 40px, transparent 40px 80px);
+  background-blend-mode: overlay;
+}
+.pitch::before { content: ""; position: absolute; inset: 10px; border: 2px solid rgba(255, 255, 255, 0.25); border-radius: 10px; pointer-events: none; }
+.pitch::after { content: ""; position: absolute; left: 50%; top: 50%; width: 86px; height: 86px; border: 2px solid rgba(255, 255, 255, 0.25); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+.pitch-rows { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 14px; }
+.pitch-row { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+.pcard {
+  width: 98px; background: rgba(4, 18, 10, 0.55); border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 12px; padding: 9px 6px 8px; text-align: center; color: #fff; position: relative;
+  transition: transform 0.15s; animation: pop 0.25s ease;
+}
+.pcard:hover { transform: translateY(-2px); }
+.pcard .nm { font-weight: 800; font-size: 13px; line-height: 1.1; }
+.pcard .op { font-size: 11px; color: #c7ecd2; margin-top: 3px; }
+.pcard .dt { font-size: 10px; color: #9fe6c0; margin-top: 3px; font-weight: 700; }
+.pcard .st { font-size: 10px; margin-top: 4px; font-weight: 800; }
+.pcard.played { opacity: 0.55; }
+.pcard.played .st { color: #a3e635; }
+.pcard.upcoming .st { color: #e7faef; }
+.pcard.next { border-color: var(--gold); box-shadow: 0 0 18px rgba(251, 191, 36, 0.55); }
+.pcard .arm { position: absolute; top: -9px; right: -7px; font-size: 17px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
+.pitch-note { color: var(--muted); font-size: 12px; margin-top: 10px; text-align: center; }
+
 footer { text-align: center; margin-top: 34px; color: var(--muted); font-size: 13px; }
 footer strong { background: linear-gradient(90deg, var(--pink), var(--cyan)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .spin { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255, 255, 255, 0.35); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
@@ -244,6 +274,12 @@ footer strong { background: linear-gradient(90deg, var(--pink), var(--cyan)); -w
 
     <!-- Captain hero (live countdown) -->
     <div id="hero"></div>
+
+    <!-- Pitch / formation view -->
+    <section class="card">
+      <h2>🏟️ Formation view</h2>
+      <div id="pitch"></div>
+    </section>
 
     <!-- Captain order -->
     <section class="card">
@@ -466,8 +502,59 @@ footer strong { background: linear-gradient(90deg, var(--pink), var(--cyan)); -w
   function renderAll() {
     renderSquadbar();
     renderHero();
+    renderPitch();
     renderCaptainOrder();
     renderTimeline();
+  }
+
+  // One representative match per country for the formation view.
+  function repMatch(team) {
+    const ms = DATA.matches.filter((m) => m.home === team || m.away === team);
+    if (round !== "all") {
+      const m = ms.find((x) => mdByMatch.get(x) === Number(round));
+      if (m) return m;
+    }
+    const up = ms.filter((m) => ko(m) > now()).sort((a, b) => ko(a) - ko(b))[0];
+    return up || ms.sort((a, b) => ko(b) - ko(a))[0];
+  }
+
+  function chunk(arr, size) {
+    const out = [];
+    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+    return out;
+  }
+
+  function renderPitch() {
+    const el = $("pitch");
+    if (!selected.size) { el.innerHTML = '<p class="empty">Add your teams to see the formation.</p>'; return; }
+    const next = nextMatch();
+    const cards = [...selected]
+      .map((t) => ({ t, m: repMatch(t) }))
+      .filter((x) => x.m)
+      .sort((a, b) => ko(a.m) - ko(b.m)); // soonest at the front (top)
+    if (!cards.length) { el.innerHTML = '<p class="empty">No matches for this round.</p>'; return; }
+
+    // Lay out up to 4 per row, soonest-to-play rows first.
+    const rows = chunk(cards, 4);
+    const rowsHtml = rows.map((row) => {
+      const c = row.map(({ t, m }) => {
+        const played = ko(m) <= now();
+        const isNext = m === next && (selected.has(m.home) || selected.has(m.away)) && (m.home === t || m.away === t);
+        const ft = fmtTime(m);
+        const status = played ? '<div class="st">✓ Played</div>' : `<div class="st">⏳ ${ft.t}</div>`;
+        return `<div class="pcard ${played ? "played" : "upcoming"}${isNext ? " next" : ""}">
+          ${isNext ? '<span class="arm">👑</span>' : ""}
+          <div class="nm">${esc(t)}</div>
+          <div class="op">vs ${esc(opponentOf(m, t))}</div>
+          <div class="dt">${ft.d}</div>
+          ${status}
+        </div>`;
+      }).join("");
+      return `<div class="pitch-row">${c}</div>`;
+    }).join("");
+
+    el.innerHTML = `<div class="pitch"><div class="pitch-rows">${rowsHtml}</div></div>
+      <p class="pitch-note">✓ marks teams that have already kicked off · 👑 = captain next. Live fantasy points aren't available from FIFA, so they're not shown.</p>`;
   }
 
   function renderPicker() {
