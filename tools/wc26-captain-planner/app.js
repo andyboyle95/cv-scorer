@@ -73,8 +73,10 @@
     }
   }
 
-  const ko = (m) => new Date(m.kickoff_utc).getTime();
-  const now = () => Date.now();
+  // Function declarations (hoisted) so they're safe to call from boot()
+  // regardless of execution order — avoids any temporal-dead-zone error.
+  function ko(m) { return new Date(m.kickoff_utc).getTime(); }
+  function now() { return Date.now(); }
 
   // Matchday: each team's Nth chronological match = MD N; a fixture's MD = max
   // of its two teams' running counts.
@@ -141,15 +143,19 @@
       }),
     };
   }
-  const dayKey = (m) =>
-    new Date(m.kickoff_utc).toLocaleDateString(undefined, {
+  function dayKey(m) {
+    return new Date(m.kickoff_utc).toLocaleDateString(undefined, {
       weekday: "long",
       day: "numeric",
       month: "long",
     });
-  const esc = (s) =>
-    String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
-  const opponentOf = (m, team) => (m.home === team ? m.away : m.home);
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  }
+  function opponentOf(m, team) {
+    return m.home === team ? m.away : m.home;
+  }
 
   // ---- render --------------------------------------------------------------
   function renderAll() {

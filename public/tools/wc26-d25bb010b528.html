@@ -178,7 +178,7 @@ footer { text-align: center; color: #5a6478; font-size: 12px; margin-top: 30px; 
     </footer>
   </div>
 
-  <!-- In the inlined build, fixtures are injected here as window.__FIXTURES__ -->
+  <!-- build.js injects window.__FIXTURES_URL__ / window.__IMPORT_URL__ before this -->
   <script>window.__FIXTURES_URL__="/tools/wc26-d25bb010b528.fixtures.json";window.__IMPORT_URL__="/api/wc26-import";</script>
   <script>
 /* World Cup 2026 — Captain Planner (vanilla JS, no framework). */
@@ -256,8 +256,10 @@ footer { text-align: center; color: #5a6478; font-size: 12px; margin-top: 30px; 
     }
   }
 
-  const ko = (m) => new Date(m.kickoff_utc).getTime();
-  const now = () => Date.now();
+  // Function declarations (hoisted) so they're safe to call from boot()
+  // regardless of execution order — avoids any temporal-dead-zone error.
+  function ko(m) { return new Date(m.kickoff_utc).getTime(); }
+  function now() { return Date.now(); }
 
   // Matchday: each team's Nth chronological match = MD N; a fixture's MD = max
   // of its two teams' running counts.
@@ -324,15 +326,19 @@ footer { text-align: center; color: #5a6478; font-size: 12px; margin-top: 30px; 
       }),
     };
   }
-  const dayKey = (m) =>
-    new Date(m.kickoff_utc).toLocaleDateString(undefined, {
+  function dayKey(m) {
+    return new Date(m.kickoff_utc).toLocaleDateString(undefined, {
       weekday: "long",
       day: "numeric",
       month: "long",
     });
-  const esc = (s) =>
-    String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
-  const opponentOf = (m, team) => (m.home === team ? m.away : m.home);
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  }
+  function opponentOf(m, team) {
+    return m.home === team ? m.away : m.home;
+  }
 
   // ---- render --------------------------------------------------------------
   function renderAll() {
