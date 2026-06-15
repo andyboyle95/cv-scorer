@@ -26,6 +26,20 @@
   };
   const flag = (c) => FLAGS[c] || "⚽";
 
+  const CODES = {
+    "Mexico": "MEX", "South Africa": "RSA", "South Korea": "KOR", "Czech Republic": "CZE",
+    "Canada": "CAN", "Bosnia and Herzegovina": "BIH", "Qatar": "QAT", "Switzerland": "SUI",
+    "Brazil": "BRA", "Morocco": "MAR", "Haiti": "HAI", "Scotland": "SCO", "United States": "USA",
+    "Paraguay": "PAR", "Australia": "AUS", "Turkey": "TUR", "Germany": "GER", "Curaçao": "CUW",
+    "Ivory Coast": "CIV", "Ecuador": "ECU", "Netherlands": "NED", "Japan": "JPN", "Sweden": "SWE",
+    "Tunisia": "TUN", "Belgium": "BEL", "Egypt": "EGY", "Iran": "IRN", "New Zealand": "NZL",
+    "Spain": "ESP", "Cape Verde": "CPV", "Saudi Arabia": "KSA", "Uruguay": "URU", "France": "FRA",
+    "Senegal": "SEN", "Iraq": "IRQ", "Norway": "NOR", "Argentina": "ARG", "Algeria": "ALG",
+    "Austria": "AUT", "Jordan": "JOR", "Portugal": "POR", "DR Congo": "COD", "Uzbekistan": "UZB",
+    "Colombia": "COL", "England": "ENG", "Croatia": "CRO", "Ghana": "GHA", "Panama": "PAN",
+  };
+  const code = (c) => CODES[c] || c.slice(0, 3).toUpperCase();
+
   let DATA = null;
   let COUNTRIES = [];
   let slots = loadSlots();
@@ -242,60 +256,61 @@
     renderHero(); renderTimeline(); renderPitch(); renderQueue();
   }
 
-  // Horizontal round timeline: matches as blocks on a time axis, a live "now"
-  // line, played matches greyed. Whole round legible at a glance.
+  // Round timeline: grouped by day (empty hours/nights removed), one block per
+  // match (players in the same fixture merged), showing the matchup with flags.
   function renderTimeline() {
     const el = $("timeline");
-    const xs = withMatch(); // ignore "hide played" so the whole round shows
+    const xs = withMatch();
     if (!xs.length) { el.innerHTML = '<p class="empty">Add your squad to see the timeline.</p>'; return; }
-    const MATCH_MS = 2 * 3600000;
-    const start = Math.min(...xs.map((x) => ko(x.m)));
-    const end = Math.max(...xs.map((x) => ko(x.m))) + MATCH_MS;
-    const span = Math.max(end - start, 3600000);
-    const pxPerHour = 9;
-    const W = Math.max(660, Math.round((span / 3600000) * pxPerHour));
-    const xpos = (t) => ((t - start) / span) * W;
 
-    // lanes (greedy) so overlapping matches don't collide
-    const blocks = xs.map((x) => ({ x, s: ko(x.m), e: ko(x.m) + MATCH_MS }));
-    const laneEnd = [];
-    blocks.forEach((b) => {
-      let lane = laneEnd.findIndex((e) => e <= b.s);
-      if (lane < 0) { lane = laneEnd.length; laneEnd.push(0); }
-      laneEnd[lane] = b.e; b.lane = lane;
-    });
-    const lanes = Math.max(1, laneEnd.length);
-    const laneH = 44, axisH = 18, height = lanes * laneH + axisH;
+    // de-duplicate to unique matches, collecting your players in each
+    const mm = new Map();
+    for (const { s, m } of xs) {
+      const k = m.kickoff_utc + "|" + m.home + "|" + m.away;
+      if (!mm.has(k)) mm.set(k, { m, players: [] });
+      mm.get(k).players.push(s);
+    }
+    let matches = [...mm.values()].sort((a, b) => ko(a.m) - ko(b.m));
+    if (hidePlayed) matches = matches.filter((x) => ko(x.m) > now());
+    if (!matches.length) { el.innerHTML = '<p class="empty">No matches to show.</p>'; return; }
+
     const nx = nextX();
+    const nextKey = nx ? nx.m.kickoff_utc + "|" + nx.m.home + "|" + nx.m.away : null;
+    const todayStr = new Date().toDateString();
 
-    // day gridlines
-    let grids = "";
-    const d0 = new Date(start); d0.setHours(0, 0, 0, 0);
-    for (let t = d0.getTime(); t <= end; t += 86400000) {
-      const left = xpos(t);
-      if (left < -1 || left > W) continue;
-      const lbl = new Date(t).toLocaleDateString(undefined, { weekday: "short", day: "numeric" });
-      grids += `<div class="tlgrid" style="left:${left}px"><span>${esc(lbl)}</span></div>`;
+    const days = [];
+    let cur = null;
+    for (const mt of matches) {
+      const k = dayLabel(mt.m);
+      if (!cur || cur.key !== k) { cur = { key: k, dstr: new Date(mt.m.kickoff_utc).toDateString(), items: [] }; days.push(cur); }
+      cur.items.push(mt);
     }
 
-    const blockHtml = blocks.map((b) => {
-      const left = xpos(b.s);
-      const w = Math.max(58, ((MATCH_MS) / span) * W);
-      const top = axisH + b.lane * laneH + 2;
-      const isPlayed = ko(b.x.m) <= now();
-      const isNext = nx && b.x.s.id === nx.s.id;
-      const ft = fmtTime(b.x.m);
-      return `<div class="tlblock ${isPlayed ? "played" : ""}${isNext ? " next" : ""}" style="left:${left}px;top:${top}px;width:${w}px" title="${esc(label(b.x.s))} vs ${esc(opponentOf(b.x.m, b.x.s.country))} · ${ft.t} ${ft.d}">
-        <span class="tlf">${flag(b.x.s.country)}</span><span class="tlt">${ft.t}</span>
-        <span class="tlnm">${esc(label(b.x.s))}</span>
-      </div>`;
-    }).join("");
-
-    let nowLine = "";
-    if (now() >= start && now() <= end) nowLine = `<div class="tlnow" style="left:${xpos(now())}px"><span>now</span></div>`;
-
-    el.innerHTML = `<div class="tlscroll"><div class="tltrack" style="width:${W}px;height:${height}px">${grids}${blockHtml}${nowLine}</div></div>
-      <p class="pitch-note">Left → right = earlier → later. The red line is now; greyed blocks have kicked off (locked).</p>`;
+    el.innerHTML = days.map((d) => {
+      const swap = new Set(d.items.map((x) => ko(x.m))).size >= 2;
+      const isToday = d.dstr === todayStr;
+      const head = `<div class="tldayhead"><span class="tldd">${esc(d.key)}</span>${isToday ? '<span class="tlnowtag">● today</span>' : ""}${swap ? '<span class="swapbadge">🔁 swap window</span>' : ""}</div>`;
+      const cards = d.items.map((mt) => {
+        const m = mt.m;
+        const played = ko(m) <= now();
+        const isNext = (m.kickoff_utc + "|" + m.home + "|" + m.away) === nextKey;
+        const ft = fmtTime(m);
+        const mineHome = mt.players.some((s) => s.country === m.home);
+        const mineAway = mt.players.some((s) => s.country === m.away);
+        const names = mt.players.map((s) => esc(label(s))).join(", ");
+        const tag = played ? '<span class="mlock">✓ locked</span>' : isNext ? '<span class="mnext">next ⏭️</span>' : "";
+        return `<div class="tlmatch ${played ? "played" : ""}${isNext ? " next" : ""}">
+          <div class="mtime">${ft.t}${tag ? " · " + tag : ""}</div>
+          <div class="mteams">
+            <span class="side ${mineHome ? "mine" : ""}">${flag(m.home)} ${code(m.home)}</span>
+            <span class="vs">v</span>
+            <span class="side ${mineAway ? "mine" : ""}">${code(m.away)} ${flag(m.away)}</span>
+          </div>
+          <div class="mplayers">👤 ${names}</div>
+        </div>`;
+      }).join("");
+      return `<div class="tlday">${head}<div class="tlmatches">${cards}</div></div>`;
+    }).join("") + '<p class="pitch-note">Grouped by day (empty hours removed) · ✓ = kicked off &amp; locked · your team highlighted.</p>';
   }
 
   function pad(n) { return String(n).padStart(2, "0"); }
