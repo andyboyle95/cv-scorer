@@ -278,39 +278,34 @@
     const nextKey = nx ? nx.m.kickoff_utc + "|" + nx.m.home + "|" + nx.m.away : null;
     const todayStr = new Date().toDateString();
 
-    const days = [];
-    let cur = null;
+    // Single horizontal strip in kickoff order: day chips + match pills + a
+    // "now" marker. Sequence layout (not proportional) → no dead hours, no
+    // overlap, one compact line.
+    let html = "";
+    let lastDay = null;
+    let nowDone = false;
     for (const mt of matches) {
-      const k = dayLabel(mt.m);
-      if (!cur || cur.key !== k) { cur = { key: k, dstr: new Date(mt.m.kickoff_utc).toDateString(), items: [] }; days.push(cur); }
-      cur.items.push(mt);
+      const m = mt.m;
+      const dstr = new Date(m.kickoff_utc).toDateString();
+      if (dstr !== lastDay) {
+        const dl = new Date(m.kickoff_utc).toLocaleDateString(undefined, { weekday: "short", day: "numeric" });
+        html += `<span class="tlsep${dstr === todayStr ? " today" : ""}">${esc(dl)}</span>`;
+        lastDay = dstr;
+      }
+      if (!nowDone && ko(m) > now()) { html += '<span class="tlnowsep">● now</span>'; nowDone = true; }
+      const played = ko(m) <= now();
+      const isNext = (m.kickoff_utc + "|" + m.home + "|" + m.away) === nextKey;
+      const ft = fmtTime(m);
+      const mineHome = mt.players.some((s) => s.country === m.home);
+      const mineAway = mt.players.some((s) => s.country === m.away);
+      const names = mt.players.map((s) => label(s)).join(", ");
+      html += `<div class="tlpill ${played ? "played" : ""}${isNext ? " next" : ""}" title="${esc(names)} — ${esc(m.home)} v ${esc(m.away)} · ${ft.t} ${ft.d}">
+        <div class="ptime">${ft.t}${isNext ? ' <span class="pnext">next</span>' : ""}</div>
+        <div class="pteams"><span class="ps ${mineHome ? "mine" : ""}">${flag(m.home)} ${code(m.home)}</span><span class="pv">v</span><span class="ps ${mineAway ? "mine" : ""}">${code(m.away)} ${flag(m.away)}</span></div>
+        <div class="pnames">${esc(names)}</div>
+      </div>`;
     }
-
-    el.innerHTML = days.map((d) => {
-      const swap = new Set(d.items.map((x) => ko(x.m))).size >= 2;
-      const isToday = d.dstr === todayStr;
-      const head = `<div class="tldayhead"><span class="tldd">${esc(d.key)}</span>${isToday ? '<span class="tlnowtag">● today</span>' : ""}${swap ? '<span class="swapbadge">🔁 swap window</span>' : ""}</div>`;
-      const cards = d.items.map((mt) => {
-        const m = mt.m;
-        const played = ko(m) <= now();
-        const isNext = (m.kickoff_utc + "|" + m.home + "|" + m.away) === nextKey;
-        const ft = fmtTime(m);
-        const mineHome = mt.players.some((s) => s.country === m.home);
-        const mineAway = mt.players.some((s) => s.country === m.away);
-        const names = mt.players.map((s) => esc(label(s))).join(", ");
-        const tag = played ? '<span class="mlock">✓ locked</span>' : isNext ? '<span class="mnext">next ⏭️</span>' : "";
-        return `<div class="tlmatch ${played ? "played" : ""}${isNext ? " next" : ""}">
-          <div class="mtime">${ft.t}${tag ? " · " + tag : ""}</div>
-          <div class="mteams">
-            <span class="side ${mineHome ? "mine" : ""}">${flag(m.home)} ${code(m.home)}</span>
-            <span class="vs">v</span>
-            <span class="side ${mineAway ? "mine" : ""}">${code(m.away)} ${flag(m.away)}</span>
-          </div>
-          <div class="mplayers">👤 ${names}</div>
-        </div>`;
-      }).join("");
-      return `<div class="tlday">${head}<div class="tlmatches">${cards}</div></div>`;
-    }).join("") + '<p class="pitch-note">Grouped by day (empty hours removed) · ✓ = kicked off &amp; locked · your team highlighted.</p>';
+    el.innerHTML = `<div class="tlstrip">${html}</div>`;
   }
 
   function pad(n) { return String(n).padStart(2, "0"); }
