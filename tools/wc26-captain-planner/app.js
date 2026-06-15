@@ -44,6 +44,11 @@
       renderAll();
     });
     $("pasteLoad").addEventListener("click", loadImport);
+    $("shotInput").addEventListener("change", (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (f) loadShot(f);
+      e.target.value = "";
+    });
   }
 
   const FIXTURES_URL = window.__FIXTURES_URL__ || "fixtures.json";
@@ -274,36 +279,74 @@
       .join("");
   }
 
-  async function loadImport() {
-    const raw = ($("pasteBox").value || "").trim();
+  function applyImport(data) {
     const msg = $("pasteMsg");
-    if (!raw) return;
-    const isUrl = /^(https?:\/\/|www\.)\S+$/i.test(raw);
-    msg.textContent = "Searching…";
+    const teams = data.teams || [];
+    if (!teams.length) {
+      msg.textContent =
+        data.error || "No countries recognised — check spelling, or tap them above.";
+      return;
+    }
+    teams.forEach((t) => selected.add(t));
+    saveSelected();
+    renderPicker();
+    renderAll();
+    msg.textContent = `Added ${teams.length}: ${teams.join(", ")}`;
+  }
+
+  async function postImport(payload, searchingMsg) {
+    const msg = $("pasteMsg");
+    msg.textContent = searchingMsg;
     try {
       const res = await fetch(IMPORT_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(isUrl ? { url: raw } : { text: raw }),
+        body: JSON.stringify(payload),
       });
-      const data = await res.json();
-      if (data.error) {
-        msg.textContent = data.error;
-        return;
-      }
-      const teams = data.teams || [];
-      if (!teams.length) {
-        msg.textContent =
-          "No countries recognised — check spelling, or tap them above.";
-        return;
-      }
-      teams.forEach((t) => selected.add(t));
-      saveSelected();
-      renderPicker();
-      renderAll();
-      msg.textContent = `Added ${teams.length}: ${teams.join(", ")}`;
+      applyImport(await res.json());
     } catch {
       msg.textContent = "Import failed — please pick your teams above.";
+    }
+  }
+
+  function loadImport() {
+    const raw = ($("pasteBox").value || "").trim();
+    if (!raw) return;
+    const isUrl = /^(https?:\/\/|www\.)\S+$/i.test(raw);
+    postImport(isUrl ? { url: raw } : { text: raw }, "Searching…");
+  }
+
+  // Downscale the screenshot client-side (smaller = faster + under OCR limits).
+  function scaleImage(file, maxW) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const scale = Math.min(1, maxW / img.width);
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const c = document.createElement("canvas");
+        c.width = w;
+        c.height = h;
+        c.getContext("2d").drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL("image/jpeg", 0.8));
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("bad image"));
+      };
+      img.src = url;
+    });
+  }
+
+  async function loadShot(file) {
+    const msg = $("pasteMsg");
+    try {
+      const dataUrl = await scaleImage(file, 1100);
+      await postImport({ image: dataUrl }, "Reading screenshot…");
+    } catch {
+      msg.textContent = "Couldn't read that image — try another screenshot.";
     }
   }
 })();

@@ -33,8 +33,11 @@
           <textarea id="pasteBox" placeholder="England, Brazil, France&#10;or paste a team link…"></textarea>
           <div class="row" style="margin-top:8px;">
             <button class="btn primary" id="pasteLoad">Find my teams</button>
+            <label class="btn" for="shotInput" style="cursor:pointer;">📷 Upload screenshot</label>
+            <input id="shotInput" type="file" accept="image/*" style="display:none" />
             <span id="pasteMsg" class="hint"></span>
           </div>
+          <p class="hint">Screenshot import is best-effort — it reads country names or 3-letter codes (ENG, BRA…) if they're visible.</p>
         </details>
       </div>
     </section>
