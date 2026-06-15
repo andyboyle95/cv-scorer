@@ -273,18 +273,16 @@ function resolveTeams(text: string): {
 
 // Best-effort OCR via OCR.space. Free demo key "helloworld" works out of the
 // box (heavily rate-limited); set OCR_SPACE_API_KEY in env for a real key.
-async function ocrImage(dataUrl: string): Promise<string> {
+// Runs two OCR engines and merges — different engines read different text,
+// which improves recall on stylised fantasy cards.
+async function ocrOnce(dataUrl: string, engine: string): Promise<string> {
   const key = process.env.OCR_SPACE_API_KEY || "helloworld";
-  const base64Image = dataUrl.startsWith("data:")
-    ? dataUrl
-    : `data:image/jpeg;base64,${dataUrl}`;
-
+  const base64Image = dataUrl.startsWith("data:") ? dataUrl : `data:image/jpeg;base64,${dataUrl}`;
   const form = new URLSearchParams();
   form.set("base64Image", base64Image);
   form.set("language", "eng");
-  form.set("OCREngine", "2");
+  form.set("OCREngine", engine);
   form.set("scale", "true");
-
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 25000);
   const res = await fetch("https://api.ocr.space/parse/image", {
@@ -294,15 +292,22 @@ async function ocrImage(dataUrl: string): Promise<string> {
     signal: controller.signal,
   });
   clearTimeout(timer);
-
   const data = await res.json();
   if (data.IsErroredOnProcessing) {
-    const msg = Array.isArray(data.ErrorMessage)
-      ? data.ErrorMessage.join(" ")
-      : data.ErrorMessage || "OCR failed";
+    const msg = Array.isArray(data.ErrorMessage) ? data.ErrorMessage.join(" ") : data.ErrorMessage || "OCR failed";
     throw new Error(msg);
   }
   return (data.ParsedResults || []).map((r: { ParsedText?: string }) => r.ParsedText || "").join(" ");
+}
+
+async function ocrImage(dataUrl: string): Promise<string> {
+  const results = await Promise.allSettled([ocrOnce(dataUrl, "2"), ocrOnce(dataUrl, "1")]);
+  const texts = results.filter((r) => r.status === "fulfilled").map((r) => (r as PromiseFulfilledResult<string>).value);
+  if (!texts.length) {
+    const rej = results.find((r) => r.status === "rejected") as PromiseRejectedResult | undefined;
+    throw rej?.reason instanceof Error ? rej.reason : new Error("OCR failed");
+  }
+  return texts.join("\n");
 }
 
 export async function POST(req: NextRequest) {
