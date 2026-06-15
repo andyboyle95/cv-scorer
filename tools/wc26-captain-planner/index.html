@@ -4,48 +4,58 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex" />
-  <title>World Cup 2026 — Captain Planner</title>
+  <meta name="theme-color" content="#0a0726" />
+  <title>👑 Captain Planner — World Cup 2026</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23ff2d9b'/><stop offset='.5' stop-color='%23a855f7'/><stop offset='1' stop-color='%2322d3ee'/></linearGradient></defs><rect width='64' height='64' rx='15' fill='url(%23g)'/><text x='32' y='45' font-size='34' text-anchor='middle' font-family='Arial' font-weight='bold' fill='white'>C</text><text x='46' y='24' font-size='22' text-anchor='middle'>👑</text></svg>" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="accent-bar"></div>
-  <div class="wrap">
+  <div class="bg-orbs"><i class="o1"></i><i class="o2"></i><i class="o3"></i></div>
+
+  <main class="wrap">
     <header>
-      <h1>⚽ World Cup 2026 — Captain Planner</h1>
-      <p class="sub">Captain the player who kicks off <em>soonest</em>. If they blank, move the armband to a team whose match hasn't started yet.</p>
-      <p class="tz">Times shown in your local zone: <b id="tz">—</b> · <span id="now">—</span></p>
-      <p class="disclaimer">Not affiliated with FIFA or EA. Fixture data sourced from public schedules — always double-check kick-off times before locking your captain.</p>
+      <h1><span class="kicker">World Cup 2026 · Fantasy</span>👑 Captain Planner</h1>
+      <p class="sub">Captain whoever kicks off <em>soonest</em>. If they blank, move the armband to a team whose match hasn't started yet.</p>
+      <p class="tz">🌍 <b id="tz">—</b> · <span id="now">—</span></p>
     </header>
 
-    <!-- Team picker -->
+    <!-- Add your team -->
     <section class="card">
-      <h2>Your squad <span class="count" id="selCount"></span></h2>
-      <div class="row" style="margin-bottom:12px;">
-        <button class="btn" id="togglePicker">Choose teams</button>
-        <button class="btn" id="clearTeams">Clear</button>
-        <span class="spacer"></span>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="shot">📷 Screenshot</button>
+        <button class="tab" data-tab="pick">✍️ Pick teams</button>
+        <button class="tab" data-tab="paste">📋 Paste</button>
       </div>
-      <div id="picker" class="groups"></div>
-      <div class="paste">
-        <details>
-          <summary class="muted" style="cursor:pointer;font-size:13px;">Import my team</summary>
-          <p class="hint">Paste the countries in your squad (one per line or comma-separated), or paste a public link to your team. We'll match countries like "USA", "Türkiye" or "Czechia" automatically. Tip: your FIFA Fantasy team loads privately in your browser, so pasting your countries is the most reliable.</p>
-          <textarea id="pasteBox" placeholder="England, Brazil, France&#10;or paste a team link…"></textarea>
-          <div class="row" style="margin-top:8px;">
-            <button class="btn primary" id="pasteLoad">Find my teams</button>
-            <label class="btn" for="shotInput" style="cursor:pointer;">📷 Upload screenshot</label>
-            <input id="shotInput" type="file" accept="image/*" style="display:none" />
-            <span id="pasteMsg" class="hint"></span>
-          </div>
-          <p class="hint">Screenshot import is best-effort — it reads country names or 3-letter codes (ENG, BRA…) if they're visible.</p>
-        </details>
+
+      <div class="panel active" id="panel-shot">
+        <div class="dropzone" id="dropzone">
+          <input type="file" id="shotInput" accept="image/*" hidden />
+          <div class="dz-emoji">📷</div>
+          <div class="dz-title">Drop a screenshot of your team</div>
+          <div class="dz-sub">or <span class="link">browse</span> — we read the countries automatically. You can also paste an image (Ctrl/⌘+V).</div>
+        </div>
+        <p class="hint" id="shotMsg"></p>
       </div>
+
+      <div class="panel" id="panel-pick">
+        <div id="picker" class="groups"></div>
+      </div>
+
+      <div class="panel" id="panel-paste">
+        <textarea id="pasteBox" placeholder="England, Brazil, France&#10;or paste a team link…"></textarea>
+        <div class="row" style="margin-top:8px;">
+          <button class="btn primary" id="pasteLoad">Find my teams</button>
+          <span id="pasteMsg" class="hint"></span>
+        </div>
+      </div>
+
+      <div class="squadbar" id="squadbar"></div>
     </section>
 
     <!-- Controls -->
     <section class="card">
       <div class="row">
-        <label class="muted" for="round" style="font-size:14px;">Round</label>
+        <label class="toggle" for="round" style="font-weight:700;color:var(--muted);">Round</label>
         <select id="round">
           <option value="all">All matchdays</option>
           <option value="1">Matchday 1</option>
@@ -57,22 +67,26 @@
       </div>
     </section>
 
+    <!-- Captain hero (live countdown) -->
+    <div id="hero"></div>
+
     <!-- Captain order -->
     <section class="card">
-      <h2>Captain order — soonest first</h2>
+      <h2>🧭 Captain order — soonest first</h2>
       <div id="captainOrder"></div>
     </section>
 
     <!-- Timeline -->
     <section class="card">
-      <h2>Fixtures timeline</h2>
+      <h2>📅 Fixtures timeline</h2>
       <div id="timeline"></div>
     </section>
 
     <footer>
-      World Cup 2026 Captain Planner · independent &amp; unofficial
+      Made by <strong>Andy Boyle</strong><br />
+      Independent &amp; unofficial · not affiliated with FIFA or EA
     </footer>
-  </div>
+  </main>
 
   <!-- build.js injects window.__FIXTURES_URL__ / window.__IMPORT_URL__ before this -->
   <script src="app.js"></script>

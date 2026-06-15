@@ -4,155 +4,233 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex" />
-  <title>World Cup 2026 — Captain Planner</title>
+  <meta name="theme-color" content="#0a0726" />
+  <title>👑 Captain Planner — World Cup 2026</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23ff2d9b'/><stop offset='.5' stop-color='%23a855f7'/><stop offset='1' stop-color='%2322d3ee'/></linearGradient></defs><rect width='64' height='64' rx='15' fill='url(%23g)'/><text x='32' y='45' font-size='34' text-anchor='middle' font-family='Arial' font-weight='bold' fill='white'>C</text><text x='46' y='24' font-size='22' text-anchor='middle'>👑</text></svg>" />
   <style>
 :root {
-  --bg: #0b0f17;
-  --panel: #151b29;
-  --panel-2: #1c2435;
-  --line: #2a3650;
-  --text: #e7ecf5;
-  --muted: #8a97b0;
-  --dim: #5a6478;
-  --accent: #22c55e;     /* captain-next / live */
-  --accent-2: #38bdf8;
-  --pink: #df2681;
-  --navy: #1a3668;
+  --pink: #ff2d9b;
+  --cyan: #22d3ee;
+  --blue: #3b82f6;
+  --violet: #a855f7;
+  --lime: #a3e635;
+  --gold: #fbbf24;
+  --green: #22c55e;
+  --red: #ff4d6d;
+  --text: #f6f4ff;
+  --muted: #b3aee0;
+  --line: rgba(255, 255, 255, 0.14);
+  --panel: rgba(255, 255, 255, 0.055);
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 body {
-  background: var(--bg);
+  background: #0a0726;
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.45;
+  min-height: 100vh;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
-.accent-bar { height: 4px; background: linear-gradient(90deg, var(--accent-2), var(--pink)); }
-.wrap { max-width: 760px; margin: 0 auto; padding: 18px 16px 60px; }
+.bg-orbs { position: fixed; inset: 0; z-index: -1; overflow: hidden; }
+.bg-orbs i {
+  position: absolute; width: 65vw; height: 65vw; border-radius: 50%;
+  filter: blur(90px); opacity: 0.45;
+}
+.bg-orbs .o1 { background: radial-gradient(circle, var(--pink), transparent 60%); top: -22vw; left: -12vw; animation: float1 19s ease-in-out infinite; }
+.bg-orbs .o2 { background: radial-gradient(circle, var(--cyan), transparent 60%); bottom: -26vw; right: -16vw; animation: float2 23s ease-in-out infinite; }
+.bg-orbs .o3 { background: radial-gradient(circle, var(--violet), transparent 60%); top: 30vh; left: 40vw; animation: float1 27s ease-in-out infinite; }
+@keyframes float1 { 50% { transform: translate(9vw, 7vh) scale(1.1); } }
+@keyframes float2 { 50% { transform: translate(-8vw, -6vh) scale(1.08); } }
 
-header h1 { font-size: 22px; margin: 14px 0 4px; }
-header .sub { color: var(--muted); font-size: 14px; margin: 0; }
-.tz { color: var(--muted); font-size: 12px; margin-top: 8px; }
-.tz b { color: var(--accent-2); }
-.disclaimer { color: #6b7689; font-size: 11px; margin-top: 6px; }
+.wrap { max-width: 760px; margin: 0 auto; padding: 26px 16px 64px; }
 
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-top: 16px; }
-.card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 12px; }
+header { text-align: center; }
+h1 {
+  font-size: 30px; font-weight: 900; letter-spacing: -0.5px; margin: 6px 0 8px;
+  background: linear-gradient(90deg, var(--pink), var(--violet), var(--cyan));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+h1 .kicker {
+  display: block; font-size: 12px; letter-spacing: 0.34em; text-transform: uppercase;
+  color: var(--muted); -webkit-text-fill-color: var(--muted); margin-bottom: 2px; font-weight: 800;
+}
+.sub { color: var(--muted); font-size: 14px; margin: 0 auto; max-width: 520px; }
+.tz { color: var(--muted); font-size: 12px; margin-top: 10px; }
+.tz b { color: var(--cyan); }
 
+.card {
+  background: var(--panel); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--line); border-radius: 18px; padding: 18px; margin-top: 18px;
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.28); animation: rise 0.4s ease both;
+}
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+.card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin: 0 0 12px; }
+
+/* Tabs */
+.tabs { display: flex; gap: 6px; background: rgba(0, 0, 0, 0.28); padding: 6px; border-radius: 14px; margin-bottom: 16px; }
+.tab {
+  flex: 1; border: 0; background: transparent; color: var(--muted); font-weight: 800; font-size: 14px;
+  padding: 11px 8px; border-radius: 10px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.tab.active { background: linear-gradient(90deg, var(--pink), var(--violet)); color: #fff; box-shadow: 0 6px 18px rgba(255, 45, 155, 0.4); }
+.tab:not(.active):hover { color: var(--text); }
+.panel { display: none; animation: rise 0.25s ease both; }
+.panel.active { display: block; }
+
+/* Dropzone */
+.dropzone {
+  border: 2px dashed rgba(255, 255, 255, 0.28); border-radius: 16px; padding: 38px 18px; text-align: center;
+  cursor: pointer; transition: 0.2s; background: rgba(255, 255, 255, 0.03);
+}
+.dropzone:hover, .dropzone.drag { border-color: var(--cyan); background: rgba(34, 211, 238, 0.09); transform: translateY(-2px); box-shadow: 0 0 30px rgba(34, 211, 238, 0.15); }
+.dz-emoji { font-size: 44px; }
+.dz-title { font-weight: 900; font-size: 18px; margin-top: 6px; }
+.dz-sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+.link { color: var(--cyan); text-decoration: underline; }
+
+textarea {
+  width: 100%; min-height: 84px; background: rgba(0, 0, 0, 0.25); color: var(--text);
+  border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 14px; resize: vertical;
+}
+.hint { color: #9a96cf; font-size: 12px; margin: 8px 0 0; }
 .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .spacer { flex: 1; }
 
-button, select { font: inherit; }
 .btn {
-  background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
-  border-radius: 10px; padding: 9px 14px; cursor: pointer; font-size: 14px;
+  background: rgba(255, 255, 255, 0.08); border: 1px solid var(--line); color: var(--text);
+  border-radius: 12px; padding: 10px 16px; font-weight: 800; cursor: pointer; font-size: 14px; transition: 0.15s;
 }
-.btn:hover { border-color: var(--accent-2); }
-.btn.primary { background: var(--accent-2); color: #06121c; border-color: var(--accent-2); font-weight: 600; }
-
+.btn:hover { border-color: var(--cyan); transform: translateY(-1px); }
+.btn:active { transform: scale(0.97); }
+.btn.primary { background: linear-gradient(90deg, var(--pink), var(--violet)); border: 0; box-shadow: 0 6px 18px rgba(168, 85, 247, 0.4); }
 select {
-  background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
-  border-radius: 10px; padding: 9px 12px; font-size: 14px;
+  background: rgba(0, 0, 0, 0.3); color: var(--text); border: 1px solid var(--line);
+  border-radius: 10px; padding: 9px 12px; font-size: 14px; font-weight: 700;
 }
 label.toggle { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; cursor: pointer; }
-label.toggle input { width: 16px; height: 16px; accent-color: var(--accent-2); }
+label.toggle input { width: 16px; height: 16px; accent-color: var(--cyan); }
 
-/* Team picker */
-.groups { display: grid; grid-template-columns: 1fr; gap: 10px; }
-.group { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--panel-2); }
-.group .glabel { font-size: 12px; color: var(--muted); margin-bottom: 8px; font-weight: 600; }
+/* Picker */
+.groups { display: grid; gap: 10px; max-height: 50vh; overflow-y: auto; }
+.group { border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; background: rgba(255, 255, 255, 0.03); }
+.glabel { font-size: 11px; color: var(--muted); margin-bottom: 8px; font-weight: 800; letter-spacing: 0.08em; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {
-  background: #0f1726; border: 1px solid var(--line); color: var(--text);
-  border-radius: 999px; padding: 6px 12px; font-size: 13px; cursor: pointer; user-select: none;
+  background: rgba(255, 255, 255, 0.06); border: 1px solid var(--line); color: var(--text);
+  border-radius: 999px; padding: 7px 13px; font-size: 13px; cursor: pointer; user-select: none; transition: 0.12s; font-weight: 600;
 }
-.chip:hover { border-color: var(--accent-2); }
-.chip.sel { background: var(--accent-2); color: #06121c; border-color: var(--accent-2); font-weight: 600; }
+.chip:hover { border-color: var(--cyan); }
+.chip:active { transform: scale(0.92); }
+.chip.sel { background: linear-gradient(90deg, var(--cyan), var(--blue)); color: #04263a; border-color: transparent; font-weight: 800; }
 
-.muted { color: var(--muted); }
-.count { color: var(--accent-2); font-weight: 600; }
-
-.paste { margin-top: 12px; }
-.paste textarea {
-  width: 100%; min-height: 60px; background: #0f1726; color: var(--text);
-  border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 13px; resize: vertical;
+/* Squad bar */
+.squadbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; align-items: center; }
+.squadchip {
+  background: rgba(255, 255, 255, 0.1); border: 1px solid var(--line); border-radius: 999px;
+  padding: 5px 6px 5px 12px; font-size: 13px; font-weight: 700; display: flex; gap: 6px; align-items: center; animation: pop 0.2s ease;
 }
-.hint { color: #6b7689; font-size: 12px; margin: 6px 0 0; }
+.squadchip button { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 15px; line-height: 1; padding: 0 4px; }
+.squadchip button:hover { color: var(--red); }
+@keyframes pop { from { transform: scale(0.6); opacity: 0; } }
+.clearall { background: none; border: 0; color: var(--muted); font-size: 12px; cursor: pointer; text-decoration: underline; }
 
-/* Captain order */
+/* Captain hero */
+.hero {
+  margin-top: 18px; border-radius: 20px; padding: 22px; position: relative; overflow: hidden;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(255, 45, 155, 0.12));
+  border: 1px solid rgba(251, 191, 36, 0.5); box-shadow: 0 0 44px rgba(251, 191, 36, 0.18); animation: rise 0.4s ease both;
+}
+.hero.live { border-color: rgba(255, 77, 109, 0.6); background: linear-gradient(135deg, rgba(255, 77, 109, 0.2), rgba(168, 85, 247, 0.12)); box-shadow: 0 0 44px rgba(255, 77, 109, 0.22); }
+.hero.idle { background: rgba(255, 255, 255, 0.05); border-color: var(--line); box-shadow: none; }
+.hero .crown { font-size: 30px; }
+.hero .label { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); font-weight: 900; margin-top: 4px; }
+.hero.live .label { color: var(--red); }
+.hero .team { font-size: 32px; font-weight: 900; letter-spacing: -0.5px; margin: 2px 0; }
+.hero .meta { color: var(--muted); font-size: 13px; }
+.cd { font-variant-numeric: tabular-nums; font-weight: 900; font-size: 27px; margin-top: 10px; }
+.cd .seg { color: #fff; }
+.cd small { font-size: 12px; color: var(--muted); font-weight: 700; }
+.pulse-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--red); margin-right: 6px; animation: pulse 1.2s infinite; }
+@keyframes pulse { 50% { opacity: 0.3; } }
+
+/* Lists */
 .order-item, .match {
-  display: flex; align-items: center; gap: 12px; padding: 11px 12px;
-  border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--line);
+  border-radius: 14px; background: rgba(255, 255, 255, 0.04); margin-bottom: 8px; transition: 0.15s;
 }
-.order-item .rank { width: 22px; height: 22px; border-radius: 50%; background: #0f1726; border: 1px solid var(--line);
-  display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--muted); flex-shrink: 0; }
-.order-item .team { font-weight: 600; }
-.order-item .vs, .match .meta { color: var(--muted); font-size: 13px; }
-.order-item .time, .match .time { margin-left: auto; text-align: right; font-size: 13px; white-space: nowrap; }
-.time .t { font-weight: 600; }
+.order-item:hover, .match:hover { border-color: rgba(255, 255, 255, 0.3); transform: translateX(2px); }
+.rank { width: 24px; height: 24px; border-radius: 50%; background: rgba(255, 255, 255, 0.08); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: var(--muted); flex-shrink: 0; }
+.team-nm { font-weight: 800; }
+.vs, .meta2 { color: var(--muted); font-size: 13px; }
+.time { margin-left: auto; text-align: right; font-size: 13px; white-space: nowrap; }
+.time .t { font-weight: 800; }
 .time .d { color: var(--muted); font-size: 12px; }
-
-.next { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
-.badge-next { background: var(--accent); color: #052e14; font-size: 10px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .05em; padding: 2px 7px; border-radius: 999px; }
-.played { opacity: .45; }
-.played .badge-played { background: #33405c; color: var(--muted); font-size: 10px; font-weight: 700;
-  text-transform: uppercase; padding: 2px 7px; border-radius: 999px; }
-
+.next { border-color: var(--green); box-shadow: 0 0 0 1px var(--green) inset, 0 0 22px rgba(34, 197, 94, 0.25); }
+.badge-next { background: linear-gradient(90deg, var(--green), var(--lime)); color: #04280f; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; padding: 3px 8px; border-radius: 999px; }
+.played { opacity: 0.42; }
+.badge-played { background: rgba(255, 255, 255, 0.12); color: var(--muted); font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; }
 .daygroup { margin-top: 14px; }
-.daygroup .dayhead { font-size: 13px; color: var(--accent-2); font-weight: 600; margin: 0 0 8px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.dayhead { font-size: 13px; color: var(--cyan); font-weight: 800; margin: 0 0 8px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.teams { font-weight: 800; }
+.grp { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; margin-left: 6px; }
+.empty { color: var(--muted); font-size: 14px; padding: 6px 0; }
 
-.match .teams { font-weight: 600; }
-.match .grp { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; margin-left: 6px; }
-.empty { color: var(--muted); font-size: 14px; padding: 8px 0; }
-
-footer { text-align: center; color: #5a6478; font-size: 12px; margin-top: 30px; }
-@media (max-width: 480px) {
-  .order-item .vs { display: none; }
-}
+footer { text-align: center; margin-top: 34px; color: var(--muted); font-size: 13px; }
+footer strong { background: linear-gradient(90deg, var(--pink), var(--cyan)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.spin { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255, 255, 255, 0.35); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 </style>
 </head>
 <body>
-  <div class="accent-bar"></div>
-  <div class="wrap">
+  <div class="bg-orbs"><i class="o1"></i><i class="o2"></i><i class="o3"></i></div>
+
+  <main class="wrap">
     <header>
-      <h1>⚽ World Cup 2026 — Captain Planner</h1>
-      <p class="sub">Captain the player who kicks off <em>soonest</em>. If they blank, move the armband to a team whose match hasn't started yet.</p>
-      <p class="tz">Times shown in your local zone: <b id="tz">—</b> · <span id="now">—</span></p>
-      <p class="disclaimer">Not affiliated with FIFA or EA. Fixture data sourced from public schedules — always double-check kick-off times before locking your captain.</p>
+      <h1><span class="kicker">World Cup 2026 · Fantasy</span>👑 Captain Planner</h1>
+      <p class="sub">Captain whoever kicks off <em>soonest</em>. If they blank, move the armband to a team whose match hasn't started yet.</p>
+      <p class="tz">🌍 <b id="tz">—</b> · <span id="now">—</span></p>
     </header>
 
-    <!-- Team picker -->
+    <!-- Add your team -->
     <section class="card">
-      <h2>Your squad <span class="count" id="selCount"></span></h2>
-      <div class="row" style="margin-bottom:12px;">
-        <button class="btn" id="togglePicker">Choose teams</button>
-        <button class="btn" id="clearTeams">Clear</button>
-        <span class="spacer"></span>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="shot">📷 Screenshot</button>
+        <button class="tab" data-tab="pick">✍️ Pick teams</button>
+        <button class="tab" data-tab="paste">📋 Paste</button>
       </div>
-      <div id="picker" class="groups"></div>
-      <div class="paste">
-        <details>
-          <summary class="muted" style="cursor:pointer;font-size:13px;">Import my team</summary>
-          <p class="hint">Paste the countries in your squad (one per line or comma-separated), or paste a public link to your team. We'll match countries like "USA", "Türkiye" or "Czechia" automatically. Tip: your FIFA Fantasy team loads privately in your browser, so pasting your countries is the most reliable.</p>
-          <textarea id="pasteBox" placeholder="England, Brazil, France&#10;or paste a team link…"></textarea>
-          <div class="row" style="margin-top:8px;">
-            <button class="btn primary" id="pasteLoad">Find my teams</button>
-            <label class="btn" for="shotInput" style="cursor:pointer;">📷 Upload screenshot</label>
-            <input id="shotInput" type="file" accept="image/*" style="display:none" />
-            <span id="pasteMsg" class="hint"></span>
-          </div>
-          <p class="hint">Screenshot import is best-effort — it reads country names or 3-letter codes (ENG, BRA…) if they're visible.</p>
-        </details>
+
+      <div class="panel active" id="panel-shot">
+        <div class="dropzone" id="dropzone">
+          <input type="file" id="shotInput" accept="image/*" hidden />
+          <div class="dz-emoji">📷</div>
+          <div class="dz-title">Drop a screenshot of your team</div>
+          <div class="dz-sub">or <span class="link">browse</span> — we read the countries automatically. You can also paste an image (Ctrl/⌘+V).</div>
+        </div>
+        <p class="hint" id="shotMsg"></p>
       </div>
+
+      <div class="panel" id="panel-pick">
+        <div id="picker" class="groups"></div>
+      </div>
+
+      <div class="panel" id="panel-paste">
+        <textarea id="pasteBox" placeholder="England, Brazil, France&#10;or paste a team link…"></textarea>
+        <div class="row" style="margin-top:8px;">
+          <button class="btn primary" id="pasteLoad">Find my teams</button>
+          <span id="pasteMsg" class="hint"></span>
+        </div>
+      </div>
+
+      <div class="squadbar" id="squadbar"></div>
     </section>
 
     <!-- Controls -->
     <section class="card">
       <div class="row">
-        <label class="muted" for="round" style="font-size:14px;">Round</label>
+        <label class="toggle" for="round" style="font-weight:700;color:var(--muted);">Round</label>
         <select id="round">
           <option value="all">All matchdays</option>
           <option value="1">Matchday 1</option>
@@ -164,158 +242,93 @@ footer { text-align: center; color: #5a6478; font-size: 12px; margin-top: 30px; 
       </div>
     </section>
 
+    <!-- Captain hero (live countdown) -->
+    <div id="hero"></div>
+
     <!-- Captain order -->
     <section class="card">
-      <h2>Captain order — soonest first</h2>
+      <h2>🧭 Captain order — soonest first</h2>
       <div id="captainOrder"></div>
     </section>
 
     <!-- Timeline -->
     <section class="card">
-      <h2>Fixtures timeline</h2>
+      <h2>📅 Fixtures timeline</h2>
       <div id="timeline"></div>
     </section>
 
     <footer>
-      World Cup 2026 Captain Planner · independent &amp; unofficial
+      Made by <strong>Andy Boyle</strong><br />
+      Independent &amp; unofficial · not affiliated with FIFA or EA
     </footer>
-  </div>
+  </main>
 
   <!-- build.js injects window.__FIXTURES_URL__ / window.__IMPORT_URL__ before this -->
   <script>window.__FIXTURES_URL__="/tools/wc26-d25bb010b528.fixtures.json";window.__IMPORT_URL__="/api/wc26-import";</script>
   <script>
-/* World Cup 2026 — Captain Planner (vanilla JS, no framework). */
+/* World Cup 2026 — Captain Planner. Vanilla JS, no framework. */
 (function () {
   "use strict";
 
   const LS_KEY = "wc26.captain.teams";
   const $ = (id) => document.getElementById(id);
+  const FIXTURES_URL = window.__FIXTURES_URL__ || "fixtures.json";
+  const IMPORT_URL = window.__IMPORT_URL__ || "/api/wc26-import";
 
   let DATA = null;
   let selected = loadSelected();
   let round = "all";
   let hideKicked = false;
-  const mdByMatch = new Map(); // match -> matchday (1..3)
-
-  // ---- boot ----------------------------------------------------------------
-  function boot(data) {
-    DATA = data;
-    computeMatchdays();
-    round = defaultRound();
-    $("round").value = round;
-    $("tz").textContent =
-      Intl.DateTimeFormat().resolvedOptions().timeZone || "your device";
-    tickClock();
-    setInterval(tickClock, 30000);
-
-    renderPicker();
-    renderAll();
-
-    $("togglePicker").addEventListener("click", () => {
-      const p = $("picker");
-      p.style.display = p.style.display === "none" ? "" : "none";
-    });
-    $("clearTeams").addEventListener("click", () => {
-      selected = new Set();
-      saveSelected();
-      renderPicker();
-      renderAll();
-    });
-    $("round").addEventListener("change", (e) => {
-      round = e.target.value;
-      renderAll();
-    });
-    $("hideKicked").addEventListener("change", (e) => {
-      hideKicked = e.target.checked;
-      renderAll();
-    });
-    $("pasteLoad").addEventListener("click", loadImport);
-    $("shotInput").addEventListener("change", (e) => {
-      const f = e.target.files && e.target.files[0];
-      if (f) loadShot(f);
-      e.target.value = "";
-    });
-  }
-
-  const FIXTURES_URL = window.__FIXTURES_URL__ || "fixtures.json";
-  const IMPORT_URL = window.__IMPORT_URL__ || "/api/wc26-import";
-
-  fetch(FIXTURES_URL)
-    .then((r) => r.json())
-    .then(boot)
-    .catch(() => {
-      $("timeline").innerHTML =
-        '<p class="empty">Could not load fixtures. Please refresh.</p>';
-    });
+  let heroKey = "";
+  const mdByMatch = new Map();
 
   // ---- helpers -------------------------------------------------------------
   function loadSelected() {
-    try {
-      return new Set(JSON.parse(localStorage.getItem(LS_KEY) || "[]"));
-    } catch {
-      return new Set();
-    }
+    try { return new Set(JSON.parse(localStorage.getItem(LS_KEY) || "[]")); }
+    catch { return new Set(); }
   }
   function saveSelected() {
-    try {
-      localStorage.setItem(LS_KEY, JSON.stringify([...selected]));
-    } catch {
-      /* ignore */
-    }
+    try { localStorage.setItem(LS_KEY, JSON.stringify([...selected])); } catch { /* ignore */ }
   }
-
-  // Function declarations (hoisted) so they're safe to call from boot()
-  // regardless of execution order — avoids any temporal-dead-zone error.
   function ko(m) { return new Date(m.kickoff_utc).getTime(); }
   function now() { return Date.now(); }
+  function esc(s) { return String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+  function opponentOf(m, team) { return m.home === team ? m.away : m.home; }
+  function dayKey(m) {
+    return new Date(m.kickoff_utc).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
+  }
+  function fmtTime(m) {
+    const d = new Date(m.kickoff_utc);
+    return {
+      t: d.toLocaleString(undefined, { hour: "2-digit", minute: "2-digit" }),
+      d: d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }),
+    };
+  }
 
-  // Matchday: each team's Nth chronological match = MD N; a fixture's MD = max
-  // of its two teams' running counts.
   function computeMatchdays() {
     const perTeam = {};
     for (const m of DATA.matches) {
       (perTeam[m.home] = perTeam[m.home] || []).push(m);
       (perTeam[m.away] = perTeam[m.away] || []).push(m);
     }
-    const pos = new Map(); // `${team}|${kickoff}` -> position
+    const pos = new Map();
     for (const team of Object.keys(perTeam)) {
-      perTeam[team]
-        .slice()
-        .sort((a, b) => ko(a) - ko(b))
-        .forEach((m, i) => pos.set(team + "|" + m.kickoff_utc, i + 1));
+      perTeam[team].slice().sort((a, b) => ko(a) - ko(b)).forEach((m, i) => pos.set(team + "|" + m.kickoff_utc, i + 1));
     }
     for (const m of DATA.matches) {
-      const ph = pos.get(m.home + "|" + m.kickoff_utc);
-      const pa = pos.get(m.away + "|" + m.kickoff_utc);
-      mdByMatch.set(m, Math.max(ph, pa));
+      mdByMatch.set(m, Math.max(pos.get(m.home + "|" + m.kickoff_utc), pos.get(m.away + "|" + m.kickoff_utc)));
     }
   }
-
-  // Default to the round containing the next upcoming match (or last if over).
   function defaultRound() {
-    const upcoming = DATA.matches
-      .filter((m) => ko(m) > now())
-      .sort((a, b) => ko(a) - ko(b))[0];
-    if (upcoming) return String(mdByMatch.get(upcoming));
-    return "all";
+    const up = DATA.matches.filter((m) => ko(m) > now()).sort((a, b) => ko(a) - ko(b))[0];
+    return up ? String(mdByMatch.get(up)) : "all";
   }
-
-  function tickClock() {
-    $("now").textContent = new Date().toLocaleString(undefined, {
-      weekday: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-
   function selectedMatches() {
     return DATA.matches
       .filter((m) => selected.has(m.home) || selected.has(m.away))
       .filter((m) => round === "all" || mdByMatch.get(m) === Number(round))
       .sort((a, b) => ko(a) - ko(b));
   }
-
-  // The soonest not-yet-started match among the user's teams (global).
   function nextMatch() {
     return DATA.matches
       .filter((m) => selected.has(m.home) || selected.has(m.away))
@@ -323,56 +336,152 @@ footer { text-align: center; color: #5a6478; font-size: 12px; margin-top: 30px; 
       .sort((a, b) => ko(a) - ko(b))[0];
   }
 
-  function fmtTime(m) {
-    const d = new Date(m.kickoff_utc);
-    return {
-      t: d.toLocaleString(undefined, { hour: "2-digit", minute: "2-digit" }),
-      d: d.toLocaleDateString(undefined, {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-      }),
-    };
+  // ---- boot ----------------------------------------------------------------
+  function boot(data) {
+    DATA = data;
+    computeMatchdays();
+    round = defaultRound();
+    $("round").value = round;
+    $("tz").textContent = Intl.DateTimeFormat().resolvedOptions().timeZone || "your device";
+
+    renderPicker();
+    renderAll();
+    setupTabs();
+    setupDropzone();
+
+    $("round").addEventListener("change", (e) => { round = e.target.value; renderAll(); });
+    $("hideKicked").addEventListener("change", (e) => { hideKicked = e.target.checked; renderAll(); });
+    $("pasteLoad").addEventListener("click", loadImport);
+
+    setInterval(tick, 1000);     // live countdown
+    setInterval(renderAll, 30000); // refresh played/upcoming
   }
-  function dayKey(m) {
-    return new Date(m.kickoff_utc).toLocaleDateString(undefined, {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
+
+  fetch(FIXTURES_URL).then((r) => r.json()).then(boot).catch(() => {
+    $("timeline").innerHTML = '<p class="empty">Could not load fixtures. Please refresh.</p>';
+  });
+
+  // ---- tabs ----------------------------------------------------------------
+  function setupTabs() {
+    document.querySelectorAll(".tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+        document.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
+        tab.classList.add("active");
+        $("panel-" + tab.dataset.tab).classList.add("active");
+      });
     });
   }
-  function esc(s) {
-    return String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+
+  // ---- screenshot dropzone -------------------------------------------------
+  function setupDropzone() {
+    const dz = $("dropzone");
+    const input = $("shotInput");
+    dz.addEventListener("click", () => input.click());
+    input.addEventListener("change", (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (f) loadShot(f);
+      e.target.value = "";
+    });
+    ["dragenter", "dragover"].forEach((ev) =>
+      dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add("drag"); })
+    );
+    ["dragleave", "drop"].forEach((ev) =>
+      dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.remove("drag"); })
+    );
+    dz.addEventListener("drop", (e) => {
+      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f && f.type.startsWith("image/")) loadShot(f);
+    });
+    // Paste an image anywhere
+    document.addEventListener("paste", (e) => {
+      const items = e.clipboardData && e.clipboardData.items;
+      if (!items) return;
+      for (const it of items) {
+        if (it.type.startsWith("image/")) { loadShot(it.getAsFile()); break; }
+      }
+    });
   }
-  function opponentOf(m, team) {
-    return m.home === team ? m.away : m.home;
+
+  function scaleImage(file, maxW) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const scale = Math.min(1, maxW / img.width);
+        const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        c.getContext("2d").drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL("image/jpeg", 0.8));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("bad image")); };
+      img.src = url;
+    });
+  }
+  async function loadShot(file) {
+    const msg = $("shotMsg");
+    msg.innerHTML = '<span class="spin"></span> Reading your screenshot…';
+    try {
+      const dataUrl = await scaleImage(file, 1100);
+      await postImport({ image: dataUrl }, msg);
+    } catch {
+      msg.textContent = "Couldn't read that image — try another screenshot or use Pick teams.";
+    }
+  }
+
+  // ---- import (text / link / image) ---------------------------------------
+  function applyImport(data, msg) {
+    const teams = data.teams || [];
+    if (!teams.length) {
+      msg.textContent = data.error || "No countries recognised — try Pick teams.";
+      return;
+    }
+    teams.forEach((t) => selected.add(t));
+    saveSelected();
+    renderPicker();
+    renderAll();
+    msg.innerHTML = `✅ Added <strong>${teams.length}</strong>: ${esc(teams.join(", "))}`;
+  }
+  async function postImport(payload, msg) {
+    try {
+      const res = await fetch(IMPORT_URL, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+      });
+      applyImport(await res.json(), msg);
+    } catch {
+      msg.textContent = "Import failed — please use Pick teams.";
+    }
+  }
+  function loadImport() {
+    const raw = ($("pasteBox").value || "").trim();
+    if (!raw) return;
+    const isUrl = /^(https?:\/\/|www\.)\S+$/i.test(raw);
+    $("pasteMsg").textContent = "Searching…";
+    postImport(isUrl ? { url: raw } : { text: raw }, $("pasteMsg"));
   }
 
   // ---- render --------------------------------------------------------------
   function renderAll() {
-    $("selCount").textContent = selected.size ? `(${selected.size} selected)` : "";
+    renderSquadbar();
+    renderHero();
     renderCaptainOrder();
     renderTimeline();
   }
 
   function renderPicker() {
     const el = $("picker");
-    el.innerHTML = Object.entries(DATA.groups)
-      .map(([g, teams]) => {
-        const chips = teams
-          .map(
-            (t) =>
-              `<span class="chip${selected.has(t) ? " sel" : ""}" data-team="${esc(t)}">${esc(t)}</span>`
-          )
-          .join("");
-        return `<div class="group"><div class="glabel">Group ${g}</div><div class="chips">${chips}</div></div>`;
-      })
-      .join("");
+    el.innerHTML = Object.entries(DATA.groups).map(([g, teams]) => {
+      const chips = teams.map((t) =>
+        `<span class="chip${selected.has(t) ? " sel" : ""}" data-team="${esc(t)}">${esc(t)}</span>`
+      ).join("");
+      return `<div class="group"><div class="glabel">Group ${g}</div><div class="chips">${chips}</div></div>`;
+    }).join("");
     el.querySelectorAll(".chip").forEach((chip) => {
       chip.addEventListener("click", () => {
         const t = chip.getAttribute("data-team");
-        if (selected.has(t)) selected.delete(t);
-        else selected.add(t);
+        if (selected.has(t)) selected.delete(t); else selected.add(t);
         saveSelected();
         chip.classList.toggle("sel");
         renderAll();
@@ -380,160 +489,130 @@ footer { text-align: center; color: #5a6478; font-size: 12px; margin-top: 30px; 
     });
   }
 
+  function renderSquadbar() {
+    const el = $("squadbar");
+    if (!selected.size) { el.innerHTML = '<span class="hint">No teams yet — add yours above 👆</span>'; return; }
+    const chips = [...selected].sort().map((t) =>
+      `<span class="squadchip">${esc(t)}<button data-team="${esc(t)}" aria-label="Remove">×</button></span>`
+    ).join("");
+    el.innerHTML = chips + `<button class="clearall" id="clearAll">Clear all</button>`;
+    el.querySelectorAll(".squadchip button").forEach((b) =>
+      b.addEventListener("click", () => {
+        selected.delete(b.getAttribute("data-team"));
+        saveSelected(); renderPicker(); renderAll();
+      })
+    );
+    $("clearAll").addEventListener("click", () => { selected = new Set(); saveSelected(); renderPicker(); renderAll(); });
+  }
+
+  function pad(n) { return String(n).padStart(2, "0"); }
+  function countdownParts(ms) {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    return { d: Math.floor(s / 86400), h: Math.floor((s % 86400) / 3600), m: Math.floor((s % 3600) / 60), s: s % 60 };
+  }
+
+  function renderHero() {
+    const el = $("hero");
+    if (!selected.size) {
+      heroKey = "none";
+      el.className = "hero idle";
+      el.innerHTML = '<div class="label">Your captain pick</div><div class="team" style="font-size:20px;">Add your team to begin 🚀</div><div class="meta">Upload a screenshot, pick teams, or paste your countries above.</div>';
+      return;
+    }
+    const n = nextMatch();
+    if (!n) {
+      heroKey = "done";
+      el.className = "hero idle";
+      el.innerHTML = '<div class="label">All done for now</div><div class="team" style="font-size:20px;">No upcoming matches 🎉</div><div class="meta">All your teams have kicked off in this round.</div>';
+      return;
+    }
+    const team = selected.has(n.home) ? n.home : n.away;
+    const opp = opponentOf(n, team);
+    heroKey = n.kickoff_utc + team;
+    el.className = "hero";
+    el.innerHTML = `
+      <div class="crown">👑</div>
+      <div class="label">Captain next</div>
+      <div class="team">${esc(team)}</div>
+      <div class="meta">vs ${esc(opp)} · Group ${n.group} · Matchday ${mdByMatch.get(n)} · ${fmtTime(n).t} ${fmtTime(n).d}</div>
+      <div class="cd" id="cd"></div>`;
+    tick();
+  }
+
+  // 1-second tick: clock + live countdown (and re-render hero when it flips)
+  function tick() {
+    const d = new Date();
+    $("now").textContent = d.toLocaleString(undefined, { weekday: "short", hour: "2-digit", minute: "2-digit" });
+    if (!DATA) return;
+    const n = nextMatch();
+    const key = n ? n.kickoff_utc + (selected.has(n.home) ? n.home : n.away) : (selected.size ? "done" : "none");
+    if (key !== heroKey) { renderHero(); return; }
+    const cd = $("cd");
+    if (n && cd) {
+      const p = countdownParts(ko(n) - now());
+      const big = p.d > 0 ? `<span class="seg">${p.d}d</span> ` : "";
+      cd.innerHTML = `${big}<span class="seg">${pad(p.h)}</span><small>h</small> <span class="seg">${pad(p.m)}</span><small>m</small> <span class="seg">${pad(p.s)}</span><small>s</small> <small>until kickoff — lock your armband 🔒</small>`;
+    }
+  }
+
   function renderCaptainOrder() {
     const el = $("captainOrder");
-    if (!selected.size) {
-      el.innerHTML = '<p class="empty">Pick your teams above to see the captain order.</p>';
-      return;
-    }
+    if (!selected.size) { el.innerHTML = '<p class="empty">Add your teams to see the order.</p>'; return; }
     const next = nextMatch();
-    // One row per selected team that plays in this round, soonest first.
-    let rows = [];
+    const rows = [];
     for (const m of selectedMatches()) {
-      for (const team of [m.home, m.away]) {
-        if (selected.has(team)) rows.push({ team, m });
-      }
+      for (const team of [m.home, m.away]) if (selected.has(team)) rows.push({ team, m });
     }
     rows.sort((a, b) => ko(a.m) - ko(b.m));
-    if (!rows.length) {
-      el.innerHTML = '<p class="empty">None of your teams play in this round.</p>';
-      return;
-    }
-    el.innerHTML = rows
-      .map((r, i) => {
-        const played = ko(r.m) <= now();
-        const isNext = r.m === next;
-        const ft = fmtTime(r.m);
-        return `<div class="order-item${played ? " played" : ""}${isNext ? " next" : ""}">
-          <span class="rank">${i + 1}</span>
-          <span class="team">${esc(r.team)}</span>
-          <span class="vs">vs ${esc(opponentOf(r.m, r.team))}</span>
-          ${isNext ? '<span class="badge-next">Captain next</span>' : ""}
-          ${played ? '<span class="badge-played">Kicked off</span>' : ""}
-          <span class="time"><span class="t">${ft.t}</span><br/><span class="d">${ft.d}</span></span>
-        </div>`;
-      })
-      .join("");
+    if (!rows.length) { el.innerHTML = '<p class="empty">None of your teams play in this round.</p>'; return; }
+    el.innerHTML = rows.map((r, i) => {
+      const played = ko(r.m) <= now();
+      const isNext = r.m === next;
+      const ft = fmtTime(r.m);
+      return `<div class="order-item${played ? " played" : ""}${isNext ? " next" : ""}">
+        <span class="rank">${i + 1}</span>
+        <span class="team-nm">${esc(r.team)}</span>
+        <span class="vs">vs ${esc(opponentOf(r.m, r.team))}</span>
+        ${isNext ? '<span class="badge-next">Captain next</span>' : ""}
+        ${played ? '<span class="badge-played">Kicked off</span>' : ""}
+        <span class="time"><span class="t">${ft.t}</span><br/><span class="d">${ft.d}</span></span>
+      </div>`;
+    }).join("");
   }
 
   function renderTimeline() {
     const el = $("timeline");
-    if (!selected.size) {
-      el.innerHTML = '<p class="empty">No teams selected yet.</p>';
-      return;
-    }
+    if (!selected.size) { el.innerHTML = '<p class="empty">No teams selected yet.</p>'; return; }
     const next = nextMatch();
     let matches = selectedMatches();
     if (hideKicked) matches = matches.filter((m) => ko(m) > now());
-    if (!matches.length) {
-      el.innerHTML = '<p class="empty">No matches to show for this round.</p>';
-      return;
-    }
-    // group by local day
+    if (!matches.length) { el.innerHTML = '<p class="empty">No matches to show for this round.</p>'; return; }
     const days = [];
     let cur = null;
     for (const m of matches) {
       const k = dayKey(m);
-      if (!cur || cur.key !== k) {
-        cur = { key: k, items: [] };
-        days.push(cur);
-      }
+      if (!cur || cur.key !== k) { cur = { key: k, items: [] }; days.push(cur); }
       cur.items.push(m);
     }
-    el.innerHTML = days
-      .map((day) => {
-        const items = day.items
-          .map((m) => {
-            const played = ko(m) <= now();
-            const isNext = m === next;
-            const ft = fmtTime(m);
-            const yours = [m.home, m.away].filter((t) => selected.has(t)).join(", ");
-            return `<div class="match${played ? " played" : ""}${isNext ? " next" : ""}">
-              <div>
-                <div class="teams">${esc(m.home)} <span class="muted">v</span> ${esc(m.away)}<span class="grp">${m.group} · MD${mdByMatch.get(m)}</span></div>
-                <div class="meta">${esc(m.city)} · ${esc(m.venue)} · your team: ${esc(yours)}
-                  ${isNext ? '<span class="badge-next">Captain next</span>' : ""}
-                  ${played ? '<span class="badge-played">Kicked off</span>' : ""}
-                </div>
-              </div>
-              <span class="time"><span class="t">${ft.t}</span><br/><span class="d">${ft.d}</span></span>
-            </div>`;
-          })
-          .join("");
-        return `<div class="daygroup"><p class="dayhead">${esc(day.key)}</p>${items}</div>`;
-      })
-      .join("");
-  }
-
-  function applyImport(data) {
-    const msg = $("pasteMsg");
-    const teams = data.teams || [];
-    if (!teams.length) {
-      msg.textContent =
-        data.error || "No countries recognised — check spelling, or tap them above.";
-      return;
-    }
-    teams.forEach((t) => selected.add(t));
-    saveSelected();
-    renderPicker();
-    renderAll();
-    msg.textContent = `Added ${teams.length}: ${teams.join(", ")}`;
-  }
-
-  async function postImport(payload, searchingMsg) {
-    const msg = $("pasteMsg");
-    msg.textContent = searchingMsg;
-    try {
-      const res = await fetch(IMPORT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      applyImport(await res.json());
-    } catch {
-      msg.textContent = "Import failed — please pick your teams above.";
-    }
-  }
-
-  function loadImport() {
-    const raw = ($("pasteBox").value || "").trim();
-    if (!raw) return;
-    const isUrl = /^(https?:\/\/|www\.)\S+$/i.test(raw);
-    postImport(isUrl ? { url: raw } : { text: raw }, "Searching…");
-  }
-
-  // Downscale the screenshot client-side (smaller = faster + under OCR limits).
-  function scaleImage(file, maxW) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      img.onload = () => {
-        const scale = Math.min(1, maxW / img.width);
-        const w = Math.round(img.width * scale);
-        const h = Math.round(img.height * scale);
-        const c = document.createElement("canvas");
-        c.width = w;
-        c.height = h;
-        c.getContext("2d").drawImage(img, 0, 0, w, h);
-        URL.revokeObjectURL(url);
-        resolve(c.toDataURL("image/jpeg", 0.8));
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        reject(new Error("bad image"));
-      };
-      img.src = url;
-    });
-  }
-
-  async function loadShot(file) {
-    const msg = $("pasteMsg");
-    try {
-      const dataUrl = await scaleImage(file, 1100);
-      await postImport({ image: dataUrl }, "Reading screenshot…");
-    } catch {
-      msg.textContent = "Couldn't read that image — try another screenshot.";
-    }
+    el.innerHTML = days.map((day) => {
+      const items = day.items.map((m) => {
+        const played = ko(m) <= now();
+        const isNext = m === next;
+        const ft = fmtTime(m);
+        const yours = [m.home, m.away].filter((t) => selected.has(t)).join(", ");
+        return `<div class="match${played ? " played" : ""}${isNext ? " next" : ""}">
+          <div>
+            <div class="teams">${esc(m.home)} <span class="vs">v</span> ${esc(m.away)}<span class="grp">${m.group} · MD${mdByMatch.get(m)}</span></div>
+            <div class="meta2">${esc(m.city)} · your team: ${esc(yours)}
+              ${isNext ? '<span class="badge-next">Captain next</span>' : ""}
+              ${played ? '<span class="badge-played">Kicked off</span>' : ""}
+            </div>
+          </div>
+          <span class="time"><span class="t">${ft.t}</span><br/><span class="d">${ft.d}</span></span>
+        </div>`;
+      }).join("");
+      return `<div class="daygroup"><p class="dayhead">${esc(day.key)}</p>${items}</div>`;
+    }).join("");
   }
 })();
 
