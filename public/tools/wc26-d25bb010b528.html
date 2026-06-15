@@ -439,18 +439,22 @@ footer strong { background: linear-gradient(90deg, var(--pink), var(--cyan)); -w
     });
   }
 
+  // Upscale + boost contrast in greyscale — OCR reads white-on-dark cards far
+  // better as high-contrast black/white than as the original colour image.
   function scaleImage(file, maxW) {
     return new Promise((resolve, reject) => {
       const img = new Image();
       const url = URL.createObjectURL(file);
       img.onload = () => {
-        const scale = Math.min(1, maxW / img.width);
+        const scale = Math.min(1.5, maxW / img.width); // allow mild upscaling
         const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
         const c = document.createElement("canvas");
         c.width = w; c.height = h;
-        c.getContext("2d").drawImage(img, 0, 0, w, h);
+        const ctx = c.getContext("2d");
+        ctx.filter = "grayscale(1) contrast(1.6) brightness(1.05)";
+        ctx.drawImage(img, 0, 0, w, h);
         URL.revokeObjectURL(url);
-        resolve(c.toDataURL("image/jpeg", 0.8));
+        resolve(c.toDataURL("image/jpeg", 0.85));
       };
       img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("bad image")); };
       img.src = url;
@@ -471,7 +475,8 @@ footer strong { background: linear-gradient(90deg, var(--pink), var(--cyan)); -w
   function applyImport(data, msg) {
     const teams = data.teams || [];
     if (!teams.length) {
-      msg.textContent = data.error || "No countries recognised — try Pick teams.";
+      const readNote = data.read ? `<br/><span style="color:#7c789f;">Read from image: “${esc(data.read)}”</span>` : "";
+      msg.innerHTML = (data.error || "No countries recognised — try Pick teams.") + readNote;
       return;
     }
     teams.forEach((t) => selected.add(t));
@@ -484,7 +489,8 @@ footer strong { background: linear-gradient(90deg, var(--pink), var(--cyan)); -w
     }
     renderPicker();
     renderAll();
-    msg.innerHTML = `✅ Added <strong>${teams.length}</strong>: ${esc(teams.join(", "))}`;
+    const readNote = data.read ? `<br/><span style="color:#7c789f;">Read from image: “${esc(data.read)}”</span>` : "";
+    msg.innerHTML = `✅ Added <strong>${teams.length}</strong>: ${esc(teams.join(", "))}${readNote}`;
   }
   async function postImport(payload, msg) {
     try {

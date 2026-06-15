@@ -49,13 +49,38 @@ function defaultRound(): number {
   return best ? best.md : 1;
 }
 
-// Decode "v XXX" opponent labels → the opponent countries.
+// Decode "v XXX" opponent labels → the opponent countries. Tolerant of OCR
+// garble (digits for letters, single-character errors) since the bold codes
+// are the most legible part of a fantasy screenshot.
+const CODES = Object.keys(CODE_TO_COUNTRY);
+function lev(a: string, b: string): number {
+  const dp = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i++)
+    for (let j = 1; j <= b.length; j++)
+      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return dp[a.length][b.length];
+}
+function decodeCode(raw: string): string | null {
+  const c = raw.toLowerCase().replace(/0/g, "o").replace(/1/g, "i").replace(/5/g, "s").replace(/8/g, "b").replace(/[^a-z]/g, "");
+  if (c.length < 2) return null;
+  if (CODE_TO_COUNTRY[c]) return CODE_TO_COUNTRY[c];
+  // Nearest code within edit distance 1 — but only if it's UNIQUE (no tie),
+  // so an ambiguous garble like "iro" (irq vs irn) is skipped, not guessed.
+  let bestD = 2, count = 0, best: string | null = null;
+  for (const code of CODES) {
+    const d = lev(c, code);
+    if (d < bestD) { bestD = d; best = code; count = 1; }
+    else if (d === bestD) count++;
+  }
+  return best && bestD <= 1 && count === 1 ? CODE_TO_COUNTRY[best] : null;
+}
 function opponentCountries(text: string): string[] {
   const out: string[] = [];
-  const re = /\bv\.?\s+([a-z]{3})\b/gi;
+  const re = /\bv\.?\s+([a-z0-9]{2,4})\b/gi;
   let m: RegExpExecArray | null;
   while ((m = re.exec(text))) {
-    const c = CODE_TO_COUNTRY[m[1].toLowerCase()];
+    const c = decodeCode(m[1]);
     if (c) out.push(c);
   }
   return out;
@@ -203,7 +228,7 @@ function matchPlayers(text: string): string[] {
 // isn't mistaken for one of the user's teams.
 function scrubOpponents(text: string): string {
   // case-insensitive; \s covers spaces and newlines from OCR line breaks
-  return text.replace(/\bv\.?\s+[a-z]{3}\b/gi, " ");
+  return text.replace(/\bv\.?\s+[a-z0-9]{2,4}\b/gi, " ");
 }
 
 // Combined resolver. Strategy:
@@ -281,14 +306,16 @@ export async function POST(req: NextRequest) {
       const ocrText = await ocrImage(body.image);
       text += " " + ocrText;
       const resolved = resolveTeams(text);
+      const read = ocrText.replace(/\s+/g, " ").trim().slice(0, 300);
       if (!resolved.teams.length) {
         return NextResponse.json({
           teams: [],
+          read,
           error:
-            "Couldn't read your team from that screenshot. Make sure the player names / opponent codes are legible, or use the Pick teams tab.",
+            "Couldn't read your team from that screenshot. Use the Pick teams tab — or share the 'read' text below with support.",
         });
       }
-      return NextResponse.json(resolved);
+      return NextResponse.json({ ...resolved, read });
     } catch (e) {
       return NextResponse.json({
         teams: [],
