@@ -62,6 +62,34 @@
   const saveSlots = () => { try { localStorage.setItem(LS, JSON.stringify(slots)); } catch { /* */ } };
   const filled = () => slots.filter((s) => s.country);
 
+  // ---- saved teams ---------------------------------------------------------
+  const SAVED = "wc26.saved.v1";
+  const loadSavedTeams = () => { try { return JSON.parse(localStorage.getItem(SAVED) || "{}") || {}; } catch { return {}; } };
+  const persistSavedTeams = (o) => { try { localStorage.setItem(SAVED, JSON.stringify(o)); } catch { /* */ } };
+  function renderSavedTeams() {
+    const sel = $("savedSel"); if (!sel) return;
+    const names = Object.keys(loadSavedTeams()).sort();
+    sel.innerHTML = '<option value="">⭐ Saved teams…</option>' + names.map((n) => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+  }
+  function saveTeam() {
+    if (!filled().length) { alert("Add some players first, then save."); return; }
+    const name = (prompt("Name this team:", "My team") || "").trim();
+    if (!name) return;
+    const o = loadSavedTeams(); o[name] = JSON.parse(JSON.stringify(slots)); persistSavedTeams(o);
+    renderSavedTeams(); $("savedSel").value = name;
+  }
+  function loadTeam(name) {
+    const o = loadSavedTeams(); if (!o[name]) return;
+    const copy = JSON.parse(JSON.stringify(o[name]));
+    slots = Array.isArray(copy) && copy.length === 15 ? copy : blankSlots();
+    slots.forEach((s) => { if (!s.id) s.id = uid(); });
+    saveSlots(); renderBuilder(); renderAll();
+  }
+  function deleteSavedTeam() {
+    const name = $("savedSel").value; if (!name) return;
+    const o = loadSavedTeams(); delete o[name]; persistSavedTeams(o); renderSavedTeams();
+  }
+
   // ---- helpers -------------------------------------------------------------
   const ko = (m) => new Date(m.kickoff_utc).getTime();
   const now = () => Date.now();
@@ -73,6 +101,8 @@
     const d = new Date(m.kickoff_utc);
     return { t: d.toLocaleString(undefined, { hour: "2-digit", minute: "2-digit" }), d: d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }) };
   }
+  const sameDay = (a, b) => new Date(a.kickoff_utc).toDateString() === new Date(b.kickoff_utc).toDateString();
+  const dayLabel = (m) => new Date(m.kickoff_utc).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
 
   function computeMatchdays() {
     const perTeam = {};
@@ -110,6 +140,10 @@
     $("hideKicked").addEventListener("change", (e) => { hidePlayed = e.target.checked; renderAll(); });
     $("clearBtn").addEventListener("click", () => { slots = blankSlots(); saveSlots(); renderBuilder(); renderAll(); });
     $("demoBtn").addEventListener("click", fillDemo);
+    renderSavedTeams();
+    $("saveBtn").addEventListener("click", saveTeam);
+    $("delSavedBtn").addEventListener("click", deleteSavedTeam);
+    $("savedSel").addEventListener("change", (e) => { if (e.target.value) loadTeam(e.target.value); });
     setInterval(tick, 1000);
     setInterval(renderAll, 30000);
 
@@ -232,12 +266,17 @@
     const x = nextX();
     if (!x) { heroKey = "done"; el.className = "hero idle"; el.innerHTML = '<div class="label">All done</div><div class="team" style="font-size:20px;">Everyone has kicked off 🎉</div><div class="meta">No players left to play in this round.</div>'; return; }
     const opp = opponentOf(x.m, x.s.country);
+    // A later match the SAME DAY = a chance to move the armband if the captain blanks.
+    const swap = withMatch().find((y) => ko(y.m) > ko(x.m) && sameDay(y.m, x.m));
+    const swapHtml = swap
+      ? `<div class="swaphint">🔁 If they blank, switch the armband to <strong>${flag(swap.s.country)} ${esc(label(swap.s))}</strong> (vs ${esc(opponentOf(swap.m, swap.s.country))}) at <strong>${fmtTime(swap.m).t}</strong> — same day.</div>`
+      : "";
     heroKey = x.m.kickoff_utc + x.s.id;
     el.className = "hero";
     el.innerHTML = `<div class="crown">👑</div><div class="label">Captain next</div>
       <div class="team">${flag(x.s.country)} ${esc(label(x.s))}</div>
       <div class="meta">${x.s.name ? esc(x.s.country) + " · " : ""}vs ${esc(opp)} · ${fmtTime(x.m).t} ${fmtTime(x.m).d}</div>
-      <div class="cd" id="cdv"></div>`;
+      <div class="cd" id="cdv"></div>${swapHtml}`;
     tick();
   }
   function tick() {
@@ -286,18 +325,37 @@
     if (hidePlayed) xs = xs.filter((x) => ko(x.m) > now());
     if (!xs.length) { el.innerHTML = '<p class="empty">Add your squad to see the captain queue.</p>'; return; }
     const nx = nextX();
-    el.innerHTML = xs.map((x, i) => {
-      const played = ko(x.m) <= now();
-      const isNext = nx && x.s.id === nx.s.id;
-      const ft = fmtTime(x.m);
-      return `<div class="qitem ${played ? "played" : ""}${isNext ? " next" : ""}">
-        <span class="qnum">${i + 1}</span>
-        <span class="qname">${flag(x.s.country)} ${esc(label(x.s))}${x.s.name ? ` <small>${esc(x.s.country)}</small>` : ""}</span>
-        <span class="qvs">vs ${esc(opponentOf(x.m, x.s.country))}</span>
-        ${isNext ? '<span class="badge-next">Captain next</span>' : ""}
-        ${played ? '<span class="badge-played">Played</span>' : ""}
-        <span class="qtime"><span class="t">${ft.t}</span><br/><span class="d">${ft.d}</span></span>
-      </div>`;
+
+    // group by calendar day so multiple games in a day are obvious
+    const groups = [];
+    let cur = null;
+    for (const x of xs) {
+      const k = dayLabel(x.m);
+      if (!cur || cur.key !== k) { cur = { key: k, items: [] }; groups.push(cur); }
+      cur.items.push(x);
+    }
+    let n = 0;
+    el.innerHTML = groups.map((g) => {
+      const distinctTimes = new Set(g.items.map((x) => ko(x.m))).size;
+      const upcomingTimes = new Set(g.items.filter((x) => ko(x.m) > now()).map((x) => ko(x.m))).size;
+      // A swap window = 2+ of your matches at DIFFERENT times on the same day.
+      const swap = distinctTimes >= 2;
+      const head = `<div class="qday"><span>${esc(g.key)}</span>${swap ? `<span class="swapbadge">🔁 ${g.items.length} games · armband swap window${upcomingTimes >= 2 ? "" : " (done)"}</span>` : ""}</div>`;
+      const items = g.items.map((x) => {
+        n++;
+        const played = ko(x.m) <= now();
+        const isNext = nx && x.s.id === nx.s.id;
+        const ft = fmtTime(x.m);
+        return `<div class="qitem ${played ? "played" : ""}${isNext ? " next" : ""}">
+          <span class="qnum">${n}</span>
+          <span class="qname">${flag(x.s.country)} ${esc(label(x.s))}${x.s.name ? ` <small>${esc(x.s.country)}</small>` : ""}</span>
+          <span class="qvs">vs ${esc(opponentOf(x.m, x.s.country))}</span>
+          ${isNext ? '<span class="badge-next">Captain next</span>' : ""}
+          ${played ? '<span class="badge-played">Played</span>' : ""}
+          <span class="qtime"><span class="t">${ft.t}</span><br/><span class="d">${ft.d}</span></span>
+        </div>`;
+      }).join("");
+      return `<div class="qdaygroup">${head}${items}</div>`;
     }).join("");
   }
 })();
