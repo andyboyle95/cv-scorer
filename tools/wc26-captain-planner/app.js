@@ -112,11 +112,17 @@
   const dayLabel = (m) => new Date(m.kickoff_utc).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
 
   function computeMatchdays() {
+    // Prefer an explicit `matchday` field on the fixture (group=1/2/3, R32=4,
+    // R16=5, QF=6, SF=7, F=8). Fall back to a per-team kickoff position so older
+    // group-only data still works.
     const perTeam = {};
     for (const m of DATA.matches) { (perTeam[m.home] = perTeam[m.home] || []).push(m); (perTeam[m.away] = perTeam[m.away] || []).push(m); }
     const pos = new Map();
     for (const t of Object.keys(perTeam)) perTeam[t].slice().sort((a, b) => ko(a) - ko(b)).forEach((m, i) => pos.set(t + "|" + m.kickoff_utc, i + 1));
-    for (const m of DATA.matches) mdByMatch.set(m, Math.max(pos.get(m.home + "|" + m.kickoff_utc), pos.get(m.away + "|" + m.kickoff_utc)));
+    for (const m of DATA.matches) {
+      if (typeof m.matchday === "number") mdByMatch.set(m, m.matchday);
+      else mdByMatch.set(m, Math.max(pos.get(m.home + "|" + m.kickoff_utc), pos.get(m.away + "|" + m.kickoff_utc)));
+    }
   }
   function defaultRound() {
     const up = DATA.matches.filter((m) => ko(m) > now()).sort((a, b) => ko(a) - ko(b))[0];

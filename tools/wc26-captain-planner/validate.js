@@ -17,12 +17,15 @@ for (const [g, teams] of Object.entries(data.groups)) {
   teams.forEach((t) => validTeams.add(t));
 }
 
-if (!Array.isArray(data.matches) || data.matches.length !== 72)
-  errors.push(`Expected 72 matches, got ${data.matches?.length}`);
+const groupMatches = data.matches.filter((m) => !m.round || m.round === "GROUP");
+const koMatches = data.matches.filter((m) => m.round && m.round !== "GROUP");
+
+if (!Array.isArray(data.matches) || groupMatches.length !== 72)
+  errors.push(`Expected 72 group matches, got ${groupMatches.length}`);
 
 // Each team should play exactly 3 group matches.
 const counts = {};
-for (const m of data.matches) {
+for (const m of groupMatches) {
   // name consistency between matches and groups
   for (const t of [m.home, m.away]) {
     if (!validTeams.has(t)) errors.push(`Team "${t}" in matches is not in any group`);
@@ -44,8 +47,25 @@ for (const t of validTeams) {
   if (counts[t] !== 3) errors.push(`Team "${t}" plays ${counts[t] || 0} matches (expected 3)`);
 }
 
+// Knockout-stage sanity (best-effort): valid UTC + known team names + each team plays at most once per round.
+for (const m of koMatches) {
+  const d = new Date(m.kickoff_utc);
+  if (isNaN(d.getTime()) || !/Z$/.test(m.kickoff_utc))
+    errors.push(`Invalid UTC kickoff "${m.kickoff_utc}" (${m.home} v ${m.away})`);
+  for (const t of [m.home, m.away]) {
+    if (!validTeams.has(t)) errors.push(`Knockout team "${t}" not in any group`);
+  }
+}
+const byRound = {};
+for (const m of koMatches) (byRound[m.round] ??= []).push(m);
+for (const [r, ms] of Object.entries(byRound)) {
+  const c = {};
+  for (const m of ms) { c[m.home] = (c[m.home] || 0) + 1; c[m.away] = (c[m.away] || 0) + 1; }
+  for (const [t, n] of Object.entries(c)) if (n !== 1) errors.push(`${r}: "${t}" appears in ${n} matches (expected 1)`);
+}
+
 if (errors.length) {
   console.error("✗ fixtures.json INVALID:\n - " + errors.join("\n - "));
   process.exit(1);
 }
-console.log("✓ fixtures.json valid: 12 groups × 4 teams, 72 matches, all UTC, names consistent.");
+console.log(`✓ fixtures.json valid: 12 groups × 4 teams, ${groupMatches.length} group matches + ${koMatches.length} knockout matches, all UTC.`);

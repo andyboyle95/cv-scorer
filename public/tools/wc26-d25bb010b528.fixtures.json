@@ -721,6 +721,166 @@
       "away": "Ghana",
       "city": "Philadelphia",
       "venue": "Lincoln Financial Field"
+    },
+    {
+      "matchday": 4,
+      "round": "R32",
+      "home": "South Africa",
+      "away": "Canada",
+      "kickoff_utc": "2026-06-28T19:00:00Z",
+      "date": "2026-06-28",
+      "city": "Inglewood",
+      "venue": "SoFi Stadium"
+    },
+    {
+      "matchday": 4,
+      "round": "R32",
+      "home": "Brazil",
+      "away": "Japan",
+      "kickoff_utc": "2026-06-29T17:00:00Z",
+      "date": "2026-06-29",
+      "city": "Houston",
+      "venue": "NRG Stadium"
+    },
+    {
+      "matchday": 4,
+      "round": "R32",
+      "home": "Germany",
+      "away": "Paraguay",
+      "kickoff_utc": "2026-06-29T20:30:00Z",
+      "date": "2026-06-29",
+      "city": "Foxborough",
+      "venue": "Gillette Stadium"
+    },
+    {
+      "matchday": 4,
+      "round": "R32",
+      "home": "Netherlands",
+      "away": "Morocco",
+      "kickoff_utc": "2026-06-30T01:00:00Z",
+      "date": "2026-06-30",
+      "city": "Monterrey",
+      "venue": "Estadio BBVA"
+    },
+    {
+      "matchday": 4,
+      "round": "R32",
+      "home": "Ivory Coast",
+      "away": "Norway",
+      "kickoff_utc": "2026-06-30T17:00:00Z",
+      "date": "2026-06-30",
+      "city": "Arlington",
+      "venue": "AT&T Stadium"
+    },
+    {
+      "matchday": 4,
+      "round": "R32",
+      "home": "France",
+      "away": "Sweden",
+      "kickoff_utc": "2026-06-30T21:00:00Z",
+      "date": "2026-06-30",
+      "city": "East Rutherford",
+      "venue": "MetLife Stadium"
+    },
+    {
+      "matchday": 4,
+      "round": "R32",
+      "home": "Mexico",
+      "away": "Ecuador",
+      "kickoff_utc": "2026-07-01T01:00:00Z",
+      "date": "2026-07-01",
+      "city": "Mexico City",
+      "venue": "Estadio Azteca"
+    },
+    {
+      "matchday": 4,
+      "round": "R32",
+      "home": "England",
+      "away": "DR Congo",
+      "kickoff_utc": "2026-07-01T16:00:00Z",
+      "date": "2026-07-01",
+      "city": "Atlanta",
+      "venue": "Mercedes-Benz Stadium"
+    },
+    {
+      "matchday": 4,
+      "round": "R32",
+      "home": "Belgium",
+      "away": "Senegal",
+      "kickoff_utc": "2026-07-01T20:00:00Z",
+      "date": "2026-07-01",
+      "city": "Seattle",
+      "venue": "Lumen Field"
+    },
+    {
+      "matchday": 4,
+      "round": "R32",
+      "home": "United States",
+      "away": "Bosnia and Herzegovina",
+      "kickoff_utc": "2026-07-02T00:00:00Z",
+      "date": "2026-07-02",
+      "city": "Santa Clara",
+      "venue": "Levi's Stadium"
+    },
+    {
+      "matchday": 4,
+      "round": "R32",
+      "home": "Spain",
+      "away": "Austria",
+      "kickoff_utc": "2026-07-02T19:00:00Z",
+      "date": "2026-07-02",
+      "city": "Inglewood",
+      "venue": "SoFi Stadium"
+    },
+    {
+      "matchday": 4,
+      "round": "R32",
+      "home": "Portugal",
+      "away": "Croatia",
+      "kickoff_utc": "2026-07-02T23:00:00Z",
+      "date": "2026-07-02",
+      "city": "Toronto",
+      "venue": "BMO Field"
+    },
+    {
+      "matchday": 4,
+      "round": "R32",
+      "home": "Switzerland",
+      "away": "Algeria",
+      "kickoff_utc": "2026-07-03T03:00:00Z",
+      "date": "2026-07-03",
+      "city": "Vancouver",
+      "venue": "BC Place"
+    },
+    {
+      "matchday": 4,
+      "round": "R32",
+      "home": "Australia",
+      "away": "Egypt",
+      "kickoff_utc": "2026-07-03T18:00:00Z",
+      "date": "2026-07-03",
+      "city": "Arlington",
+      "venue": "AT&T Stadium"
+    },
+    {
+      "matchday": 4,
+      "round": "R32",
+      "home": "Argentina",
+      "away": "Cape Verde",
+      "kickoff_utc": "2026-07-03T22:00:00Z",
+      "date": "2026-07-03",
+      "city": "Miami Gardens",
+      "venue": "Hard Rock Stadium"
+    },
+    {
+      "matchday": 4,
+      "round": "R32",
+      "home": "Colombia",
+      "away": "Ghana",
+      "kickoff_utc": "2026-07-04T01:30:00Z",
+      "date": "2026-07-04",
+      "city": "Kansas City",
+      "venue": "Arrowhead Stadium"
     }
   ]
 }
