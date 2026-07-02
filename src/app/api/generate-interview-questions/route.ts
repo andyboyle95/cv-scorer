@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { HUMAN_STYLE_RULES, sanitizeProse } from "@/lib/prose-style";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -67,6 +68,8 @@ For each question also provide:
 - A sharp follow-up probe to uncover depth or challenge the answer
 - A concise one-sentence rationale explaining why this question is relevant to this specific candidate
 
+${HUMAN_STYLE_RULES}
+
 Themes available: ${themes.join("; ")}
 ${avoidQuestion ? `\nImportant: generate a DIFFERENT question from this one (which has already been used): "${avoidQuestion}"` : ''}
 Candidate CV:
@@ -80,7 +83,21 @@ ${cvText.slice(0, 12000)}`,
       return NextResponse.json({ error: "No structured output from AI" }, { status: 500 });
     }
 
-    return NextResponse.json(toolUse.input);
+    // Sanitize AI-authored prose fields (theme is a fixed label; leave it).
+    const raw = toolUse.input as {
+      candidateName?: string;
+      questions?: { theme: string; question: string; followUp: string; rationale: string }[];
+    };
+    const cleaned = {
+      ...raw,
+      questions: (raw.questions || []).map((q) => ({
+        theme: q.theme,
+        question: sanitizeProse(q.question),
+        followUp: sanitizeProse(q.followUp),
+        rationale: sanitizeProse(q.rationale),
+      })),
+    };
+    return NextResponse.json(cleaned);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Generation failed";
     console.error("[generate-interview-questions]", err);

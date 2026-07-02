@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { HUMAN_STYLE_RULES, sanitizeProse, sanitizeProseList } from "@/lib/prose-style";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -76,7 +77,13 @@ export async function POST(req: NextRequest) {
       messages: [
         {
           role: "user",
-          content: `Extract all CV data from the following text and populate the fields. Use best judgement for any fields not explicitly stated. Preserve the candidate's own words where possible.\n\n<cv>\n${cvText.slice(0, 12000)}\n</cv>`,
+          content: `Extract all CV data from the following text and populate the fields. Use best judgement for any fields not explicitly stated. Preserve the candidate's own words where possible.
+
+${HUMAN_STYLE_RULES}
+
+<cv>
+${cvText.slice(0, 12000)}
+</cv>`,
         },
       ],
     });
@@ -86,7 +93,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No structured output returned by AI" }, { status: 500 });
     }
 
-    return NextResponse.json(toolUse.input);
+    // Strip em dashes and other AI tells from the prose fields the LLM
+    // wrote itself (executiveSummary/profile). Everything else is
+    // pass-through from the source CV so leave it as-is.
+    const raw = toolUse.input as Record<string, unknown>;
+    const cleaned = {
+      ...raw,
+      executiveSummary: sanitizeProse(raw.executiveSummary as string | undefined),
+      profile: sanitizeProse(raw.profile as string | undefined),
+      skills: sanitizeProseList(raw.skills as string[] | undefined),
+    };
+    return NextResponse.json(cleaned);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Extraction failed";
     console.error("[extract-cv-fields]", err);

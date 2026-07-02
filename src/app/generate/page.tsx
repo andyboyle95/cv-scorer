@@ -243,6 +243,9 @@ export default function GeneratePage() {
   const [importError, setImportError] = useState('')
   const [dragOver, setDragOver] = useState(false)
 
+  // Executive summary length toggle
+  const [rewriteLonger, setRewriteLonger] = useState(false)
+
   // Job-spec tailoring state (used by Auto Rewrite on the Cover tab)
   const [jobSpecOpen, setJobSpecOpen] = useState(false)
   const [jobSpecText, setJobSpecText] = useState('')
@@ -289,6 +292,7 @@ export default function GeneratePage() {
           candidateName: data.candidateName,
           roleAppliedFor: data.roleAppliedFor,
           jobSpec: jobSpecText.trim() || undefined,
+          length: rewriteLonger ? 'longer' : 'standard',
         }),
       })
       let json: Record<string, unknown>
@@ -1012,6 +1016,20 @@ export default function GeneratePage() {
                       placeholder="e.g. Leaving Moody's due to lack of progression. Wants a more entrepreneurial environment. Strong performer — hit 120% quota last year. Loves working with hedge funds and asset managers..."
                       disabled={rewriting}
                     />
+                    <label className="flex items-center gap-2 cursor-pointer group select-none">
+                      <input
+                        type="checkbox"
+                        checked={rewriteLonger}
+                        onChange={(e) => setRewriteLonger(e.target.checked)}
+                        className="w-3.5 h-3.5 rounded flex-shrink-0"
+                        style={{ accentColor: '#1a3668' }}
+                      />
+                      <span className="text-[11px] text-gray-600 group-hover:text-[#1a3668] transition-colors">
+                        Make it longer
+                        <span className="text-[10px] text-gray-400 ml-1">(3–4 paragraphs)</span>
+                      </span>
+                    </label>
+
                     <Button
                       onClick={handleRewrite}
                       disabled={!data.executiveSummary.trim() || rewriting}
@@ -1020,7 +1038,12 @@ export default function GeneratePage() {
                     >
                       {rewriting
                         ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Rewriting…</>
-                        : <><Wand2 className="h-3.5 w-3.5" /> {jobSpecStatus === 'ready' ? 'Auto Rewrite (tailored)' : 'Auto Rewrite'}</>}
+                        : <><Wand2 className="h-3.5 w-3.5" /> {(() => {
+                            const bits = []
+                            if (rewriteLonger) bits.push('longer')
+                            if (jobSpecStatus === 'ready') bits.push('tailored')
+                            return bits.length ? `Auto Rewrite (${bits.join(', ')})` : 'Auto Rewrite'
+                          })()}</>}
                     </Button>
                     {rewriteError && <p className="text-xs text-red-500">{rewriteError}</p>}
                   </div>

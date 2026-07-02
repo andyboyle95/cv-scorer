@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { HUMAN_STYLE_RULES, sanitizeProse, sanitizeProseList } from "@/lib/prose-style";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -81,7 +82,9 @@ export async function POST(req: NextRequest) {
       messages: [
         {
           role: "user",
-          content: `You are tailoring a candidate's CV Profile paragraph and Skills list to a specific job spec. This is a recruiter's tool — accuracy matters more than persuasion. Overstating the candidate is worse than omitting a match.
+          content: `You are tailoring a candidate's CV Profile paragraph and Skills list to a specific job spec. This is a recruiter's tool. Accuracy matters more than persuasion. Overstating the candidate is worse than omitting a match.
+
+${HUMAN_STYLE_RULES}
 
 STRICT RULES:
 1. Never invent skills, experience, sectors, tools, or achievements. Every claim must be evident in the source material below.
@@ -120,9 +123,9 @@ ${jobSpec.trim().slice(0, 8000)}`,
     const finalSkills = missing.length ? [...out.skills, ...missing] : out.skills;
 
     return NextResponse.json({
-      profile: (out.profile || "").trim(),
-      skills: finalSkills,
-      addedSkills: out.addedSkills || [],
+      profile: sanitizeProse(out.profile),
+      skills: sanitizeProseList(finalSkills),
+      addedSkills: sanitizeProseList(out.addedSkills),
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Tailoring failed";
