@@ -6,9 +6,9 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
-  let roughNotes: string, candidateName: string, roleAppliedFor: string;
+  let roughNotes: string, candidateName: string, roleAppliedFor: string, jobSpec: string | undefined;
   try {
-    ({ roughNotes, candidateName, roleAppliedFor } = await req.json());
+    ({ roughNotes, candidateName, roleAppliedFor, jobSpec } = await req.json());
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
@@ -16,6 +16,19 @@ export async function POST(req: NextRequest) {
   if (!roughNotes?.trim()) {
     return NextResponse.json({ error: "No notes provided" }, { status: 400 });
   }
+
+  // Cap the job spec so a huge advert can't blow the prompt budget; the top of
+  // the document is where the essential requirements live anyway.
+  const jobSpecText = jobSpec?.trim().slice(0, 8000) || "";
+
+  const tailoringBlock = jobSpecText
+    ? `
+
+You are also tailoring this summary to the job spec below. Emphasise the parts of the candidate's background that map to the role's requirements (skills, sectors, seniority, deal size, tools, methodologies). Mirror the vocabulary the advert uses where it fits naturally. STRICT RULE: only surface experience and skills that are already evident in the notes — never invent, exaggerate, or imply capabilities the notes don't support. If a requirement isn't covered by the notes, quietly leave it out rather than papering over the gap.
+
+Job spec / advert:
+${jobSpecText}`
+    : "";
 
   try {
     const response = await client.messages.create({
@@ -32,7 +45,7 @@ Candidate name: ${candidateName || "the candidate"}
 Role applied for: ${roleAppliedFor || "the role"}
 
 Notes to rewrite:
-${roughNotes.trim()}
+${roughNotes.trim()}${tailoringBlock}
 
 Return only the rewritten summary text, no preamble.`,
         },

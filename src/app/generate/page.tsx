@@ -9,7 +9,7 @@ import { Input } from '@/ui/input'
 import { Textarea } from '@/ui/textarea'
 import { Label } from '@/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/tabs'
-import { Plus, Trash2, FileDown, ArrowLeft, Upload, ClipboardPaste, Loader2, CheckCircle2, ChevronDown, ChevronUp, Wand2, Sparkles, Pencil, RefreshCw } from 'lucide-react'
+import { Plus, Trash2, FileDown, ArrowLeft, Upload, ClipboardPaste, Loader2, CheckCircle2, ChevronDown, ChevronUp, Wand2, Sparkles, Pencil, RefreshCw, Target, X } from 'lucide-react'
 import Image from 'next/image'
 
 interface InterviewQuestion {
@@ -243,6 +243,15 @@ export default function GeneratePage() {
   const [importError, setImportError] = useState('')
   const [dragOver, setDragOver] = useState(false)
 
+  // Job-spec tailoring state (used by Auto Rewrite on the Cover tab)
+  const [jobSpecOpen, setJobSpecOpen] = useState(false)
+  const [jobSpecText, setJobSpecText] = useState('')
+  const [jobSpecFileName, setJobSpecFileName] = useState('')
+  const [jobSpecStatus, setJobSpecStatus] = useState<'idle' | 'parsing' | 'ready' | 'error'>('idle')
+  const [jobSpecError, setJobSpecError] = useState('')
+  const [jobSpecDragOver, setJobSpecDragOver] = useState(false)
+  const jobSpecFileInputRef = useRef<HTMLInputElement>(null)
+
   // Interview questions state
   const [interviewEnabled, setInterviewEnabled] = useState(false)
   const [interviewCount, setInterviewCount] = useState(10)
@@ -274,6 +283,7 @@ export default function GeneratePage() {
           roughNotes: data.executiveSummary,
           candidateName: data.candidateName,
           roleAppliedFor: data.roleAppliedFor,
+          jobSpec: jobSpecText.trim() || undefined,
         }),
       })
       let json: Record<string, unknown>
@@ -434,6 +444,41 @@ export default function GeneratePage() {
   const handlePasteExtract = () => {
     if (pasteText.trim().length < 50) return
     extractAndApply(pasteText)
+  }
+
+  // ── Job spec (Auto Rewrite tailoring) ─────────────────────────
+  const handleJobSpecFile = async (file: File) => {
+    setJobSpecStatus('parsing')
+    setJobSpecError('')
+    setJobSpecFileName(file.name)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/parse-cv', { method: 'POST', body: formData })
+      let parsed: Record<string, unknown>
+      try { parsed = await res.json() } catch { throw new Error(`File parse failed (${res.status})`) }
+      if (!res.ok) throw new Error((parsed as { error?: string }).error ?? 'Failed to parse file')
+      const { text } = parsed as { text: string }
+      setJobSpecText(text.trim())
+      setJobSpecStatus('ready')
+    } catch (err) {
+      setJobSpecError(err instanceof Error ? err.message : 'File parsing failed')
+      setJobSpecStatus('error')
+    }
+  }
+
+  const handleJobSpecDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setJobSpecDragOver(false)
+    const file = e.dataTransfer.files[0]
+    if (file) handleJobSpecFile(file)
+  }
+
+  const clearJobSpec = () => {
+    setJobSpecText('')
+    setJobSpecFileName('')
+    setJobSpecStatus('idle')
+    setJobSpecError('')
   }
 
   // ── Experience helpers ──
@@ -807,12 +852,112 @@ export default function GeneratePage() {
                   <Field label="LinkedIn URL"><Input value={data.linkedIn} onChange={(e) => set('linkedIn', e.target.value)} /></Field>
 
                   <SectionHeading>Executive Summary</SectionHeading>
+
+                  {/* Tailor-to-job-spec panel (optional) */}
+                  <div className="rounded-lg border border-gray-200 bg-gray-50">
+                    <button
+                      type="button"
+                      onClick={() => setJobSpecOpen((o) => !o)}
+                      className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-[#1a3668] hover:bg-white/60 rounded-lg"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <Target className="h-3.5 w-3.5" />
+                        Tailor to Job Spec
+                        <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wider">Optional</span>
+                        {jobSpecStatus === 'ready' && (
+                          <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-semibold text-green-600">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Attached
+                          </span>
+                        )}
+                      </span>
+                      {jobSpecOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                    </button>
+
+                    {jobSpecOpen && (
+                      <div className="px-3 pb-3 space-y-2">
+                        <p className="text-[10px] text-gray-500">
+                          Upload or paste a job advert / spec. Auto Rewrite will emphasise the parts of the candidate&rsquo;s background that match the role&rsquo;s requirements — without inventing anything.
+                        </p>
+
+                        {/* File drop */}
+                        <div
+                          className={`border-2 border-dashed rounded-md p-3 text-center cursor-pointer transition-colors ${
+                            jobSpecDragOver ? 'border-[#df2681] bg-pink-50' : 'border-gray-200 bg-white hover:border-gray-300'
+                          } ${jobSpecStatus === 'parsing' ? 'pointer-events-none opacity-50' : ''}`}
+                          onDragOver={(e) => { e.preventDefault(); setJobSpecDragOver(true) }}
+                          onDragLeave={() => setJobSpecDragOver(false)}
+                          onDrop={handleJobSpecDrop}
+                          onClick={() => jobSpecFileInputRef.current?.click()}
+                        >
+                          <Upload className="h-4 w-4 mx-auto mb-1 text-gray-400" />
+                          <p className="text-[11px] font-medium text-gray-600">Drop a file or click to browse</p>
+                          <p className="text-[9px] text-gray-400 mt-0.5">PDF · DOCX · DOC · RTF · TXT</p>
+                          <input
+                            ref={jobSpecFileInputRef}
+                            type="file"
+                            className="hidden"
+                            accept=".pdf,.docx,.doc,.rtf,.txt"
+                            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleJobSpecFile(f) }}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-px bg-gray-200" />
+                          <span className="text-[9px] text-gray-400 uppercase tracking-wide">or paste</span>
+                          <div className="flex-1 h-px bg-gray-200" />
+                        </div>
+
+                        <Textarea
+                          value={jobSpecText}
+                          onChange={(e) => {
+                            setJobSpecText(e.target.value)
+                            setJobSpecFileName('')
+                            setJobSpecStatus(e.target.value.trim() ? 'ready' : 'idle')
+                          }}
+                          placeholder="Paste the job advert or job spec here..."
+                          className="min-h-[90px] text-[11px] font-mono resize-y bg-white"
+                          disabled={jobSpecStatus === 'parsing'}
+                        />
+
+                        {jobSpecStatus === 'parsing' && (
+                          <div className="flex items-center gap-2 text-[11px] text-[#1a3668]">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Parsing file…
+                          </div>
+                        )}
+                        {jobSpecStatus === 'ready' && (
+                          <div className="flex items-center justify-between gap-2 text-[11px] text-green-600">
+                            <span className="flex items-center gap-1.5 min-w-0">
+                              <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
+                              <span className="truncate">
+                                {jobSpecFileName || `${jobSpecText.trim().length.toLocaleString()} chars ready`}
+                              </span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={clearJobSpec}
+                              className="flex items-center gap-0.5 text-gray-400 hover:text-red-500 flex-shrink-0"
+                              title="Remove job spec"
+                            >
+                              <X className="h-3 w-3" />
+                              Clear
+                            </button>
+                          </div>
+                        )}
+                        {jobSpecStatus === 'error' && (
+                          <p className="text-[11px] text-red-500">{jobSpecError}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="space-y-1">
                     <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
                       Cover Page Summary
                     </Label>
                     <p className="text-[10px] text-gray-400">
-                      Type rough notes (reasons for leaving, aspirations, achievements) and hit Auto Rewrite — AI will polish them into the Aaron Wallis voice.
+                      Type rough notes (reasons for leaving, aspirations, achievements) and hit Auto Rewrite — AI will polish them into the Aaron Wallis voice{jobSpecStatus === 'ready' ? ', tailored to the attached job spec' : ''}.
                     </p>
                     <Textarea
                       value={data.executiveSummary}
@@ -829,7 +974,7 @@ export default function GeneratePage() {
                     >
                       {rewriting
                         ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Rewriting…</>
-                        : <><Wand2 className="h-3.5 w-3.5" /> Auto Rewrite</>}
+                        : <><Wand2 className="h-3.5 w-3.5" /> {jobSpecStatus === 'ready' ? 'Auto Rewrite (tailored)' : 'Auto Rewrite'}</>}
                     </Button>
                     {rewriteError && <p className="text-xs text-red-500">{rewriteError}</p>}
                   </div>
