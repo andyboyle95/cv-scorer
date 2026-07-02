@@ -265,6 +265,11 @@ export default function GeneratePage() {
   const [iqEditDraft, setIqEditDraft] = useState<InterviewQuestion>({ theme: '', question: '', followUp: '', rationale: '' })
   const [iqRegeneratingIdxs, setIqRegeneratingIdxs] = useState<Set<number>>(new Set())
 
+  // Profile & Skills tailoring state
+  const [tailoringProfile, setTailoringProfile] = useState(false)
+  const [tailorError, setTailorError] = useState('')
+  const [addedSkills, setAddedSkills] = useState<string[]>([])
+
   const set = useCallback(<K extends keyof CandidateData>(key: K, value: CandidateData[K]) => {
     setData((prev) => ({ ...prev, [key]: value }))
   }, [])
@@ -294,6 +299,47 @@ export default function GeneratePage() {
       setRewriteError(err instanceof Error ? err.message : 'Rewrite failed')
     } finally {
       setRewriting(false)
+    }
+  }
+
+  // ── Tailor profile & skills to job spec ──────────────────────
+
+  const handleTailorProfileSkills = async () => {
+    if (!jobSpecText.trim()) return
+    setTailoringProfile(true)
+    setTailorError('')
+    try {
+      const res = await fetch('/api/tailor-profile-skills', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profile: data.profile,
+          skills: data.skills.filter(Boolean),
+          experience: data.experience.map((e) => ({
+            company: e.company,
+            role: e.role,
+            description: e.description,
+            bullets: e.bullets.filter(Boolean),
+          })),
+          jobSpec: jobSpecText,
+          candidateName: data.candidateName,
+          roleAppliedFor: data.roleAppliedFor,
+        }),
+      })
+      let json: Record<string, unknown>
+      try { json = await res.json() } catch { throw new Error(`Server error (${res.status})`) }
+      if (!res.ok) throw new Error((json as { error?: string }).error ?? 'Tailoring failed')
+      const out = json as { profile: string; skills: string[]; addedSkills: string[] }
+      setData((prev) => ({
+        ...prev,
+        profile: out.profile || prev.profile,
+        skills: out.skills?.length ? out.skills : prev.skills,
+      }))
+      setAddedSkills(out.addedSkills || [])
+    } catch (err) {
+      setTailorError(err instanceof Error ? err.message : 'Tailoring failed')
+    } finally {
+      setTailoringProfile(false)
     }
   }
 
@@ -982,6 +1028,59 @@ export default function GeneratePage() {
 
                 {/* Profile & Skills */}
                 <TabsContent value="profile" className="space-y-3 pt-4">
+                  {/* Tailor Profile & Skills to Job Spec */}
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-[#1a3668]">
+                      <Target className="h-3.5 w-3.5" />
+                      Tailor Profile &amp; Skills to Job Spec
+                      {jobSpecStatus === 'ready' && (
+                        <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-semibold text-green-600">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Attached
+                        </span>
+                      )}
+                    </div>
+
+                    {jobSpecStatus === 'ready' ? (
+                      <p className="text-[10px] text-gray-500">
+                        Rewrites the Profile paragraph and reorders Skills to lead with matches. Only uses claims already evidenced in your CV — nothing is fabricated. Any new skills the AI adds are shown for you to review.
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-gray-500">
+                        Attach a job advert on the <strong>Cover</strong> tab (under Executive Summary) first — then come back here to tailor the profile and skills to it.
+                      </p>
+                    )}
+
+                    <Button
+                      onClick={handleTailorProfileSkills}
+                      disabled={tailoringProfile || jobSpecStatus !== 'ready'}
+                      size="sm"
+                      className="w-full gap-1.5 bg-[#1a3668] hover:bg-[#12274d] text-white"
+                    >
+                      {tailoringProfile
+                        ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Tailoring…</>
+                        : <><Wand2 className="h-3.5 w-3.5" /> Tailor Profile &amp; Skills</>}
+                    </Button>
+                    {tailorError && <p className="text-[11px] text-red-500">{tailorError}</p>}
+                    {addedSkills.length > 0 && (
+                      <div className="rounded border border-amber-200 bg-amber-50 p-2 space-y-1">
+                        <p className="text-[10px] font-semibold text-amber-800">
+                          {addedSkills.length} new skill{addedSkills.length === 1 ? '' : 's'} suggested — review before exporting
+                        </p>
+                        <ul className="text-[11px] text-amber-900 space-y-0.5">
+                          {addedSkills.map((s, i) => <li key={i}>• {s}</li>)}
+                        </ul>
+                        <button
+                          type="button"
+                          onClick={() => setAddedSkills([])}
+                          className="text-[10px] text-amber-700 hover:text-amber-900 underline"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   <SectionHeading>Profile</SectionHeading>
                   <Field label="Profile Statement">
                     <Textarea value={data.profile} onChange={(e) => set('profile', e.target.value)} className="min-h-[160px] text-xs" />
