@@ -9,7 +9,7 @@ import { Input } from '@/ui/input'
 import { Textarea } from '@/ui/textarea'
 import { Label } from '@/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/tabs'
-import { Plus, Trash2, FileDown, ArrowLeft, Upload, ClipboardPaste, Loader2, CheckCircle2, ChevronDown, ChevronUp, Wand2, Sparkles, Pencil, RefreshCw, Target, X } from 'lucide-react'
+import { Plus, Trash2, FileDown, ArrowLeft, Upload, ClipboardPaste, Loader2, CheckCircle2, ChevronDown, ChevronUp, Wand2, Sparkles, Pencil, RefreshCw, Target, X, EyeOff, Mail, Copy } from 'lucide-react'
 import Image from 'next/image'
 
 interface InterviewQuestion {
@@ -273,9 +273,30 @@ export default function GeneratePage() {
   const [tailorError, setTailorError] = useState('')
   const [addedSkills, setAddedSkills] = useState<string[]>([])
 
+  // Send anonymously state
+  const [sendAnonymously, setSendAnonymously] = useState(false)
+  const [anonymisedData, setAnonymisedData] = useState<CandidateData | null>(null)
+  const [anonymising, setAnonymising] = useState(false)
+  const [anonymiseError, setAnonymiseError] = useState('')
+
+  // Speculative introduction email state
+  const [emailOpen, setEmailOpen] = useState(false)
+  const [emailData, setEmailData] = useState<{ subject: string; body: string } | null>(null)
+  const [generatingEmail, setGeneratingEmail] = useState(false)
+  const [emailError, setEmailError] = useState('')
+  const [emailCopied, setEmailCopied] = useState<'subject' | 'body' | 'both' | null>(null)
+
   const set = useCallback(<K extends keyof CandidateData>(key: K, value: CandidateData[K]) => {
     setData((prev) => ({ ...prev, [key]: value }))
   }, [])
+
+  // ── The single source of truth for what actually gets rendered / exported.
+  // If anonymous mode is on AND we've got an anonymised snapshot, use it;
+  // otherwise fall through to the real data. This means the form UI is always
+  // editable against the real data (candidate name, LinkedIn etc), but the
+  // preview and the PDF only ever show the anonymised view when the toggle
+  // is on.
+  const viewData: CandidateData = sendAnonymously && anonymisedData ? anonymisedData : data
 
   // ── Rewrite summary ───────────────────────────────────────────
 
@@ -304,6 +325,112 @@ export default function GeneratePage() {
     } finally {
       setRewriting(false)
     }
+  }
+
+  // ── Anonymise CV ─────────────────────────────────────────────
+
+  const runAnonymise = async (): Promise<CandidateData | null> => {
+    setAnonymising(true)
+    setAnonymiseError('')
+    try {
+      const res = await fetch('/api/anonymise-cv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidateName: data.candidateName,
+          linkedIn: data.linkedIn,
+          location: data.location,
+          executiveSummary: data.executiveSummary,
+          profile: data.profile,
+          skills: data.skills,
+          experience: data.experience,
+          qualifications: data.qualifications,
+          languages: data.languages,
+        }),
+      })
+      let json: Record<string, unknown>
+      try { json = await res.json() } catch { throw new Error(`Server error (${res.status})`) }
+      if (!res.ok) throw new Error((json as { error?: string }).error ?? 'Anonymisation failed')
+
+      const anon = json as Partial<CandidateData>
+      // Merge onto the recruiter/consultant fields from the current data — the
+      // consultant sign-off block stays as-is; only candidate-identifying
+      // fields are swapped for their anonymised versions.
+      const merged: CandidateData = {
+        ...data,
+        candidateName: anon.candidateName ?? 'Confidential Candidate',
+        linkedIn: anon.linkedIn ?? '',
+        location: anon.location ?? data.location,
+        executiveSummary: anon.executiveSummary ?? data.executiveSummary,
+        profile: anon.profile ?? data.profile,
+        skills: anon.skills ?? data.skills,
+        experience: anon.experience ?? data.experience,
+        qualifications: anon.qualifications ?? data.qualifications,
+        languages: anon.languages ?? data.languages,
+      }
+      setAnonymisedData(merged)
+      return merged
+    } catch (err) {
+      setAnonymiseError(err instanceof Error ? err.message : 'Anonymisation failed')
+      return null
+    } finally {
+      setAnonymising(false)
+    }
+  }
+
+  const handleToggleAnonymous = async (checked: boolean) => {
+    setSendAnonymously(checked)
+    if (checked && !anonymisedData) {
+      await runAnonymise()
+    }
+  }
+
+  // ── Speculative introduction email ───────────────────────────
+
+  const handleGenerateEmail = async () => {
+    setGeneratingEmail(true)
+    setEmailError('')
+    setEmailOpen(true)
+    try {
+      // Pitch off whichever version is being sent — if the user is going
+      // anonymously, the email must be anonymous too.
+      const src = sendAnonymously && anonymisedData ? anonymisedData : data
+      const res = await fetch('/api/speculative-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidateName: src.candidateName,
+          roleAppliedFor: src.roleAppliedFor,
+          location: src.location,
+          executiveSummary: src.executiveSummary,
+          profile: src.profile,
+          skills: src.skills,
+          experience: src.experience,
+          languages: src.languages,
+          qualifications: src.qualifications,
+          consultant: data.consultant,
+          consultantEmail: data.consultantEmail,
+          consultantTel: data.consultantTel,
+          anonymised: sendAnonymously,
+        }),
+      })
+      let json: Record<string, unknown>
+      try { json = await res.json() } catch { throw new Error(`Server error (${res.status})`) }
+      if (!res.ok) throw new Error((json as { error?: string }).error ?? 'Generation failed')
+      setEmailData(json as { subject: string; body: string })
+    } catch (err) {
+      setEmailError(err instanceof Error ? err.message : 'Generation failed')
+    } finally {
+      setGeneratingEmail(false)
+    }
+  }
+
+  const copyToClipboard = async (text: string, what: 'subject' | 'body' | 'both') => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setEmailCopied(what)
+      setTimeout(() => setEmailCopied(null), 1500)
+    } catch { /* clipboard blocked — silent */ }
   }
 
   // ── Tailor profile & skills to job spec ──────────────────────
@@ -408,7 +535,7 @@ export default function GeneratePage() {
 
       wrapper.setAttribute('style', prev)
 
-      const slug = (data.candidateName || 'cv')
+      const slug = (viewData.candidateName || 'cv')
         .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
       pdf!.save(`${slug}.pdf`)
     } catch (err) {
@@ -757,7 +884,7 @@ export default function GeneratePage() {
               variant="outline"
               size="sm"
               onClick={() => {
-                const slug = (data.candidateName || 'cv')
+                const slug = (viewData.candidateName || 'cv')
                   .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
                 const prev = document.title
                 document.title = slug
@@ -887,6 +1014,80 @@ export default function GeneratePage() {
 
                 {/* Cover Sheet */}
                 <TabsContent value="cover" className="space-y-3 pt-4">
+                  {/* Send Speculatively — anonymise + intro email */}
+                  <div className="rounded-lg border-2 border-[#df2681]/30 bg-gradient-to-br from-pink-50/50 to-white p-3 space-y-3">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-[#1a3668] uppercase tracking-wide">
+                      <Sparkles className="h-3.5 w-3.5 text-[#df2681]" />
+                      Speculative Send
+                    </div>
+
+                    {/* Anonymise */}
+                    <div className="space-y-1.5">
+                      <label className="flex items-start gap-2 cursor-pointer group">
+                        <input
+                          type="checkbox"
+                          checked={sendAnonymously}
+                          onChange={(e) => handleToggleAnonymous(e.target.checked)}
+                          className="w-4 h-4 rounded flex-shrink-0 mt-0.5"
+                          style={{ accentColor: '#1a3668' }}
+                          disabled={anonymising}
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <EyeOff className="h-3.5 w-3.5 text-gray-600" />
+                            <span className="text-xs font-semibold text-gray-800 group-hover:text-[#1a3668]">
+                              Send Anonymously
+                            </span>
+                            {anonymising && <Loader2 className="h-3 w-3 animate-spin text-[#1a3668]" />}
+                            {sendAnonymously && anonymisedData && !anonymising && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-600">
+                                <CheckCircle2 className="h-3 w-3" /> Applied to preview &amp; PDF
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-gray-500 mt-0.5">
+                            AI strips name, LinkedIn, employer &amp; university names, and specific location, keeping every substantive claim intact.
+                          </p>
+                        </div>
+                      </label>
+                      {sendAnonymously && anonymisedData && !anonymising && (
+                        <button
+                          type="button"
+                          onClick={runAnonymise}
+                          className="ml-6 text-[10px] text-[#1a3668] hover:text-[#df2681] underline"
+                        >
+                          Re-anonymise (data has changed)
+                        </button>
+                      )}
+                      {anonymiseError && (
+                        <p className="ml-6 text-[11px] text-red-500">{anonymiseError}</p>
+                      )}
+                    </div>
+
+                    <div className="border-t border-[#df2681]/20" />
+
+                    {/* Speculative introduction email */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <Mail className="h-3.5 w-3.5 text-gray-600" />
+                        <span className="text-xs font-semibold text-gray-800">Introduction Email</span>
+                      </div>
+                      <p className="text-[10px] text-gray-500">
+                        Generate a short teaser email pitching this candidate to a potential client. Uses the {sendAnonymously ? 'anonymised' : 'full'} CV.
+                      </p>
+                      <Button
+                        onClick={handleGenerateEmail}
+                        disabled={generatingEmail || (sendAnonymously && !anonymisedData)}
+                        size="sm"
+                        className="w-full gap-1.5 bg-[#df2681] hover:bg-[#c01f6e] text-white"
+                      >
+                        {generatingEmail
+                          ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Drafting…</>
+                          : <><Mail className="h-3.5 w-3.5" /> Draft Introduction Email</>}
+                      </Button>
+                    </div>
+                  </div>
+
                   <SectionHeading>Consultant</SectionHeading>
                   <Field label="Name"><Input value={data.consultant} onChange={(e) => set('consultant', e.target.value)} /></Field>
                   <Field label="Email"><Input value={data.consultantEmail} onChange={(e) => set('consultantEmail', e.target.value)} /></Field>
@@ -1362,7 +1563,7 @@ export default function GeneratePage() {
               </span>
             </div>
             <div style={{ transform: 'scale(0.72)', transformOrigin: 'top center' }}>
-              <CvTemplate data={data} />
+              <CvTemplate data={viewData} />
               {interviewEnabled && renderIqPages(true)}
             </div>
           </div>
@@ -1371,11 +1572,125 @@ export default function GeneratePage() {
 
       {/* ── Print-only CV (full fidelity, no scaling) ── */}
       <div id="pdf-capture-wrapper" className="hidden print:block">
-        <CvTemplate data={data} printRef={printRef} />
+        <CvTemplate data={viewData} printRef={printRef} />
 
         {/* Interview questions pages — rendered via shared renderIqPages() */}
         {interviewEnabled && renderIqPages()}
       </div>
+
+      {/* ── Introduction Email modal ── */}
+      {emailOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 print:hidden"
+          onClick={() => setEmailOpen(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-[#df2681]" />
+                <h3 className="text-sm font-bold text-[#1a3668]">Speculative Introduction Email</h3>
+                {sendAnonymously && (
+                  <span className="text-[9px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded uppercase tracking-wide">
+                    Anonymous
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => setEmailOpen(false)}
+                className="text-gray-400 hover:text-gray-700 p-1 rounded"
+                title="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              {generatingEmail && (
+                <div className="flex items-center justify-center gap-2 py-10 text-sm text-gray-500">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Drafting the email…
+                </div>
+              )}
+              {emailError && !generatingEmail && (
+                <p className="text-sm text-red-500 py-4">{emailError}</p>
+              )}
+              {emailData && !generatingEmail && (
+                <>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Subject</Label>
+                      <button
+                        onClick={() => copyToClipboard(emailData.subject, 'subject')}
+                        className="flex items-center gap-1 text-[10px] font-semibold text-[#1a3668] hover:text-[#df2681]"
+                      >
+                        {emailCopied === 'subject' ? <><CheckCircle2 className="h-3 w-3" /> Copied</> : <><Copy className="h-3 w-3" /> Copy</>}
+                      </button>
+                    </div>
+                    <Input
+                      value={emailData.subject}
+                      onChange={(e) => setEmailData((d) => d ? { ...d, subject: e.target.value } : d)}
+                      className="text-sm font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Body</Label>
+                      <button
+                        onClick={() => copyToClipboard(emailData.body, 'body')}
+                        className="flex items-center gap-1 text-[10px] font-semibold text-[#1a3668] hover:text-[#df2681]"
+                      >
+                        {emailCopied === 'body' ? <><CheckCircle2 className="h-3 w-3" /> Copied</> : <><Copy className="h-3 w-3" /> Copy</>}
+                      </button>
+                    </div>
+                    <Textarea
+                      value={emailData.body}
+                      onChange={(e) => setEmailData((d) => d ? { ...d, body: e.target.value } : d)}
+                      className="text-xs font-sans min-h-[240px] leading-relaxed whitespace-pre-wrap"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {emailData && !generatingEmail && (
+              <div className="flex items-center justify-between gap-2 px-5 py-3 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateEmail}
+                  className="gap-1.5 text-xs"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" /> Regenerate
+                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard(`Subject: ${emailData.subject}\n\n${emailData.body}`, 'both')}
+                    className="gap-1.5 text-xs"
+                  >
+                    {emailCopied === 'both' ? <><CheckCircle2 className="h-3.5 w-3.5" /> Copied</> : <><Copy className="h-3.5 w-3.5" /> Copy both</>}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      const mailto = `mailto:?subject=${encodeURIComponent(emailData.subject)}&body=${encodeURIComponent(emailData.body)}`
+                      window.location.href = mailto
+                    }}
+                    className="gap-1.5 text-xs bg-[#1a3668] hover:bg-[#12274d] text-white"
+                  >
+                    <Mail className="h-3.5 w-3.5" /> Open in mail client
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   )
 }
