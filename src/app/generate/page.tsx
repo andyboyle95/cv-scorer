@@ -277,8 +277,9 @@ export default function GeneratePage() {
   // Executive summary length toggle
   const [rewriteLonger, setRewriteLonger] = useState(false)
 
-  // Job-spec tailoring state (used by Auto Rewrite on the Cover tab)
-  const [jobSpecOpen, setJobSpecOpen] = useState(false)
+  // Job-spec tailoring state (Step 1 in the left panel — default OPEN so
+  // recruiters see it before Import CV and understand the intended order).
+  const [jobSpecOpen, setJobSpecOpen] = useState(true)
   const [jobSpecText, setJobSpecText] = useState('')
   const [jobSpecFileName, setJobSpecFileName] = useState('')
   const [jobSpecStatus, setJobSpecStatus] = useState<'idle' | 'parsing' | 'ready' | 'error'>('idle')
@@ -960,18 +961,120 @@ export default function GeneratePage() {
           {/* LEFT: Form */}
           <div className="w-[440px] shrink-0 bg-white border-r border-gray-200 overflow-y-auto">
 
-            {/* ── Import section ── */}
+            {/* ── STEP 1 · Target Role / Job Spec ──
+                Sits above Import CV so recruiters can see the intended
+                order at a glance. Attaching first means every AI step
+                below (Auto Rewrite, Profile & Skills tailoring, Intro
+                Email) is tailored automatically on its first pass. */}
+            <div className="border-b border-gray-200 bg-gradient-to-r from-[#1a3668]/[0.03] to-transparent">
+              <button
+                onClick={() => setJobSpecOpen((o) => !o)}
+                className="w-full flex items-center justify-between px-5 py-3 text-sm font-semibold text-[#1a3668] hover:bg-white/60"
+              >
+                <span className="flex items-center gap-2 min-w-0">
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-white bg-[#1a3668] px-1.5 py-0.5 rounded flex-shrink-0">
+                    Step 1
+                  </span>
+                  <Target className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">Target Role / Job Spec</span>
+                  {jobSpecStatus === 'ready' && <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />}
+                </span>
+                {jobSpecOpen ? <ChevronUp className="h-4 w-4 flex-shrink-0" /> : <ChevronDown className="h-4 w-4 flex-shrink-0" />}
+              </button>
+
+              {jobSpecOpen && (
+                <div className="px-5 pb-4 space-y-2.5">
+                  <p className="text-xs text-gray-600">
+                    <span className="font-semibold text-[#1a3668]">Attach this first.</span> Optional but strongly recommended. Every AI step below (Auto Rewrite, Profile &amp; Skills tailoring, Introduction Email) reads from it, and nothing is fabricated. Only material already evident in the CV is emphasised.
+                  </p>
+
+                  {/* File drop */}
+                  <div
+                    className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+                      jobSpecDragOver ? 'border-[#df2681] bg-pink-50' : 'border-gray-200 bg-white hover:border-gray-300'
+                    } ${jobSpecStatus === 'parsing' ? 'pointer-events-none opacity-50' : ''}`}
+                    onDragOver={(e) => { e.preventDefault(); setJobSpecDragOver(true) }}
+                    onDragLeave={() => setJobSpecDragOver(false)}
+                    onDrop={handleJobSpecDrop}
+                    onClick={() => jobSpecFileInputRef.current?.click()}
+                  >
+                    <Upload className="h-6 w-6 mx-auto mb-1.5 text-gray-400" />
+                    <p className="text-xs font-medium text-gray-600">Drop a job advert / spec, or click to browse</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">PDF · DOCX · DOC · RTF · TXT</p>
+                    <input
+                      ref={jobSpecFileInputRef}
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.docx,.doc,.rtf,.txt"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleJobSpecFile(f) }}
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-px bg-gray-200" />
+                    <span className="text-[10px] text-gray-400 uppercase tracking-wide">or paste text</span>
+                    <div className="flex-1 h-px bg-gray-200" />
+                  </div>
+
+                  <Textarea
+                    value={jobSpecText}
+                    onChange={(e) => {
+                      setJobSpecText(e.target.value)
+                      setJobSpecFileName('')
+                      setJobSpecStatus(e.target.value.trim() ? 'ready' : 'idle')
+                    }}
+                    placeholder="Paste the job advert or job spec here..."
+                    className="min-h-[100px] text-xs font-mono resize-y bg-white"
+                    disabled={jobSpecStatus === 'parsing'}
+                  />
+
+                  {jobSpecStatus === 'parsing' && (
+                    <div className="flex items-center gap-2 text-xs text-[#1a3668]">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Parsing file…
+                    </div>
+                  )}
+                  {jobSpecStatus === 'ready' && (
+                    <div className="flex items-center justify-between gap-2 text-xs text-green-600">
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="truncate">
+                          {jobSpecFileName || `${jobSpecText.trim().length.toLocaleString()} chars ready`}
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={clearJobSpec}
+                        className="flex items-center gap-0.5 text-gray-400 hover:text-red-500 flex-shrink-0"
+                        title="Remove job spec"
+                      >
+                        <X className="h-3 w-3" />
+                        Clear
+                      </button>
+                    </div>
+                  )}
+                  {jobSpecStatus === 'error' && (
+                    <p className="text-xs text-red-500">{jobSpecError}</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* ── STEP 2 · Import section ── */}
             <div className="border-b border-gray-200">
               <button
                 onClick={() => setImportOpen((o) => !o)}
                 className="w-full flex items-center justify-between px-5 py-3 text-sm font-semibold text-[#1a3668] hover:bg-gray-50"
               >
-                <span className="flex items-center gap-2">
-                  <Upload className="h-4 w-4" />
-                  Import from CV
-                  {importStatus === 'done' && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+                <span className="flex items-center gap-2 min-w-0">
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-white bg-[#1a3668] px-1.5 py-0.5 rounded flex-shrink-0">
+                    Step 2
+                  </span>
+                  <Upload className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">Import from CV</span>
+                  {importStatus === 'done' && <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />}
                 </span>
-                {importOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                {importOpen ? <ChevronUp className="h-4 w-4 flex-shrink-0" /> : <ChevronDown className="h-4 w-4 flex-shrink-0" />}
               </button>
 
               {importOpen && (
@@ -1132,107 +1235,6 @@ export default function GeneratePage() {
                           : <><Mail className="h-3.5 w-3.5" /> Draft Introduction Email</>}
                       </Button>
                     </div>
-                  </div>
-
-                  {/* Job spec panel — sits above the CV inputs because every AI
-                      step below (executive summary, profile & skills tailoring,
-                      intro email) reads from it, so you attach it FIRST. */}
-                  <div className="rounded-lg border border-gray-200 bg-gray-50">
-                    <button
-                      type="button"
-                      onClick={() => setJobSpecOpen((o) => !o)}
-                      className="w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold text-[#1a3668] hover:bg-white/60 rounded-lg"
-                    >
-                      <span className="flex items-center gap-1.5">
-                        <Target className="h-3.5 w-3.5" />
-                        Target Role / Job Spec
-                        <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wider">Attach First</span>
-                        {jobSpecStatus === 'ready' && (
-                          <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-semibold text-green-600">
-                            <CheckCircle2 className="h-3 w-3" />
-                            Attached
-                          </span>
-                        )}
-                      </span>
-                      {jobSpecOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                    </button>
-
-                    {jobSpecOpen && (
-                      <div className="px-3 pb-3 space-y-2">
-                        <p className="text-[10px] text-gray-500">
-                          Optional but recommended. Attach the job advert or spec now and every AI step below (Executive Summary, Profile &amp; Skills, Introduction Email) will be tailored to it. Nothing is fabricated, only material already evident in the CV is emphasised.
-                        </p>
-
-                        {/* File drop */}
-                        <div
-                          className={`border-2 border-dashed rounded-md p-3 text-center cursor-pointer transition-colors ${
-                            jobSpecDragOver ? 'border-[#df2681] bg-pink-50' : 'border-gray-200 bg-white hover:border-gray-300'
-                          } ${jobSpecStatus === 'parsing' ? 'pointer-events-none opacity-50' : ''}`}
-                          onDragOver={(e) => { e.preventDefault(); setJobSpecDragOver(true) }}
-                          onDragLeave={() => setJobSpecDragOver(false)}
-                          onDrop={handleJobSpecDrop}
-                          onClick={() => jobSpecFileInputRef.current?.click()}
-                        >
-                          <Upload className="h-4 w-4 mx-auto mb-1 text-gray-400" />
-                          <p className="text-[11px] font-medium text-gray-600">Drop a file or click to browse</p>
-                          <p className="text-[9px] text-gray-400 mt-0.5">PDF · DOCX · DOC · RTF · TXT</p>
-                          <input
-                            ref={jobSpecFileInputRef}
-                            type="file"
-                            className="hidden"
-                            accept=".pdf,.docx,.doc,.rtf,.txt"
-                            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleJobSpecFile(f) }}
-                          />
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-px bg-gray-200" />
-                          <span className="text-[9px] text-gray-400 uppercase tracking-wide">or paste</span>
-                          <div className="flex-1 h-px bg-gray-200" />
-                        </div>
-
-                        <Textarea
-                          value={jobSpecText}
-                          onChange={(e) => {
-                            setJobSpecText(e.target.value)
-                            setJobSpecFileName('')
-                            setJobSpecStatus(e.target.value.trim() ? 'ready' : 'idle')
-                          }}
-                          placeholder="Paste the job advert or job spec here..."
-                          className="min-h-[90px] text-[11px] font-mono resize-y bg-white"
-                          disabled={jobSpecStatus === 'parsing'}
-                        />
-
-                        {jobSpecStatus === 'parsing' && (
-                          <div className="flex items-center gap-2 text-[11px] text-[#1a3668]">
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                            Parsing file…
-                          </div>
-                        )}
-                        {jobSpecStatus === 'ready' && (
-                          <div className="flex items-center justify-between gap-2 text-[11px] text-green-600">
-                            <span className="flex items-center gap-1.5 min-w-0">
-                              <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
-                              <span className="truncate">
-                                {jobSpecFileName || `${jobSpecText.trim().length.toLocaleString()} chars ready`}
-                              </span>
-                            </span>
-                            <button
-                              type="button"
-                              onClick={clearJobSpec}
-                              className="flex items-center gap-0.5 text-gray-400 hover:text-red-500 flex-shrink-0"
-                              title="Remove job spec"
-                            >
-                              <X className="h-3 w-3" />
-                              Clear
-                            </button>
-                          </div>
-                        )}
-                        {jobSpecStatus === 'error' && (
-                          <p className="text-[11px] text-red-500">{jobSpecError}</p>
-                        )}
-                      </div>
-                    )}
                   </div>
 
                   <SectionHeading>Consultant</SectionHeading>
