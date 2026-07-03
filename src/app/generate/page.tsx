@@ -205,6 +205,37 @@ const DEFAULT_DATA: CandidateData = {
   ],
 }
 
+// A realistic Enterprise AE spec designed to map onto DEFAULT_DATA (Lavinia's
+// buy-side / financial data sales background) so the tailoring features
+// produce a meaningful before/after when the recruiter is trying them out.
+const TEST_JOB_SPEC = `Senior Enterprise Account Executive — Institutional Financial Data & Analytics
+
+About the role
+We are hiring a Senior Enterprise Account Executive to lead new-business growth across our institutional client base in EMEA. You will own a strategic territory of asset managers, hedge funds, private credit funds and private equity firms, running full-cycle enterprise sales into credit, risk and investment operations teams.
+
+You will be joining a fast-growing fintech data and analytics platform used by 40+ of the world's largest institutional investors. Deal sizes typically range from £150k to £1M+ ARR with 6-12 month enterprise sales cycles involving procurement, legal, technology and business stakeholders.
+
+Key responsibilities
+- Own the full sales cycle from prospect identification through to signed commercial agreement.
+- Build and manage a healthy £3M+ annual pipeline across the buy-side.
+- Lead multi-stakeholder deal cycles with C-level engagement (Head of Credit, CIO, Head of Research, CTO, COO).
+- Structure a greenfield territory strategy including account tiering, GTM sequencing and pricing.
+- Deliver polished demos and boardroom-level presentations tailored to institutional audiences.
+- Work closely with customer success, product and marketing to ensure adoption post-signature.
+- Represent the firm at senior industry events and roundtables.
+
+What we're looking for
+- Proven track record closing enterprise SaaS or data deals at £250k+ ARR.
+- Direct experience selling into institutional buy-side clients: asset managers, hedge funds, private credit, private equity, sovereign wealth, insurers.
+- Comfort engaging both business and technology stakeholders (credit, risk, research, IT, procurement, legal).
+- Methodical, disciplined pipeline management and forecasting.
+- Track record of consistently meeting or beating revenue targets.
+- Strong appreciation for AI, workflow automation and how they change institutional operating models.
+- Fluent English essential; additional European languages a plus.
+
+Location: London (hybrid, 2-3 days in-office).
+Base salary: £110k-£140k + double OTE + equity.`;
+
 function newExp(): ExperienceEntry {
   return { id: String(Date.now()), company: '', role: '', dateFrom: '', dateTo: '', description: '', bullets: [''] }
 }
@@ -884,6 +915,21 @@ export default function GeneratePage() {
               variant="outline"
               size="sm"
               onClick={() => {
+                setJobSpecText(TEST_JOB_SPEC)
+                setJobSpecFileName('Test Job Spec — Enterprise AE')
+                setJobSpecStatus('ready')
+                setJobSpecError('')
+                setJobSpecOpen(true)
+              }}
+              className="text-xs border-[#1a3668]/40 text-[#1a3668] hover:bg-[#1a3668]/5"
+              title="Loads a sample Enterprise AE job spec you can use to try the tailoring features"
+            >
+              Load Test Job Spec
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
                 const slug = (viewData.candidateName || 'cv')
                   .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
                 const prev = document.title
@@ -1088,33 +1134,19 @@ export default function GeneratePage() {
                     </div>
                   </div>
 
-                  <SectionHeading>Consultant</SectionHeading>
-                  <Field label="Name"><Input value={data.consultant} onChange={(e) => set('consultant', e.target.value)} /></Field>
-                  <Field label="Email"><Input value={data.consultantEmail} onChange={(e) => set('consultantEmail', e.target.value)} /></Field>
-                  <Field label="Telephone"><Input value={data.consultantTel} onChange={(e) => set('consultantTel', e.target.value)} /></Field>
-                  <Field label="Date Submitted"><Input value={data.dateSubmitted} onChange={(e) => set('dateSubmitted', e.target.value)} /></Field>
-
-                  <SectionHeading>Candidate</SectionHeading>
-                  <Field label="Full Name"><Input value={data.candidateName} onChange={(e) => set('candidateName', e.target.value)} /></Field>
-                  <Field label="Role Applied For"><Input value={data.roleAppliedFor} onChange={(e) => set('roleAppliedFor', e.target.value)} /></Field>
-                  <Field label="Salary / Rate Expectations"><Input value={data.salaryExpectations} onChange={(e) => set('salaryExpectations', e.target.value)} /></Field>
-                  <Field label="Notice Period"><Input value={data.noticePeriod} onChange={(e) => set('noticePeriod', e.target.value)} /></Field>
-                  <Field label="Location"><Input value={data.location} onChange={(e) => set('location', e.target.value)} /></Field>
-                  <Field label="LinkedIn URL"><Input value={data.linkedIn} onChange={(e) => set('linkedIn', e.target.value)} /></Field>
-
-                  <SectionHeading>Executive Summary</SectionHeading>
-
-                  {/* Tailor-to-job-spec panel (optional) */}
+                  {/* Job spec panel — sits above the CV inputs because every AI
+                      step below (executive summary, profile & skills tailoring,
+                      intro email) reads from it, so you attach it FIRST. */}
                   <div className="rounded-lg border border-gray-200 bg-gray-50">
                     <button
                       type="button"
                       onClick={() => setJobSpecOpen((o) => !o)}
-                      className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-[#1a3668] hover:bg-white/60 rounded-lg"
+                      className="w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold text-[#1a3668] hover:bg-white/60 rounded-lg"
                     >
                       <span className="flex items-center gap-1.5">
                         <Target className="h-3.5 w-3.5" />
-                        Tailor to Job Spec
-                        <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wider">Optional</span>
+                        Target Role / Job Spec
+                        <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wider">Attach First</span>
                         {jobSpecStatus === 'ready' && (
                           <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-semibold text-green-600">
                             <CheckCircle2 className="h-3 w-3" />
@@ -1128,7 +1160,7 @@ export default function GeneratePage() {
                     {jobSpecOpen && (
                       <div className="px-3 pb-3 space-y-2">
                         <p className="text-[10px] text-gray-500">
-                          Upload or paste a job advert / spec. Auto Rewrite will emphasise the parts of the candidate&rsquo;s background that match the role&rsquo;s requirements — without inventing anything.
+                          Optional but recommended. Attach the job advert or spec now and every AI step below (Executive Summary, Profile &amp; Skills, Introduction Email) will be tailored to it. Nothing is fabricated, only material already evident in the CV is emphasised.
                         </p>
 
                         {/* File drop */}
@@ -1203,12 +1235,28 @@ export default function GeneratePage() {
                     )}
                   </div>
 
+                  <SectionHeading>Consultant</SectionHeading>
+                  <Field label="Name"><Input value={data.consultant} onChange={(e) => set('consultant', e.target.value)} /></Field>
+                  <Field label="Email"><Input value={data.consultantEmail} onChange={(e) => set('consultantEmail', e.target.value)} /></Field>
+                  <Field label="Telephone"><Input value={data.consultantTel} onChange={(e) => set('consultantTel', e.target.value)} /></Field>
+                  <Field label="Date Submitted"><Input value={data.dateSubmitted} onChange={(e) => set('dateSubmitted', e.target.value)} /></Field>
+
+                  <SectionHeading>Candidate</SectionHeading>
+                  <Field label="Full Name"><Input value={data.candidateName} onChange={(e) => set('candidateName', e.target.value)} /></Field>
+                  <Field label="Role Applied For"><Input value={data.roleAppliedFor} onChange={(e) => set('roleAppliedFor', e.target.value)} /></Field>
+                  <Field label="Salary / Rate Expectations"><Input value={data.salaryExpectations} onChange={(e) => set('salaryExpectations', e.target.value)} /></Field>
+                  <Field label="Notice Period"><Input value={data.noticePeriod} onChange={(e) => set('noticePeriod', e.target.value)} /></Field>
+                  <Field label="Location"><Input value={data.location} onChange={(e) => set('location', e.target.value)} /></Field>
+                  <Field label="LinkedIn URL"><Input value={data.linkedIn} onChange={(e) => set('linkedIn', e.target.value)} /></Field>
+
+                  <SectionHeading>Executive Summary</SectionHeading>
+
                   <div className="space-y-1">
                     <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
                       Cover Page Summary
                     </Label>
                     <p className="text-[10px] text-gray-400">
-                      Type rough notes (reasons for leaving, aspirations, achievements) and hit Auto Rewrite — AI will polish them into the Aaron Wallis voice{jobSpecStatus === 'ready' ? ', tailored to the attached job spec' : ''}.
+                      Type rough notes (reasons for leaving, aspirations, achievements) and hit Auto Rewrite. AI polishes them into the Aaron Wallis voice{jobSpecStatus === 'ready' ? ', tailored to the job spec you attached above' : ' — attach a job spec at the top of this tab first if you want the summary tailored to it'}.
                     </p>
                     <Textarea
                       value={data.executiveSummary}
