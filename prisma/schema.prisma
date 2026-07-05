@@ -44,6 +44,7 @@ model Account {
   refresh_token     String?
   access_token      String?
   expires_at        Int?
+  ext_expires_in    Int? // Microsoft/Azure AD returns this alongside expires_at
   token_type        String?
   scope             String?
   id_token          String?
