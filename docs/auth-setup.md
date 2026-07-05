@@ -24,16 +24,30 @@ On Render, add a Postgres add-on (free tier is fine) and Render will set
 DATABASE_URL=postgresql://user:password@localhost:5432/awapps?schema=public
 ```
 
-Then run migrations + seed on first setup:
+Then apply the schema:
 
 ```
-npx prisma migrate dev --name init
+# Local dev with a fresh DB
+npx prisma db push
+# ...or if you want migration history
+npx prisma migrate deploy
+# Optional (BOOTSTRAP_ADMIN_EMAIL covers the same case)
 npx prisma db seed
 ```
 
 On production/Render, the build script runs `prisma generate` automatically.
-Run `npm run db:migrate` (which does `prisma migrate deploy`) as a
-one-off release command to apply the schema.
+To apply migrations on every deploy, update the Render build command to:
+
+```
+npm install && npx prisma migrate deploy && npm run build
+```
+
+If you already deployed and got "The table `public.Account` does not exist"
+errors from NextAuth, run this once in the Render shell to catch up:
+
+```
+npx prisma migrate deploy
+```
 
 ### 2. NextAuth secret + URL
 
