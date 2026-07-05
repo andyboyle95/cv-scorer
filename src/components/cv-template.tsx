@@ -1,5 +1,6 @@
 'use client'
 
+import { Fragment } from 'react'
 import Image from 'next/image'
 
 export interface ExperienceEntry {
@@ -35,6 +36,13 @@ export interface CandidateData {
 interface CvTemplateProps {
   data: CandidateData
   printRef?: React.RefObject<HTMLDivElement>
+  /**
+   * When true, renders a visible "PAGE BREAK" indicator between cv-page
+   * divs so the recruiter can see in the live preview which entries got
+   * pushed to a new page. Not visible in the PDF export path (that
+   * renders each cv-page as its own actual PDF page anyway).
+   */
+  showBreaks?: boolean
 }
 
 const AW_TEL = '01908 061400'
@@ -125,7 +133,23 @@ function groupByPageBreak(entries: ExperienceEntry[]): ExperienceEntry[][] {
 
 const PAGE_STYLE = { width: '210mm', minHeight: '297mm', padding: '0 14mm 10mm' } as const
 
-export function CvTemplate({ data, printRef }: CvTemplateProps) {
+const PageBreakMarker = () => (
+  <div
+    className="flex items-center gap-2 my-4 print:hidden select-none"
+    aria-hidden="true"
+    data-page-break="true"
+  >
+    <div className="flex-1 border-t-2 border-dashed border-[#df2681]/50" />
+    <span
+      className="text-[9px] font-bold uppercase tracking-widest text-[#df2681] bg-white px-2 py-0.5 rounded-full border border-[#df2681]/30 shadow-sm"
+    >
+      ✂ Page break
+    </span>
+    <div className="flex-1 border-t-2 border-dashed border-[#df2681]/50" />
+  </div>
+)
+
+export function CvTemplate({ data, printRef, showBreaks = false }: CvTemplateProps) {
   const tel = data.consultantTel || AW_TEL
   const email = data.consultantEmail || AW_EMAIL
 
@@ -250,6 +274,8 @@ export function CvTemplate({ data, printRef }: CvTemplateProps) {
           </div>
         </div>
 
+        {showBreaks && <PageBreakMarker />}
+
         {/* ── MAIN CV PAGE ── */}
         <div className="cv-page bg-white shadow-md rounded mx-auto mt-4 print:mt-0" style={PAGE_STYLE}>
           <BrandStrip />
@@ -287,14 +313,18 @@ export function CvTemplate({ data, printRef }: CvTemplateProps) {
         {continuationGroups.map((group, idx) => {
           const isLast = idx === continuationGroups.length - 1
           return (
-            <div key={idx} className="cv-page bg-white shadow-md rounded mx-auto mt-4 print:mt-0" style={PAGE_STYLE}>
-              <BrandStrip />
-              <LogoRow />
-              <section className="mb-4">
-                <ExpEntries entries={group} />
-              </section>
-              {isLast && qualLangFooter}
-            </div>
+            <Fragment key={idx}>
+              {showBreaks && <PageBreakMarker />}
+              <div className="cv-page bg-white shadow-md rounded mx-auto mt-4 print:mt-0" style={PAGE_STYLE}>
+                <BrandStrip />
+                <LogoRow />
+                <section className="mb-4">
+                  <SectionHeading>Experience (continued)</SectionHeading>
+                  <ExpEntries entries={group} />
+                </section>
+                {isLast && qualLangFooter}
+              </div>
+            </Fragment>
           )
         })}
 

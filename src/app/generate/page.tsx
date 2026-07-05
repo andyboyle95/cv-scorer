@@ -10,7 +10,7 @@ import { Input } from '@/ui/input'
 import { Textarea } from '@/ui/textarea'
 import { Label } from '@/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/tabs'
-import { Plus, Trash2, FileDown, ArrowLeft, Upload, ClipboardPaste, Loader2, CheckCircle2, ChevronDown, ChevronUp, Wand2, Sparkles, Pencil, RefreshCw, Target, X, EyeOff, Mail, Copy } from 'lucide-react'
+import { Plus, Trash2, FileDown, ArrowLeft, Upload, ClipboardPaste, Loader2, CheckCircle2, ChevronDown, ChevronUp, Wand2, Sparkles, Pencil, RefreshCw, Target, X, EyeOff, Mail, Copy, FileText, User, Briefcase, GraduationCap, MessageSquare } from 'lucide-react'
 import Image from 'next/image'
 
 interface InterviewQuestion {
@@ -1108,67 +1108,63 @@ export default function GeneratePage() {
         <div className="flex flex-1 overflow-hidden">
 
           {/* LEFT: Form */}
-          <div className="w-[440px] shrink-0 bg-white border-r border-gray-200 overflow-y-auto">
+          <div className="w-[480px] shrink-0 bg-white border-r border-gray-200 overflow-y-auto">
 
             {/* ── First-run empty state ──
-                Shown when the recruiter hasn't imported or started a CV
-                yet. Focuses them on one job: get the candidate's CV
-                into the app. Everything else appears once they do. */}
-            {!hasStarted && (
-              <div className="p-6 space-y-5">
+                Layout hierarchy:
+                  1. Compact drop zone (primary action)
+                  2. Optional intent toggles (above the fold on any screen ≥720px tall)
+                  3. Paste as a secondary escape hatch
+                  4. Start blank + feature pills
+                A full-panel loading overlay covers everything while
+                import/auto-prep is running so users see clear progress
+                and don't bounce. */}
+            {/* ── Loading overlay — full-panel progress display so the
+                user doesn't bounce during the 5-25s import + auto-prep
+                chain. Shown whenever ANY of the background steps is
+                running: parse, extract, tailor, anonymise. */}
+            {(busy || tailoringProfile || anonymising) && (
+              <LoadingSteps
+                importStatus={importStatus}
+                busy={busy}
+                tailoring={tailoringProfile}
+                anonymising={anonymising}
+                jobSpecAttached={jobSpecStatus === 'ready'}
+                anonSelected={sendAnonymously}
+              />
+            )}
+
+            {!hasStarted && !busy && !tailoringProfile && !anonymising && (
+              <div className="p-6 space-y-4">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-[#df2681] mb-1.5">Start here</p>
-                  <h2 className="text-xl font-bold text-[#1a3668] leading-tight mb-1.5 tracking-tight">
+                  <h2 className="text-lg font-bold text-[#1a3668] leading-tight mb-1.5 tracking-tight">
                     Turn a candidate&rsquo;s CV into a client-ready document.
                   </h2>
-                  <p className="text-xs text-gray-500 leading-relaxed">
-                    Import a CV to get started. Tick the options below if you want the first preview tailored to a job spec or anonymised for a speculative send.
+                  <p className="text-[11.5px] text-gray-500 leading-snug">
+                    Import a CV to get started. Tick the options below if you want the first preview tailored or anonymised.
                   </p>
                 </div>
 
-                {/* Big drop zone */}
+                {/* Compact drop zone (smaller padding than before) */}
                 <div
-                  className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
+                  className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors ${
                     dragOver ? 'border-[#df2681] bg-pink-50' : 'border-gray-300 bg-gray-50 hover:border-[#1a3668]/50 hover:bg-gray-100/60'
-                  } ${busy ? 'pointer-events-none opacity-50' : ''}`}
+                  }`}
                   onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
                   onDragLeave={() => setDragOver(false)}
                   onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                  <p className="text-sm font-semibold text-[#1a3668] mb-0.5">Drop a CV file, or click to browse</p>
-                  <p className="text-[11px] text-gray-500">PDF &middot; DOCX &middot; DOC &middot; RTF &middot; TXT</p>
+                  <Upload className="h-6 w-6 mx-auto mb-1.5 text-gray-400" />
+                  <p className="text-[13px] font-semibold text-[#1a3668]">Drop a CV file, or click to browse</p>
+                  <p className="text-[10.5px] text-gray-500 mt-0.5">PDF &middot; DOCX &middot; DOC &middot; RTF &middot; TXT</p>
                 </div>
 
-                {/* Paste text */}
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex-1 h-px bg-gray-200" />
-                    <span className="text-[10px] text-gray-400 uppercase tracking-wide">or paste CV text</span>
-                    <div className="flex-1 h-px bg-gray-200" />
-                  </div>
-                  <Textarea
-                    value={pasteText}
-                    onChange={(e) => setPasteText(e.target.value)}
-                    placeholder="Paste CV text here..."
-                    className="min-h-[100px] text-xs font-mono resize-y bg-white"
-                    disabled={busy}
-                  />
-                  <Button
-                    onClick={handlePasteExtract}
-                    disabled={pasteText.trim().length < 50 || busy}
-                    size="sm"
-                    className="w-full gap-1.5 bg-[#1a3668] hover:bg-[#12274d] text-white mt-2"
-                  >
-                    <ClipboardPaste className="h-3.5 w-3.5" />
-                    Extract fields from text
-                  </Button>
-                </div>
-
-                {/* Pre-import options — set intent before the first render.
-                    If either is toggled, the auto-prep chain runs after
-                    import so the first preview reflects those choices. */}
+                {/* Pre-import options — moved ABOVE paste so they're
+                    always above the fold. If either is toggled, the
+                    auto-prep chain runs after import so the first
+                    preview reflects those choices. */}
                 <div className="rounded-lg border border-gray-200 bg-gray-50/60 p-3 space-y-2.5">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Also apply (optional)</p>
 
@@ -1279,21 +1275,43 @@ export default function GeneratePage() {
                   </div>
                 </div>
 
+                {/* Paste alternative — now below the options as a secondary
+                    escape hatch rather than a co-equal primary action. */}
+                <details className="rounded-lg border border-gray-200 bg-gray-50/40 group">
+                  <summary className="cursor-pointer px-3 py-2 text-[11.5px] font-semibold text-gray-600 hover:text-[#1a3668] flex items-center justify-between select-none">
+                    <span className="flex items-center gap-1.5">
+                      <ClipboardPaste className="h-3.5 w-3.5" />
+                      Or paste CV text
+                    </span>
+                    <ChevronDown className="h-3.5 w-3.5 opacity-60 group-open:rotate-180 transition-transform" />
+                  </summary>
+                  <div className="px-3 pb-3 space-y-2">
+                    <Textarea
+                      value={pasteText}
+                      onChange={(e) => setPasteText(e.target.value)}
+                      placeholder="Paste CV text here..."
+                      className="min-h-[100px] text-xs font-mono resize-y bg-white"
+                    />
+                    <Button
+                      onClick={handlePasteExtract}
+                      disabled={pasteText.trim().length < 50}
+                      size="sm"
+                      className="w-full gap-1.5 bg-[#1a3668] hover:bg-[#12274d] text-white"
+                    >
+                      <ClipboardPaste className="h-3.5 w-3.5" />
+                      Extract fields from text
+                    </Button>
+                  </div>
+                </details>
+
                 {/* Start blank */}
                 <button
                   onClick={() => setHasStarted(true)}
-                  className="w-full py-2.5 text-xs font-semibold text-gray-500 hover:text-[#1a3668] border border-gray-200 rounded-lg hover:border-[#1a3668]/40 transition-colors"
+                  className="w-full py-2 text-[11.5px] font-semibold text-gray-500 hover:text-[#1a3668] border border-gray-200 rounded-lg hover:border-[#1a3668]/40 transition-colors"
                 >
                   Or start from scratch (type it in yourself)
                 </button>
 
-                {/* Status shown here too when import is in progress */}
-                {busy && (
-                  <div className="flex items-center gap-2 text-xs text-[#1a3668]">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    {importStatus === 'parsing' ? 'Parsing file…' : 'Extracting fields with AI…'}
-                  </div>
-                )}
                 {importStatus === 'error' && (
                   <p className="text-xs text-red-500">{importError}</p>
                 )}
@@ -1521,12 +1539,30 @@ export default function GeneratePage() {
             {/* ── Editable form ── */}
             <div className="p-5">
               <Tabs defaultValue="cover">
-                <TabsList className="grid grid-cols-5 w-full text-[10px]">
-                  <TabsTrigger value="cover">Cover</TabsTrigger>
-                  <TabsTrigger value="profile">Profile</TabsTrigger>
-                  <TabsTrigger value="experience">Experience</TabsTrigger>
-                  <TabsTrigger value="education">Education</TabsTrigger>
-                  <TabsTrigger value="interview">Interview Qs</TabsTrigger>
+                {/* Icon-led tabs with short labels so they don't overlap
+                    on a 480-wide panel. Each trigger's title attr carries
+                    the fuller label for hover context. */}
+                <TabsList className="grid grid-cols-5 w-full h-auto p-1 gap-0.5">
+                  <TabsTrigger value="cover" title="Cover sheet" className="flex-col gap-0.5 py-2 px-1 text-[10px] whitespace-nowrap">
+                    <FileText className="h-3.5 w-3.5" />
+                    <span>Cover</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="profile" title="Profile & skills" className="flex-col gap-0.5 py-2 px-1 text-[10px] whitespace-nowrap">
+                    <User className="h-3.5 w-3.5" />
+                    <span>Profile</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="experience" title="Work experience" className="flex-col gap-0.5 py-2 px-1 text-[10px] whitespace-nowrap">
+                    <Briefcase className="h-3.5 w-3.5" />
+                    <span>Roles</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="education" title="Qualifications & languages" className="flex-col gap-0.5 py-2 px-1 text-[10px] whitespace-nowrap">
+                    <GraduationCap className="h-3.5 w-3.5" />
+                    <span>Quals</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="interview" title="Interview questions" className="flex-col gap-0.5 py-2 px-1 text-[10px] whitespace-nowrap">
+                    <MessageSquare className="h-3.5 w-3.5" />
+                    <span>Interview</span>
+                  </TabsTrigger>
                 </TabsList>
 
                 {/* Cover Sheet */}
@@ -1913,7 +1949,7 @@ export default function GeneratePage() {
               </span>
             </div>
             <div style={{ transform: 'scale(0.72)', transformOrigin: 'top center' }}>
-              <CvTemplate data={viewData} />
+              <CvTemplate data={viewData} showBreaks />
               {interviewEnabled && renderIqPages(true)}
             </div>
           </div>
@@ -2042,5 +2078,127 @@ export default function GeneratePage() {
         </div>
       )}
     </>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// Loading Steps — full-panel progress feedback while the AI
+// import + auto-prep chain is running. Each phase is shown as a
+// step in a checklist so the user can see WHAT is happening and
+// roughly how much is left. Removes the "did it break?" bounce risk.
+// ─────────────────────────────────────────────────────────────
+
+function LoadingSteps({
+  importStatus,
+  busy,
+  tailoring,
+  anonymising,
+  jobSpecAttached,
+  anonSelected,
+}: {
+  importStatus: 'idle' | 'parsing' | 'extracting' | 'done' | 'error'
+  busy: boolean
+  tailoring: boolean
+  anonymising: boolean
+  jobSpecAttached: boolean
+  anonSelected: boolean
+}) {
+  const steps: { key: string; label: string; sub: string; show: boolean; state: 'pending' | 'active' | 'done' }[] = []
+
+  // Parse
+  const parseState = importStatus === 'parsing' ? 'active' : busy || importStatus === 'done' || tailoring || anonymising ? 'done' : 'pending'
+  steps.push({
+    key: 'parse',
+    label: 'Reading your file',
+    sub: 'Extracting the raw text from your CV file.',
+    show: true,
+    state: parseState,
+  })
+
+  // Extract
+  const extractState = importStatus === 'extracting' ? 'active' : importStatus === 'done' || tailoring || anonymising ? 'done' : 'pending'
+  steps.push({
+    key: 'extract',
+    label: 'Populating the fields',
+    sub: 'AI is picking out the candidate, roles, dates, skills, and qualifications.',
+    show: true,
+    state: extractState,
+  })
+
+  // Tailor (only if a spec was attached)
+  if (jobSpecAttached) {
+    steps.push({
+      key: 'tailor',
+      label: 'Tailoring to the job spec',
+      sub: 'Rewriting the profile and reordering skills to match the advert.',
+      show: true,
+      state: tailoring ? 'active' : (anonymising || (!busy && !tailoring)) ? 'done' : 'pending',
+    })
+  }
+
+  // Anonymise (only if selected)
+  if (anonSelected) {
+    steps.push({
+      key: 'anon',
+      label: 'Anonymising the CV',
+      sub: 'Stripping name, LinkedIn, employer & university names, and location.',
+      show: true,
+      state: anonymising ? 'active' : (!busy && !tailoring && !anonymising) ? 'done' : 'pending',
+    })
+  }
+
+  const totalSecondsEstimate = 8 + (jobSpecAttached ? 10 : 0) + (anonSelected ? 15 : 0)
+
+  return (
+    <div className="p-6 pt-10 flex flex-col items-center">
+      <div className="w-full max-w-sm text-center mb-8">
+        <div className="relative inline-flex mb-4">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#df2681] to-[#1a3668] flex items-center justify-center shadow-lg">
+            <Sparkles className="h-7 w-7 text-white" />
+          </div>
+          <div className="absolute inset-0 rounded-full border-2 border-[#df2681]/40 animate-ping" />
+        </div>
+        <h3 className="text-lg font-bold text-[#1a3668] mb-1 tracking-tight">Preparing this CV…</h3>
+        <p className="text-[11.5px] text-gray-500 leading-snug">
+          Usually takes {totalSecondsEstimate}&ndash;{totalSecondsEstimate + 10} seconds. Don&rsquo;t close this tab.
+        </p>
+      </div>
+
+      <ul className="w-full space-y-3">
+        {steps.map((s) => (
+          <li key={s.key} className="flex items-start gap-3">
+            <span className="mt-0.5 flex-shrink-0">
+              {s.state === 'done' && (
+                <span className="w-5 h-5 rounded-full bg-green-100 border border-green-300 flex items-center justify-center">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+                </span>
+              )}
+              {s.state === 'active' && (
+                <span className="w-5 h-5 rounded-full bg-[#1a3668]/10 border border-[#1a3668]/30 flex items-center justify-center">
+                  <Loader2 className="h-3 w-3 text-[#1a3668] animate-spin" />
+                </span>
+              )}
+              {s.state === 'pending' && (
+                <span className="w-5 h-5 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center">
+                  <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                </span>
+              )}
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className={`text-[12.5px] font-semibold leading-snug ${
+                s.state === 'active' ? 'text-[#1a3668]' : s.state === 'done' ? 'text-gray-800' : 'text-gray-400'
+              }`}>
+                {s.label}
+              </p>
+              <p className={`text-[10.5px] leading-snug mt-0.5 ${
+                s.state === 'pending' ? 'text-gray-300' : 'text-gray-500'
+              }`}>
+                {s.sub}
+              </p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
