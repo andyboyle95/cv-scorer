@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback, Fragment } from 'react'
+import { useState, useRef, useCallback, useEffect, Fragment } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { Header } from '@/components/header'
@@ -264,6 +264,12 @@ export default function GeneratePage() {
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === 'ADMIN'
   const [data, setData] = useState<CandidateData>({ ...BLANK_DATA, dateSubmitted: new Date().toLocaleDateString('en-GB') })
+  // First-run state — when true, the left panel shows the empty-state welcome
+  // screen instead of the full editor. Any of the three start paths (import
+  // file, paste text, start blank) flips it, and the New CV button resets it.
+  const [hasStarted, setHasStarted] = useState(false)
+  const [sendOptionsOpen, setSendOptionsOpen] = useState(false)
+  const sendOptionsRef = useRef<HTMLDivElement>(null)
   const printRef = useRef<HTMLDivElement>(null)
   const [rewriting, setRewriting] = useState(false)
   const [rewriteError, setRewriteError] = useState('')
@@ -280,9 +286,9 @@ export default function GeneratePage() {
   // Executive summary length toggle
   const [rewriteLonger, setRewriteLonger] = useState(false)
 
-  // Job-spec tailoring state (Step 1 in the left panel — default OPEN so
-  // recruiters see it before Import CV and understand the intended order).
-  const [jobSpecOpen, setJobSpecOpen] = useState(true)
+  // Job-spec tailoring state. Step 2 in the reordered layout; optional so
+  // it starts collapsed — attach when needed.
+  const [jobSpecOpen, setJobSpecOpen] = useState(false)
   const [jobSpecText, setJobSpecText] = useState('')
   const [jobSpecFileName, setJobSpecFileName] = useState('')
   const [jobSpecStatus, setJobSpecStatus] = useState<'idle' | 'parsing' | 'ready' | 'error'>('idle')
@@ -324,6 +330,18 @@ export default function GeneratePage() {
   const set = useCallback(<K extends keyof CandidateData>(key: K, value: CandidateData[K]) => {
     setData((prev) => ({ ...prev, [key]: value }))
   }, [])
+
+  // Close the Send options dropdown when clicking outside it.
+  useEffect(() => {
+    if (!sendOptionsOpen) return
+    const onClick = (e: MouseEvent) => {
+      if (sendOptionsRef.current && !sendOptionsRef.current.contains(e.target as Node)) {
+        setSendOptionsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [sendOptionsOpen])
 
   // ── The single source of truth for what actually gets rendered / exported.
   // If anonymous mode is on AND we've got an anonymised snapshot, use it;
@@ -616,6 +634,7 @@ export default function GeneratePage() {
       applyExtracted(extracted)
       setImportStatus('done')
       setPasteText('')
+      setHasStarted(true)
     } catch (err) {
       setImportError(err instanceof Error ? err.message : 'Failed to extract CV fields')
       setImportStatus('error')
@@ -902,18 +921,107 @@ export default function GeneratePage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => { setData({ ...BLANK_DATA, dateSubmitted: new Date().toLocaleDateString('en-GB') }); setImportStatus('idle') }}
+              onClick={() => {
+                setData({ ...BLANK_DATA, dateSubmitted: new Date().toLocaleDateString('en-GB') })
+                setImportStatus('idle')
+                setHasStarted(false)
+                clearJobSpec()
+                setSendAnonymously(false)
+                setAnonymisedData(null)
+              }}
               className="text-xs"
             >
               New CV
             </Button>
+
+            {/* Send options — anonymise + intro email (moved from Cover tab) */}
+            <div ref={sendOptionsRef} className="relative">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSendOptionsOpen((o) => !o)}
+                className={`text-xs gap-1.5 ${sendAnonymously ? 'border-[#df2681]/60 text-[#df2681]' : ''}`}
+                disabled={!hasStarted}
+                title={hasStarted ? 'Anonymise this CV or draft an intro email' : 'Start a CV first'}
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                {sendAnonymously ? 'Anonymous send' : 'Send options'}
+                <ChevronDown className="h-3 w-3 opacity-60" />
+              </Button>
+
+              {sendOptionsOpen && (
+                <div
+                  className="absolute right-0 top-full mt-1.5 w-80 bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden z-40"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="px-3 py-2 border-b border-gray-100 bg-gray-50">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Speculative send</p>
+                  </div>
+
+                  {/* Anonymise toggle */}
+                  <label className="flex items-start gap-2.5 px-3 py-2.5 cursor-pointer hover:bg-gray-50 border-b border-gray-100">
+                    <input
+                      type="checkbox"
+                      checked={sendAnonymously}
+                      onChange={(e) => handleToggleAnonymous(e.target.checked)}
+                      className="w-4 h-4 rounded flex-shrink-0 mt-0.5"
+                      style={{ accentColor: '#1a3668' }}
+                      disabled={anonymising}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <EyeOff className="h-3.5 w-3.5 text-gray-600" />
+                        <span className="text-xs font-semibold text-gray-800">Send anonymously</span>
+                        {anonymising && <Loader2 className="h-3 w-3 animate-spin text-[#1a3668]" />}
+                        {sendAnonymously && anonymisedData && !anonymising && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-600">
+                            <CheckCircle2 className="h-3 w-3" /> Applied
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10.5px] text-gray-500 mt-0.5 leading-snug">
+                        Strips name, LinkedIn, employer &amp; university names, and specific location. Keeps every substantive claim intact.
+                      </p>
+                      {sendAnonymously && anonymisedData && !anonymising && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); runAnonymise() }}
+                          className="mt-1 text-[10px] text-[#1a3668] hover:text-[#df2681] underline"
+                        >
+                          Re-anonymise (data has changed)
+                        </button>
+                      )}
+                      {anonymiseError && <p className="text-[10.5px] text-red-500 mt-1">{anonymiseError}</p>}
+                    </div>
+                  </label>
+
+                  {/* Intro email */}
+                  <button
+                    type="button"
+                    onClick={() => { setSendOptionsOpen(false); handleGenerateEmail() }}
+                    disabled={generatingEmail || (sendAnonymously && !anonymisedData)}
+                    className="w-full flex items-start gap-2.5 px-3 py-2.5 hover:bg-gray-50 text-left disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    <span className="w-4 h-4 flex-shrink-0 mt-0.5 flex items-center justify-center">
+                      {generatingEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin text-[#1a3668]" /> : <Mail className="h-3.5 w-3.5 text-gray-600" />}
+                    </span>
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-gray-800">Draft introduction email</p>
+                      <p className="text-[10.5px] text-gray-500 mt-0.5 leading-snug">
+                        Short teaser email pitching this candidate to a potential client. Uses the {sendAnonymously ? 'anonymised' : 'full'} CV.
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
             {/* Admin-only test data buttons — hidden for USER role */}
             {isAdmin && (
               <>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => { setData(DEFAULT_DATA); setImportStatus('idle') }}
+                  onClick={() => { setData(DEFAULT_DATA); setImportStatus('idle'); setHasStarted(true) }}
                   className="text-xs border-[#df2681]/40 text-[#df2681] hover:bg-[#df2681]/5"
                 >
                   Load Test Data
@@ -969,11 +1077,206 @@ export default function GeneratePage() {
           {/* LEFT: Form */}
           <div className="w-[440px] shrink-0 bg-white border-r border-gray-200 overflow-y-auto">
 
-            {/* ── STEP 1 · Target Role / Job Spec ──
-                Sits above Import CV so recruiters can see the intended
-                order at a glance. Attaching first means every AI step
-                below (Auto Rewrite, Profile & Skills tailoring, Intro
-                Email) is tailored automatically on its first pass. */}
+            {/* ── First-run empty state ──
+                Shown when the recruiter hasn't imported or started a CV
+                yet. Focuses them on one job: get the candidate's CV
+                into the app. Everything else appears once they do. */}
+            {!hasStarted && (
+              <div className="p-6 space-y-5">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#df2681] mb-1.5">Start here</p>
+                  <h2 className="text-xl font-bold text-[#1a3668] leading-tight mb-1.5 tracking-tight">
+                    Turn a candidate&rsquo;s CV into a client-ready document.
+                  </h2>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Import a CV to get started. You can tailor it to a job spec, send anonymously, or add interview questions once it&rsquo;s in.
+                  </p>
+                </div>
+
+                {/* Big drop zone */}
+                <div
+                  className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
+                    dragOver ? 'border-[#df2681] bg-pink-50' : 'border-gray-300 bg-gray-50 hover:border-[#1a3668]/50 hover:bg-gray-100/60'
+                  } ${busy ? 'pointer-events-none opacity-50' : ''}`}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                  <p className="text-sm font-semibold text-[#1a3668] mb-0.5">Drop a CV file, or click to browse</p>
+                  <p className="text-[11px] text-gray-500">PDF &middot; DOCX &middot; DOC &middot; RTF &middot; TXT</p>
+                </div>
+
+                {/* Paste text */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex-1 h-px bg-gray-200" />
+                    <span className="text-[10px] text-gray-400 uppercase tracking-wide">or paste CV text</span>
+                    <div className="flex-1 h-px bg-gray-200" />
+                  </div>
+                  <Textarea
+                    value={pasteText}
+                    onChange={(e) => setPasteText(e.target.value)}
+                    placeholder="Paste CV text here..."
+                    className="min-h-[100px] text-xs font-mono resize-y bg-white"
+                    disabled={busy}
+                  />
+                  <Button
+                    onClick={handlePasteExtract}
+                    disabled={pasteText.trim().length < 50 || busy}
+                    size="sm"
+                    className="w-full gap-1.5 bg-[#1a3668] hover:bg-[#12274d] text-white mt-2"
+                  >
+                    <ClipboardPaste className="h-3.5 w-3.5" />
+                    Extract fields from text
+                  </Button>
+                </div>
+
+                {/* Start blank */}
+                <button
+                  onClick={() => setHasStarted(true)}
+                  className="w-full py-2.5 text-xs font-semibold text-gray-500 hover:text-[#1a3668] border border-gray-200 rounded-lg hover:border-[#1a3668]/40 transition-colors"
+                >
+                  Or start from scratch (type it in yourself)
+                </button>
+
+                {/* Status shown here too when import is in progress */}
+                {busy && (
+                  <div className="flex items-center gap-2 text-xs text-[#1a3668]">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    {importStatus === 'parsing' ? 'Parsing file…' : 'Extracting fields with AI…'}
+                  </div>
+                )}
+                {importStatus === 'error' && (
+                  <p className="text-xs text-red-500">{importError}</p>
+                )}
+
+                {/* Feature reassurance pills — shows existing users nothing was taken away */}
+                <div className="pt-4 border-t border-gray-100">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2.5">Included with every CV</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#1a3668] bg-[#1a3668]/8 px-2 py-1 rounded-md">
+                      <Target className="h-3 w-3" /> Tailor to job spec
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#1a3668] bg-[#1a3668]/8 px-2 py-1 rounded-md">
+                      <EyeOff className="h-3 w-3" /> Anonymous send
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#1a3668] bg-[#1a3668]/8 px-2 py-1 rounded-md">
+                      <Mail className="h-3 w-3" /> Introduction email
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#1a3668] bg-[#1a3668]/8 px-2 py-1 rounded-md">
+                      <Sparkles className="h-3 w-3" /> Interview questions
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#1a3668] bg-[#1a3668]/8 px-2 py-1 rounded-md">
+                      <Wand2 className="h-3 w-3" /> Auto rewrite
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Everything below only renders once the recruiter has started
+                a CV (via import, paste-extract, blank, or admin test data).
+                Wrapped as a fragment so the second half of the wrapper is
+                closed after </Tabs> further down. */}
+            {hasStarted && <>
+
+            {/* ── STEP 1 · Import from CV ── */}
+            <div className="border-b border-gray-200">
+              <button
+                onClick={() => setImportOpen((o) => !o)}
+                className="w-full flex items-center justify-between px-5 py-3 text-sm font-semibold text-[#1a3668] hover:bg-gray-50"
+              >
+                <span className="flex items-center gap-2 min-w-0">
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-white bg-[#1a3668] px-1.5 py-0.5 rounded flex-shrink-0">
+                    Step 1
+                  </span>
+                  <Upload className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">Import a different CV</span>
+                  {importStatus === 'done' && <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />}
+                </span>
+                {importOpen ? <ChevronUp className="h-4 w-4 flex-shrink-0" /> : <ChevronDown className="h-4 w-4 flex-shrink-0" />}
+              </button>
+
+              {importOpen && (
+                <div className="px-5 pb-4 space-y-3">
+                  <p className="text-xs text-gray-500">
+                    Upload another CV file or paste text — fields will be auto-filled using AI, replacing what&rsquo;s currently loaded.
+                  </p>
+
+                  {/* File drop zone */}
+                  <div
+                    className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+                      dragOver ? 'border-[#df2681] bg-pink-50' : 'border-gray-200 hover:border-gray-300'
+                    } ${busy ? 'pointer-events-none opacity-50' : ''}`}
+                    onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="h-6 w-6 mx-auto mb-1.5 text-gray-400" />
+                    <p className="text-xs font-medium text-gray-600">Drop a file or click to browse</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">PDF · DOCX · DOC · RTF · TXT</p>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.docx,.doc,.rtf,.txt"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
+                    />
+                  </div>
+
+                  {/* Divider */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-px bg-gray-200" />
+                    <span className="text-[10px] text-gray-400 uppercase tracking-wide">or paste CV text</span>
+                    <div className="flex-1 h-px bg-gray-200" />
+                  </div>
+
+                  {/* Paste area */}
+                  <Textarea
+                    value={pasteText}
+                    onChange={(e) => setPasteText(e.target.value)}
+                    placeholder="Paste CV text here..."
+                    className="min-h-[100px] text-xs font-mono resize-y"
+                    disabled={busy}
+                  />
+                  <Button
+                    onClick={handlePasteExtract}
+                    disabled={pasteText.trim().length < 50 || busy}
+                    size="sm"
+                    className="w-full gap-1.5 bg-[#1a3668] hover:bg-[#12274d] text-white"
+                  >
+                    <ClipboardPaste className="h-3.5 w-3.5" />
+                    Extract Fields from Text
+                  </Button>
+
+                  {/* Status */}
+                  {busy && (
+                    <div className="flex items-center gap-2 text-xs text-[#1a3668]">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      {importStatus === 'parsing' ? 'Parsing file…' : 'Extracting fields with AI…'}
+                    </div>
+                  )}
+                  {importStatus === 'done' && (
+                    <div className="flex items-center gap-2 text-xs text-green-600">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Fields populated — review and edit below
+                    </div>
+                  )}
+                  {importStatus === 'error' && (
+                    <p className="text-xs text-red-500">{importError}</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* ── STEP 2 · Target Role / Job Spec (Optional) ──
+                Collapsed by default. Every downstream AI step (Auto
+                Rewrite, Profile & Skills tailoring, Introduction Email)
+                reads from this when it's attached, so nothing is
+                fabricated on the recruiter's behalf. */}
             <div className="border-b border-gray-200 bg-gradient-to-r from-[#1a3668]/[0.03] to-transparent">
               <button
                 onClick={() => setJobSpecOpen((o) => !o)}
@@ -981,10 +1284,11 @@ export default function GeneratePage() {
               >
                 <span className="flex items-center gap-2 min-w-0">
                   <span className="text-[9px] font-bold uppercase tracking-widest text-white bg-[#1a3668] px-1.5 py-0.5 rounded flex-shrink-0">
-                    Step 1
+                    Step 2
                   </span>
                   <Target className="h-4 w-4 flex-shrink-0" />
                   <span className="truncate">Target Role / Job Spec</span>
+                  <span className="text-[9px] font-semibold uppercase tracking-wider text-gray-400 flex-shrink-0">Optional</span>
                   {jobSpecStatus === 'ready' && <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />}
                 </span>
                 {jobSpecOpen ? <ChevronUp className="h-4 w-4 flex-shrink-0" /> : <ChevronDown className="h-4 w-4 flex-shrink-0" />}
@@ -993,7 +1297,7 @@ export default function GeneratePage() {
               {jobSpecOpen && (
                 <div className="px-5 pb-4 space-y-2.5">
                   <p className="text-xs text-gray-600">
-                    <span className="font-semibold text-[#1a3668]">Attach this first.</span> Optional but strongly recommended. Every AI step below (Auto Rewrite, Profile &amp; Skills tailoring, Introduction Email) reads from it, and nothing is fabricated. Only material already evident in the CV is emphasised.
+                    Attach a job advert or spec and every AI step below (Auto Rewrite, Profile &amp; Skills tailoring, Introduction Email) will be tailored to match it. Nothing is fabricated &mdash; only material already evident in the CV is emphasised.
                   </p>
 
                   {/* File drop */}
@@ -1068,96 +1372,6 @@ export default function GeneratePage() {
               )}
             </div>
 
-            {/* ── STEP 2 · Import section ── */}
-            <div className="border-b border-gray-200">
-              <button
-                onClick={() => setImportOpen((o) => !o)}
-                className="w-full flex items-center justify-between px-5 py-3 text-sm font-semibold text-[#1a3668] hover:bg-gray-50"
-              >
-                <span className="flex items-center gap-2 min-w-0">
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-white bg-[#1a3668] px-1.5 py-0.5 rounded flex-shrink-0">
-                    Step 2
-                  </span>
-                  <Upload className="h-4 w-4 flex-shrink-0" />
-                  <span className="truncate">Import from CV</span>
-                  {importStatus === 'done' && <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />}
-                </span>
-                {importOpen ? <ChevronUp className="h-4 w-4 flex-shrink-0" /> : <ChevronDown className="h-4 w-4 flex-shrink-0" />}
-              </button>
-
-              {importOpen && (
-                <div className="px-5 pb-4 space-y-3">
-                  <p className="text-xs text-gray-500">
-                    Upload a CV file or paste text — fields will be auto-filled using AI.
-                  </p>
-
-                  {/* File drop zone */}
-                  <div
-                    className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
-                      dragOver ? 'border-[#df2681] bg-pink-50' : 'border-gray-200 hover:border-gray-300'
-                    } ${busy ? 'pointer-events-none opacity-50' : ''}`}
-                    onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
-                    onDragLeave={() => setDragOver(false)}
-                    onDrop={handleDrop}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload className="h-6 w-6 mx-auto mb-1.5 text-gray-400" />
-                    <p className="text-xs font-medium text-gray-600">Drop a file or click to browse</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">PDF · DOCX · DOC · RTF · TXT</p>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      className="hidden"
-                      accept=".pdf,.docx,.doc,.rtf,.txt"
-                      onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
-                    />
-                  </div>
-
-                  {/* Divider */}
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-px bg-gray-200" />
-                    <span className="text-[10px] text-gray-400 uppercase tracking-wide">or paste CV text</span>
-                    <div className="flex-1 h-px bg-gray-200" />
-                  </div>
-
-                  {/* Paste area */}
-                  <Textarea
-                    value={pasteText}
-                    onChange={(e) => setPasteText(e.target.value)}
-                    placeholder="Paste CV text here..."
-                    className="min-h-[100px] text-xs font-mono resize-y"
-                    disabled={busy}
-                  />
-                  <Button
-                    onClick={handlePasteExtract}
-                    disabled={pasteText.trim().length < 50 || busy}
-                    size="sm"
-                    className="w-full gap-1.5 bg-[#1a3668] hover:bg-[#12274d] text-white"
-                  >
-                    <ClipboardPaste className="h-3.5 w-3.5" />
-                    Extract Fields from Text
-                  </Button>
-
-                  {/* Status */}
-                  {busy && (
-                    <div className="flex items-center gap-2 text-xs text-[#1a3668]">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      {importStatus === 'parsing' ? 'Parsing file…' : 'Extracting fields with AI…'}
-                    </div>
-                  )}
-                  {importStatus === 'done' && (
-                    <div className="flex items-center gap-2 text-xs text-green-600">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      Fields populated — review and edit below
-                    </div>
-                  )}
-                  {importStatus === 'error' && (
-                    <p className="text-xs text-red-500">{importError}</p>
-                  )}
-                </div>
-              )}
-            </div>
-
             {/* ── Editable form ── */}
             <div className="p-5">
               <Tabs defaultValue="cover">
@@ -1171,80 +1385,9 @@ export default function GeneratePage() {
 
                 {/* Cover Sheet */}
                 <TabsContent value="cover" className="space-y-3 pt-4">
-                  {/* Send Speculatively — anonymise + intro email */}
-                  <div className="rounded-lg border-2 border-[#df2681]/30 bg-gradient-to-br from-pink-50/50 to-white p-3 space-y-3">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-[#1a3668] uppercase tracking-wide">
-                      <Sparkles className="h-3.5 w-3.5 text-[#df2681]" />
-                      Speculative Send
-                    </div>
-
-                    {/* Anonymise */}
-                    <div className="space-y-1.5">
-                      <label className="flex items-start gap-2 cursor-pointer group">
-                        <input
-                          type="checkbox"
-                          checked={sendAnonymously}
-                          onChange={(e) => handleToggleAnonymous(e.target.checked)}
-                          className="w-4 h-4 rounded flex-shrink-0 mt-0.5"
-                          style={{ accentColor: '#1a3668' }}
-                          disabled={anonymising}
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-1.5">
-                            <EyeOff className="h-3.5 w-3.5 text-gray-600" />
-                            <span className="text-xs font-semibold text-gray-800 group-hover:text-[#1a3668]">
-                              Send Anonymously
-                            </span>
-                            {anonymising && <Loader2 className="h-3 w-3 animate-spin text-[#1a3668]" />}
-                            {sendAnonymously && anonymisedData && !anonymising && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-600">
-                                <CheckCircle2 className="h-3 w-3" /> Applied to preview &amp; PDF
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[10px] text-gray-500 mt-0.5">
-                            AI strips name, LinkedIn, employer &amp; university names, and specific location, keeping every substantive claim intact.
-                          </p>
-                        </div>
-                      </label>
-                      {sendAnonymously && anonymisedData && !anonymising && (
-                        <button
-                          type="button"
-                          onClick={runAnonymise}
-                          className="ml-6 text-[10px] text-[#1a3668] hover:text-[#df2681] underline"
-                        >
-                          Re-anonymise (data has changed)
-                        </button>
-                      )}
-                      {anonymiseError && (
-                        <p className="ml-6 text-[11px] text-red-500">{anonymiseError}</p>
-                      )}
-                    </div>
-
-                    <div className="border-t border-[#df2681]/20" />
-
-                    {/* Speculative introduction email */}
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <Mail className="h-3.5 w-3.5 text-gray-600" />
-                        <span className="text-xs font-semibold text-gray-800">Introduction Email</span>
-                      </div>
-                      <p className="text-[10px] text-gray-500">
-                        Generate a short teaser email pitching this candidate to a potential client. Uses the {sendAnonymously ? 'anonymised' : 'full'} CV.
-                      </p>
-                      <Button
-                        onClick={handleGenerateEmail}
-                        disabled={generatingEmail || (sendAnonymously && !anonymisedData)}
-                        size="sm"
-                        className="w-full gap-1.5 bg-[#df2681] hover:bg-[#c01f6e] text-white"
-                      >
-                        {generatingEmail
-                          ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Drafting…</>
-                          : <><Mail className="h-3.5 w-3.5" /> Draft Introduction Email</>}
-                      </Button>
-                    </div>
-                  </div>
-
+                  {/* Note: Speculative Send (anonymise + intro email) moved to
+                      the top toolbar as a "Send options" dropdown so this tab
+                      focuses on cover-sheet content, not delivery mode. */}
                   <SectionHeading>Consultant</SectionHeading>
                   <Field label="Name"><Input value={data.consultant} onChange={(e) => set('consultant', e.target.value)} /></Field>
                   <Field label="Email"><Input value={data.consultantEmail} onChange={(e) => set('consultantEmail', e.target.value)} /></Field>
@@ -1611,6 +1754,9 @@ export default function GeneratePage() {
                 </TabsContent>
               </Tabs>
             </div>
+
+            </>}
+
           </div>
 
           {/* RIGHT: Preview */}
