@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, Fragment } from 'react'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 import { Header } from '@/components/header'
 import { CvTemplate, CandidateData, ExperienceEntry } from '@/components/cv-template'
 import { Button } from '@/ui/button'
@@ -260,6 +261,8 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 type ImportStatus = 'idle' | 'parsing' | 'extracting' | 'done' | 'error'
 
 export default function GeneratePage() {
+  const { data: session } = useSession()
+  const isAdmin = session?.user?.role === 'ADMIN'
   const [data, setData] = useState<CandidateData>({ ...BLANK_DATA, dateSubmitted: new Date().toLocaleDateString('en-GB') })
   const printRef = useRef<HTMLDivElement>(null)
   const [rewriting, setRewriting] = useState(false)
@@ -904,29 +907,34 @@ export default function GeneratePage() {
             >
               New CV
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => { setData(DEFAULT_DATA); setImportStatus('idle') }}
-              className="text-xs border-[#df2681]/40 text-[#df2681] hover:bg-[#df2681]/5"
-            >
-              Load Test Data
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setJobSpecText(TEST_JOB_SPEC)
-                setJobSpecFileName('Test Job Spec — Enterprise AE')
-                setJobSpecStatus('ready')
-                setJobSpecError('')
-                setJobSpecOpen(true)
-              }}
-              className="text-xs border-[#1a3668]/40 text-[#1a3668] hover:bg-[#1a3668]/5"
-              title="Loads a sample Enterprise AE job spec you can use to try the tailoring features"
-            >
-              Load Test Job Spec
-            </Button>
+            {/* Admin-only test data buttons — hidden for USER role */}
+            {isAdmin && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setData(DEFAULT_DATA); setImportStatus('idle') }}
+                  className="text-xs border-[#df2681]/40 text-[#df2681] hover:bg-[#df2681]/5"
+                >
+                  Load Test Data
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setJobSpecText(TEST_JOB_SPEC)
+                    setJobSpecFileName('Test Job Spec — Enterprise AE')
+                    setJobSpecStatus('ready')
+                    setJobSpecError('')
+                    setJobSpecOpen(true)
+                  }}
+                  className="text-xs border-[#1a3668]/40 text-[#1a3668] hover:bg-[#1a3668]/5"
+                  title="Loads a sample Enterprise AE job spec you can use to try the tailoring features"
+                >
+                  Load Test Job Spec
+                </Button>
+              </>
+            )}
             <Button
               variant="outline"
               size="sm"
