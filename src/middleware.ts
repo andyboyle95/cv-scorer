@@ -12,10 +12,11 @@
 //   - /login and NextAuth's own /api/auth/* endpoints
 //   - /tools/*                  → static tools like the WC26 planner (shareable)
 //   - /job-spec                 → public lead-gen form
-//   - /                         → landing page (nice UX than a hard login wall)
 //   - Static Next.js assets, favicon, images, robots, sitemap
 //
-// If a public route should become private (or vice versa), edit PUBLIC_PATHS.
+// The home page `/` is INTENTIONALLY gated — even a peek at the app cards
+// requires sign-in. If you want a public landing page instead, add "/" to
+// PUBLIC_EXACT below.
 
 import { NextRequest, NextResponse } from "next/server";
 
@@ -29,8 +30,9 @@ const PUBLIC_PREFIXES = [
   "/aaron-wallis-logo.png",
 ];
 
-// Exact-match public paths (paths that must be public but aren't a whole tree)
-const PUBLIC_EXACT = new Set<string>(["/"]);
+// Exact-match public paths (paths that must be public but aren't a whole tree).
+// Intentionally empty right now — everything, including `/`, is gated.
+const PUBLIC_EXACT = new Set<string>();
 
 function isPublic(pathname: string): boolean {
   if (PUBLIC_EXACT.has(pathname)) return true;
