@@ -1,10 +1,10 @@
 'use client';
 
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { FileSearch, FileText, MessageSquare, Car, ClipboardList, ArrowRight } from "lucide-react";
+import { Header } from "@/components/header";
 
 export default function Home() {
   const router = useRouter();
@@ -21,22 +21,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#F7F7F7] flex flex-col">
 
-      {/* Header */}
-      <header className="bg-[#1a3668] text-white px-6 py-3 flex items-center gap-4 shadow-md">
-        <div className="bg-white rounded px-2 py-1">
-          <Image
-            src="/aaron-wallis-logo.png"
-            alt="Aaron Wallis"
-            height={40}
-            width={160}
-            className="h-8 w-auto object-contain"
-            unoptimized
-            priority
-          />
-        </div>
-        <div className="h-7 w-px bg-white/30" />
-        <span className="text-lg font-semibold tracking-tight">Recruitment Tools</span>
-      </header>
+      <Header title="Recruitment Tools" />
 
       {/* Main */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-16">

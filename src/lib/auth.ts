@@ -83,6 +83,7 @@ export const authOptions: NextAuthOptions = {
 
       session.user.id = user.id;
       session.user.role = wl.role;
+      session.user.provider = (user as { lastProvider?: string | null }).lastProvider ?? null;
       return session;
     },
   },
@@ -106,6 +107,7 @@ export const authOptions: NextAuthOptions = {
         data: {
           loginCount: { increment: 1 },
           lastLoginAt: new Date(),
+          lastProvider: account?.provider ?? null,
         },
       });
       await logAudit({

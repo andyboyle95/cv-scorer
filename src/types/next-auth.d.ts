@@ -12,6 +12,7 @@ declare module "next-auth" {
       name?: string | null;
       image?: string | null;
       role: Role;
+      provider?: string | null; // "google" | "azure-ad"
     };
   }
 }
