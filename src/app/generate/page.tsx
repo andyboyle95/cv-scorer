@@ -286,6 +286,13 @@ export default function GeneratePage() {
   // Executive summary length toggle
   const [rewriteLonger, setRewriteLonger] = useState(false)
 
+  // Pre-import intent — set true when we import a CV with a job spec
+  // already attached and/or anonymise pre-selected. A useEffect below
+  // reads this after the import commits, then chains the corresponding
+  // auto actions so the first preview reflects the recruiter's choices
+  // (tailor first, then anonymise on top).
+  const [autoPrepPending, setAutoPrepPending] = useState(false)
+
   // Job-spec tailoring state. Step 2 in the reordered layout; optional so
   // it starts collapsed — attach when needed.
   const [jobSpecOpen, setJobSpecOpen] = useState(false)
@@ -342,6 +349,26 @@ export default function GeneratePage() {
     document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
   }, [sendOptionsOpen])
+
+  // Run the pre-import intent chain (tailor to job spec, then anonymise)
+  // once the fresh CV data has landed in state. Tailor first so anonymise
+  // scrubs the tailored version, not the raw one.
+  useEffect(() => {
+    if (!autoPrepPending) return
+    setAutoPrepPending(false)
+    const run = async () => {
+      if (jobSpecText.trim()) {
+        await handleTailorProfileSkills()
+      }
+      if (sendAnonymously) {
+        await runAnonymise()
+      }
+    }
+    void run()
+    // Intentionally only depends on the pending flag — we want it to fire
+    // exactly once per import cycle.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPrepPending])
 
   // ── The single source of truth for what actually gets rendered / exported.
   // If anonymous mode is on AND we've got an anonymised snapshot, use it;
@@ -635,6 +662,12 @@ export default function GeneratePage() {
       setImportStatus('done')
       setPasteText('')
       setHasStarted(true)
+      // If the recruiter set intent BEFORE importing (attached a job spec
+      // and/or ticked anonymous), chain those on the next render tick so
+      // the first preview reflects them.
+      if (jobSpecText.trim() || sendAnonymously) {
+        setAutoPrepPending(true)
+      }
     } catch (err) {
       setImportError(err instanceof Error ? err.message : 'Failed to extract CV fields')
       setImportStatus('error')
@@ -1089,7 +1122,7 @@ export default function GeneratePage() {
                     Turn a candidate&rsquo;s CV into a client-ready document.
                   </h2>
                   <p className="text-xs text-gray-500 leading-relaxed">
-                    Import a CV to get started. You can tailor it to a job spec, send anonymously, or add interview questions once it&rsquo;s in.
+                    Import a CV to get started. Tick the options below if you want the first preview tailored to a job spec or anonymised for a speculative send.
                   </p>
                 </div>
 
@@ -1131,6 +1164,119 @@ export default function GeneratePage() {
                     <ClipboardPaste className="h-3.5 w-3.5" />
                     Extract fields from text
                   </Button>
+                </div>
+
+                {/* Pre-import options — set intent before the first render.
+                    If either is toggled, the auto-prep chain runs after
+                    import so the first preview reflects those choices. */}
+                <div className="rounded-lg border border-gray-200 bg-gray-50/60 p-3 space-y-2.5">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Also apply (optional)</p>
+
+                  {/* Tailor to a job spec */}
+                  <div>
+                    <label className="flex items-start gap-2 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={jobSpecStatus === 'ready'}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setJobSpecOpen(true) // reveal the attach panel below
+                          } else {
+                            clearJobSpec()
+                          }
+                        }}
+                        className="w-3.5 h-3.5 rounded flex-shrink-0 mt-0.5"
+                        style={{ accentColor: '#1a3668' }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <Target className="h-3.5 w-3.5 text-gray-600" />
+                          <span className="text-xs font-semibold text-gray-800 group-hover:text-[#1a3668]">Tailor to a job spec</span>
+                          {jobSpecStatus === 'ready' && (
+                            <span className="text-[9px] font-semibold text-green-600 flex items-center gap-0.5">
+                              <CheckCircle2 className="h-3 w-3" /> Attached
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10.5px] text-gray-500 mt-0.5 leading-snug">
+                          Every AI step will match the advert&rsquo;s language, using only material already evident in the CV.
+                        </p>
+                      </div>
+                    </label>
+
+                    {/* Inline attach — expanded when checked */}
+                    {jobSpecOpen && (
+                      <div className="mt-2 ml-6 space-y-2">
+                        <div
+                          className={`border-2 border-dashed rounded-md p-3 text-center cursor-pointer transition-colors ${
+                            jobSpecDragOver ? 'border-[#df2681] bg-pink-50' : 'border-gray-200 bg-white hover:border-gray-300'
+                          } ${jobSpecStatus === 'parsing' ? 'pointer-events-none opacity-50' : ''}`}
+                          onDragOver={(e) => { e.preventDefault(); setJobSpecDragOver(true) }}
+                          onDragLeave={() => setJobSpecDragOver(false)}
+                          onDrop={handleJobSpecDrop}
+                          onClick={() => jobSpecFileInputRef.current?.click()}
+                        >
+                          <Upload className="h-4 w-4 mx-auto mb-1 text-gray-400" />
+                          <p className="text-[11px] font-medium text-gray-600">Drop a spec, or click to browse</p>
+                          <p className="text-[9px] text-gray-400 mt-0.5">PDF · DOCX · DOC · RTF · TXT</p>
+                          <input
+                            ref={jobSpecFileInputRef}
+                            type="file"
+                            className="hidden"
+                            accept=".pdf,.docx,.doc,.rtf,.txt"
+                            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleJobSpecFile(f) }}
+                          />
+                        </div>
+                        <Textarea
+                          value={jobSpecText}
+                          onChange={(e) => {
+                            setJobSpecText(e.target.value)
+                            setJobSpecFileName('')
+                            setJobSpecStatus(e.target.value.trim() ? 'ready' : 'idle')
+                          }}
+                          placeholder="Or paste the job advert / spec here..."
+                          className="min-h-[70px] text-[11px] font-mono resize-y bg-white"
+                          disabled={jobSpecStatus === 'parsing'}
+                        />
+                        {jobSpecStatus === 'parsing' && (
+                          <div className="flex items-center gap-2 text-[11px] text-[#1a3668]">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Parsing file…
+                          </div>
+                        )}
+                        {jobSpecStatus === 'ready' && jobSpecFileName && (
+                          <p className="text-[10.5px] text-green-600 flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3" /> {jobSpecFileName}
+                          </p>
+                        )}
+                        {jobSpecStatus === 'error' && (
+                          <p className="text-[10.5px] text-red-500">{jobSpecError}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Send anonymously */}
+                  <div className="border-t border-gray-200 pt-2.5">
+                    <label className="flex items-start gap-2 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={sendAnonymously}
+                        onChange={(e) => setSendAnonymously(e.target.checked)}
+                        className="w-3.5 h-3.5 rounded flex-shrink-0 mt-0.5"
+                        style={{ accentColor: '#1a3668' }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <EyeOff className="h-3.5 w-3.5 text-gray-600" />
+                          <span className="text-xs font-semibold text-gray-800 group-hover:text-[#1a3668]">Send anonymously</span>
+                        </div>
+                        <p className="text-[10.5px] text-gray-500 mt-0.5 leading-snug">
+                          Strip name, LinkedIn, employer &amp; university names, and specific location from the first preview.
+                        </p>
+                      </div>
+                    </label>
+                  </div>
                 </div>
 
                 {/* Start blank */}
