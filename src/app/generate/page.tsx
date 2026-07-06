@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect, Fragment } from 'react'
+import { FEATURES } from '@/lib/features'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { Header } from '@/components/header'
@@ -386,6 +387,7 @@ export default function GeneratePage() {
   // don't cross-pollute drafts. Only runs after the recruiter has started.
   const localStorageKey = session?.user?.id ? `awapps.cv-draft.v1.${session.user.id}` : null
   useEffect(() => {
+    if (!FEATURES.cvDrafts) return
     if (!hasStarted || !localStorageKey) return
     const t = setTimeout(() => {
       try {
@@ -400,6 +402,7 @@ export default function GeneratePage() {
   // save is newer than the remote save. Also fires on explicit Save button
   // and on Download PDF (see handlers).
   const remoteSync = useCallback(async () => {
+    if (!FEATURES.cvDrafts) return
     if (!hasStarted || !session?.user) return
     setSavingRemote(true)
     try {
@@ -423,6 +426,7 @@ export default function GeneratePage() {
   }, [hasStarted, session?.user, currentDraftId, data])
 
   useEffect(() => {
+    if (!FEATURES.cvDrafts) return
     if (!hasStarted) return
     const t = setInterval(() => { void remoteSync() }, 60_000)
     return () => clearInterval(t)
@@ -430,6 +434,7 @@ export default function GeneratePage() {
 
   // Refresh the recent-drafts list on mount + after each remote save.
   const refreshRecent = useCallback(async () => {
+    if (!FEATURES.cvDrafts) return
     try {
       const res = await fetch('/api/cv-drafts')
       const json = await res.json().catch(() => ({}))
@@ -443,6 +448,7 @@ export default function GeneratePage() {
 
   // On mount, check localStorage for a recent draft and offer restore.
   useEffect(() => {
+    if (!FEATURES.cvDrafts) return
     if (!localStorageKey || hasStarted) return
     try {
       const raw = localStorage.getItem(localStorageKey)
@@ -1148,7 +1154,8 @@ export default function GeneratePage() {
               New CV
             </Button>
 
-            {/* Recent CVs dropdown */}
+            {/* Recent CVs dropdown — hidden when auto-save is off */}
+            {FEATURES.cvDrafts && (
             <div ref={recentRef} className="relative">
               <Button
                 variant="outline"
@@ -1221,9 +1228,10 @@ export default function GeneratePage() {
                 </div>
               )}
             </div>
+            )}
 
-            {/* Auto-save chip — shows current save status. Clicking triggers a manual remote sync. */}
-            {hasStarted && (
+            {/* Auto-save chip — hidden when auto-save is off */}
+            {FEATURES.cvDrafts && hasStarted && (
               <button
                 type="button"
                 onClick={remoteSync}
@@ -1398,8 +1406,9 @@ export default function GeneratePage() {
             {!hasStarted && !busy && !tailoringProfile && !anonymising && (
               <div className="p-6 space-y-4">
                 {/* Restore prompt — only shown if there's an unsaved
-                    localStorage draft <7 days old for the current user. */}
-                {restoreDraft && (
+                    localStorage draft <7 days old for the current user.
+                    Also gated by the cvDrafts feature flag. */}
+                {FEATURES.cvDrafts && restoreDraft && (
                   <div className="rounded-lg border-2 border-amber-200 bg-amber-50 p-3 flex items-start gap-2.5">
                     <RefreshCw className="h-4 w-4 text-amber-700 flex-shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">

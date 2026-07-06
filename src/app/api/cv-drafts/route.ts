@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
+import { FEATURES } from "@/lib/features";
+
+const DISABLED_RESPONSE = () =>
+  NextResponse.json(
+    { error: "CV drafts are temporarily disabled", drafts: [] },
+    { status: 503 },
+  );
 
 // GET /api/cv-drafts — list current user's most recent CV drafts.
 export async function GET() {
+  if (!FEATURES.cvDrafts) return DISABLED_RESPONSE();
   let session;
   try {
     session = await requireSession();
@@ -31,6 +39,7 @@ export async function GET() {
 // - no id → create a new draft
 // - with id → update that draft (only if it belongs to the current user)
 export async function POST(req: NextRequest) {
+  if (!FEATURES.cvDrafts) return DISABLED_RESPONSE();
   let session;
   try {
     session = await requireSession();
