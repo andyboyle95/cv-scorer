@@ -25,9 +25,14 @@ export function Header({
         <Image
           src="/aaron-wallis-logo.png"
           alt="Aaron Wallis"
-          height={40}
-          width={160}
-          className="h-8 w-auto object-contain"
+          // Intrinsic dims match the source PNG (250×97) so the browser
+          // isn't asked to downsample as aggressively. Display at h-10
+          // (40px) which is close to the natural size — much sharper on
+          // retina than the previous h-8 crop of the 250-wide source.
+          height={97}
+          width={250}
+          className="h-10 w-auto object-contain"
+          style={{ imageRendering: "auto" }}
           unoptimized
           priority
         />
