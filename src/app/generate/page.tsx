@@ -337,7 +337,12 @@ export default function GeneratePage() {
 
   // Send anonymously state
   const [sendAnonymously, setSendAnonymously] = useState(false)
-  const [anonymisedData, setAnonymisedData] = useState<CandidateData | null>(null)
+  // Snapshot of the original CV taken RIGHT BEFORE we replace `data` with
+  // the anonymised version. Powers the "restore original" flow when the
+  // recruiter unticks anonymise. Note: anonymise is now a one-shot
+  // transform ON data itself — no separate frozen anonymisedData snapshot,
+  // so form edits after anonymising flow straight into the live preview.
+  const [preAnonymiseSnapshot, setPreAnonymiseSnapshot] = useState<CandidateData | null>(null)
   const [anonymising, setAnonymising] = useState(false)
   const [anonymiseError, setAnonymiseError] = useState('')
 
@@ -482,14 +487,6 @@ export default function GeneratePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoPrepPending])
 
-  // ── The single source of truth for what actually gets rendered / exported.
-  // If anonymous mode is on AND we've got an anonymised snapshot, use it;
-  // otherwise fall through to the real data. This means the form UI is always
-  // editable against the real data (candidate name, LinkedIn etc), but the
-  // preview and the PDF only ever show the anonymised view when the toggle
-  // is on.
-  const viewData: CandidateData = sendAnonymously && anonymisedData ? anonymisedData : data
-
   // ── Rewrite summary ───────────────────────────────────────────
 
   const handleRewrite = async () => {
@@ -524,6 +521,10 @@ export default function GeneratePage() {
   const runAnonymise = async (): Promise<CandidateData | null> => {
     setAnonymising(true)
     setAnonymiseError('')
+    // Snapshot the CURRENT CV before we mutate it. Powers the revert flow
+    // when the recruiter unticks anonymise. Don't overwrite an existing
+    // snapshot (that would lock in the anonymised version as "original").
+    setPreAnonymiseSnapshot((prev) => prev ?? data)
     try {
       const res = await fetch('/api/anonymise-cv', {
         method: 'POST',
@@ -545,9 +546,10 @@ export default function GeneratePage() {
       if (!res.ok) throw new Error((json as { error?: string }).error ?? 'Anonymisation failed')
 
       const anon = json as Partial<CandidateData>
-      // Merge onto the recruiter/consultant fields from the current data — the
-      // consultant sign-off block stays as-is; only candidate-identifying
-      // fields are swapped for their anonymised versions.
+      // Replace `data` with the anonymised version in place — recruiter/consultant
+      // fields (name, email, phone, role applied for, salary, notice, etc.) are
+      // preserved via the ...data spread; only candidate-identifying fields
+      // are swapped for their anonymised versions.
       const merged: CandidateData = {
         ...data,
         candidateName: anon.candidateName ?? 'Confidential Candidate',
@@ -560,7 +562,7 @@ export default function GeneratePage() {
         qualifications: anon.qualifications ?? data.qualifications,
         languages: anon.languages ?? data.languages,
       }
-      setAnonymisedData(merged)
+      setData(merged)
       return merged
     } catch (err) {
       setAnonymiseError(err instanceof Error ? err.message : 'Anonymisation failed')
@@ -571,9 +573,24 @@ export default function GeneratePage() {
   }
 
   const handleToggleAnonymous = async (checked: boolean) => {
-    setSendAnonymously(checked)
-    if (checked && !anonymisedData) {
+    if (checked) {
+      // Turn ON — anonymise (which also snapshots)
+      setSendAnonymously(true)
       await runAnonymise()
+      return
+    }
+    // Turn OFF — offer to restore the pre-anonymise snapshot if we have one.
+    // If the recruiter's made edits since anonymising they might not want to
+    // lose them, so confirm before overwriting.
+    setSendAnonymously(false)
+    if (preAnonymiseSnapshot) {
+      const restore = confirm(
+        'Restore the original (non-anonymised) CV? Any edits you made after anonymising will be lost.'
+      )
+      if (restore) {
+        setData(preAnonymiseSnapshot)
+        setPreAnonymiseSnapshot(null)
+      }
     }
   }
 
@@ -586,7 +603,9 @@ export default function GeneratePage() {
     try {
       // Pitch off whichever version is being sent — if the user is going
       // anonymously, the email must be anonymous too.
-      const src = sendAnonymously && anonymisedData ? anonymisedData : data
+      // `data` already contains whichever version is current (anonymise
+      // now transforms data in place), so just read from it directly.
+      const src = data
       const res = await fetch('/api/speculative-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -674,8 +693,8 @@ export default function GeneratePage() {
     setDownloadingDocx(true)
     try {
       const { buildCvDocx } = await import('@/lib/build-cv-docx')
-      const blob = await buildCvDocx(viewData)
-      const slug = (viewData.candidateName || 'cv')
+      const blob = await buildCvDocx(data)
+      const slug = (data.candidateName || 'cv')
         .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
       // Native blob download — no file-saver dependency (its ESM interop
       // varies by bundler and was silently failing at runtime).
@@ -756,7 +775,7 @@ export default function GeneratePage() {
 
       wrapper.setAttribute('style', prev)
 
-      const slug = (viewData.candidateName || 'cv')
+      const slug = (data.candidateName || 'cv')
         .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
       pdf!.save(`${slug}.pdf`)
       // Milestone save — persist the current state to Postgres so it lands
@@ -1140,7 +1159,7 @@ export default function GeneratePage() {
                 setHasStarted(false)
                 clearJobSpec()
                 setSendAnonymously(false)
-                setAnonymisedData(null)
+                setPreAnonymiseSnapshot(null)
                 setCurrentDraftId(null)
                 setLastSavedLocal(null)
                 setLastSavedRemote(null)
@@ -1290,7 +1309,7 @@ export default function GeneratePage() {
                         <EyeOff className="h-3.5 w-3.5 text-gray-600" />
                         <span className="text-xs font-semibold text-gray-800">Send anonymously</span>
                         {anonymising && <Loader2 className="h-3 w-3 animate-spin text-[#1a3668]" />}
-                        {sendAnonymously && anonymisedData && !anonymising && (
+                        {sendAnonymously && !anonymising && (
                           <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-600">
                             <CheckCircle2 className="h-3 w-3" /> Applied
                           </span>
@@ -1299,7 +1318,7 @@ export default function GeneratePage() {
                       <p className="text-[10.5px] text-gray-500 mt-0.5 leading-snug">
                         Strips name, LinkedIn, employer &amp; university names, and specific location. Keeps every substantive claim intact.
                       </p>
-                      {sendAnonymously && anonymisedData && !anonymising && (
+                      {sendAnonymously && !anonymising && (
                         <button
                           type="button"
                           onClick={(e) => { e.preventDefault(); runAnonymise() }}
@@ -1316,7 +1335,7 @@ export default function GeneratePage() {
                   <button
                     type="button"
                     onClick={() => { setSendOptionsOpen(false); handleGenerateEmail() }}
-                    disabled={generatingEmail || (sendAnonymously && !anonymisedData)}
+                    disabled={generatingEmail || anonymising}
                     className="w-full flex items-start gap-2.5 px-3 py-2.5 hover:bg-gray-50 text-left disabled:opacity-50 disabled:pointer-events-none"
                   >
                     <span className="w-4 h-4 flex-shrink-0 mt-0.5 flex items-center justify-center">
@@ -1337,7 +1356,7 @@ export default function GeneratePage() {
               variant="outline"
               size="sm"
               onClick={() => {
-                const slug = (viewData.candidateName || 'cv')
+                const slug = (data.candidateName || 'cv')
                   .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
                 const prev = document.title
                 document.title = slug
@@ -2311,7 +2330,7 @@ export default function GeneratePage() {
               </div>
             </div>
             <div style={{ transform: 'scale(0.72)', transformOrigin: 'top center' }}>
-              <CvTemplate data={viewData} showBreaks />
+              <CvTemplate data={data} showBreaks />
               {interviewEnabled && renderIqPages(true)}
             </div>
           </div>
@@ -2320,7 +2339,7 @@ export default function GeneratePage() {
 
       {/* ── Print-only CV (full fidelity, no scaling) ── */}
       <div id="pdf-capture-wrapper" className="hidden print:block">
-        <CvTemplate data={viewData} printRef={printRef} />
+        <CvTemplate data={data} printRef={printRef} />
 
         {/* Interview questions pages — rendered via shared renderIqPages() */}
         {interviewEnabled && renderIqPages()}
