@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { HUMAN_STYLE_RULES, sanitizeProse } from "@/lib/prose-style";
 import { requireSession } from "@/lib/session";
+import { logUsage } from "@/lib/usage";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -99,6 +100,15 @@ ${cvText.slice(0, 12000)}`,
         rationale: sanitizeProse(q.rationale),
       })),
     };
+    // Standalone /interview page and CV Generator's Interview tab both call
+    // this endpoint. If the client passed a `context` field distinguishing
+    // the two we could split; for now attribute to interview-generator so
+    // it shows up under its own tool.
+    await logUsage({
+      tool: "interview-generator",
+      action: "generate-questions",
+      meta: { count: (cleaned.questions ?? []).length },
+    });
     return NextResponse.json(cleaned);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Generation failed";

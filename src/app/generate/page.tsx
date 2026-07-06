@@ -745,6 +745,12 @@ export default function GeneratePage() {
       // Revoke after a short delay so Chrome/Firefox finish reading it.
       setTimeout(() => URL.revokeObjectURL(url), 1000)
       void remoteSync()
+      // Fire-and-forget analytics. Never awaited, never blocks the UI.
+      void fetch('/api/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tool: 'cv-generator', action: 'docx-export' }),
+      }).catch(() => { /* silent — tracking must not disrupt UX */ })
     } catch (err) {
       console.error('DOCX download failed:', err)
       alert('DOCX download failed. Please try again or use Download PDF.')
@@ -818,6 +824,12 @@ export default function GeneratePage() {
       // Milestone save — persist the current state to Postgres so it lands
       // in the Recent list. Runs in the background; ignored if it fails.
       void remoteSync()
+      // Fire-and-forget analytics. Never awaited, never blocks the UI.
+      void fetch('/api/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tool: 'cv-generator', action: 'pdf-export' }),
+      }).catch(() => { /* silent — tracking must not disrupt UX */ })
     } catch (err) {
       console.error('PDF download failed:', err)
       alert('PDF download failed. Please try again, or use the DOCX button instead.')

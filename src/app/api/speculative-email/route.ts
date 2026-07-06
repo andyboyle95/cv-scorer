@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { HUMAN_STYLE_RULES, sanitizeProse } from "@/lib/prose-style";
 import { requireSession } from "@/lib/session";
+import { logUsage } from "@/lib/usage";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -132,6 +133,11 @@ Return the email via the tool.`,
     }
     const out = toolUse.input as { subject: string; body: string };
 
+    await logUsage({
+      tool: "cv-generator",
+      action: "intro-email",
+      meta: { anonymised },
+    });
     return NextResponse.json({
       subject: sanitizeProse(out.subject),
       body: sanitizeProse(out.body),

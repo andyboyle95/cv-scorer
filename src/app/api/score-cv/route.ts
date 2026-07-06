@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { scoreCv } from "@/lib/claude";
 import type { JobBrief } from "@/lib/types";
 import { requireSession } from "@/lib/session";
+import { logUsage } from "@/lib/usage";
 
 export const maxDuration = 60; // seconds
 
@@ -21,6 +22,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const score = await scoreCv(jobBrief, cvText);
+    await logUsage({ tool: "cv-scorer", action: "score" });
     return NextResponse.json(score);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Scoring failed";

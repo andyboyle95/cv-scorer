@@ -36,6 +36,26 @@ model User {
   cvDrafts CvDraft[]
 }
 
+// Usage analytics. One row per action a user takes across the whole tool
+// suite (CV Generator, CV Scorer, Job Spec Creator, Interview Generator,
+// Commute Calculator). Powers the /admin Usage tab so we can see what's
+// being used and by whom, without shipping candidate PII to a 3rd party
+// analytics platform. userId is nullable so the public /job-spec form
+// (anonymous visitors) can also be tracked.
+model UsageEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  userEmail String?  // denormalised for easier querying without joining
+  tool      String   // "cv-generator" | "cv-scorer" | "job-spec-creator" | "interview-generator" | "commute-calculator"
+  action    String   // "pdf-export" | "docx-export" | "anonymise" | "tailor" | "score" | ...
+  meta      String?  // free-form JSON string for extras (e.g. spec attached: true, longer: true)
+  createdAt DateTime @default(now())
+
+  @@index([tool, action, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+}
+
 // CV drafts — durable per-user saved CVs powering the toolbar Recent
 // dropdown. Client also keeps a localStorage copy for aggressive
 // keystroke-level auto-save; this table is the cross-device source of

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { HUMAN_STYLE_RULES, sanitizeProse, sanitizeProseList } from "@/lib/prose-style";
 import { requireSession } from "@/lib/session";
+import { logUsage } from "@/lib/usage";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -224,6 +225,7 @@ ${cvJson}`,
       languages: (out.languages as string[]) || body.languages || [],
     };
 
+    await logUsage({ tool: "cv-generator", action: "anonymise" });
     return NextResponse.json(cleaned);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Anonymisation failed";

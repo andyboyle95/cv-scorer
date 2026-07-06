@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logUsage } from '@/lib/usage';
 
 export const maxDuration = 30;
 
@@ -49,6 +50,11 @@ export async function POST(req: NextRequest) {
     const distanceMiles = route.distance / 1609.344;
     const durationMinutes = route.duration / 60;
 
+    await logUsage({
+      tool: "commute-calculator",
+      action: "commute-lookup",
+      meta: { miles: Math.round(distanceMiles) },
+    });
     return NextResponse.json({
       distanceMiles,
       durationMinutes,

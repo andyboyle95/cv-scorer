@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Users, Globe, Activity, ArrowLeft, Plus, Loader2, Shield, RefreshCw, X } from "lucide-react";
+import { Users, Globe, Activity, ArrowLeft, Plus, Loader2, Shield, RefreshCw, X, BarChart3 } from "lucide-react";
 import { Header } from "@/components/header";
 import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
@@ -43,8 +43,23 @@ interface Stats {
   totalLogins: number;
 }
 
+interface UsageRow {
+  tool: string;
+  action: string;
+  count: number;
+}
+
+interface UsageStats {
+  totals: { today: number; thisWeek: number; allTime: number };
+  today: UsageRow[];
+  thisWeek: UsageRow[];
+  allTime: UsageRow[];
+  topUsers: Array<{ email: string | null; count: number }>;
+}
+
 export default function AdminPage() {
-  const [tab, setTab] = useState<"users" | "domains" | "activity">("users");
+  const [tab, setTab] = useState<"users" | "domains" | "activity" | "usage">("users");
+  const [usage, setUsage] = useState<UsageStats | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [domains, setDomains] = useState<DomainRow[]>([]);
@@ -53,16 +68,18 @@ export default function AdminPage() {
 
   const refreshAll = useCallback(async () => {
     setLoading(true);
-    const [s, u, d, a] = await Promise.all([
+    const [s, u, d, a, up] = await Promise.all([
       fetch("/api/admin/stats").then((r) => r.json()),
       fetch("/api/admin/users").then((r) => r.json()),
       fetch("/api/admin/domains").then((r) => r.json()),
       fetch("/api/admin/activity").then((r) => r.json()),
+      fetch("/api/admin/usage-stats").then((r) => r.json()),
     ]);
     setStats(s);
     setUsers(u.users ?? []);
     setDomains(d.domains ?? []);
     setActivity(a.events ?? []);
+    setUsage(up ?? null);
     setLoading(false);
   }, []);
 
@@ -108,6 +125,9 @@ export default function AdminPage() {
           <TabButton active={tab === "domains"} onClick={() => setTab("domains")} icon={Globe}>
             Domains
           </TabButton>
+          <TabButton active={tab === "usage"} onClick={() => setTab("usage")} icon={BarChart3}>
+            Usage
+          </TabButton>
           <TabButton active={tab === "activity"} onClick={() => setTab("activity")} icon={Activity}>
             Activity
           </TabButton>
@@ -115,6 +135,7 @@ export default function AdminPage() {
 
         {tab === "users" && <UsersTab users={users} onChange={refreshAll} />}
         {tab === "domains" && <DomainsTab domains={domains} onChange={refreshAll} />}
+        {tab === "usage" && <UsageTab usage={usage} />}
         {tab === "activity" && <ActivityTab events={activity} />}
       </main>
     </div>
@@ -497,3 +518,132 @@ const eventColors: Record<string, string> = {
   DOMAIN_ADDED: "bg-green-100 text-green-700",
   DOMAIN_REMOVED: "bg-red-100 text-red-700",
 };
+
+// ─── Usage tab ──────────────────────────────────────────────────────────────
+// Layout: three totals at the top, then per-tool cards below with the
+// specific actions the recruiter cares about (CV exports, anonymise,
+// tailor to job spec). Each cell shows count/today/week.
+
+const toolLabels: Record<string, string> = {
+  "cv-generator": "CV Generator",
+  "cv-scorer": "CV Scorer",
+  "job-spec-creator": "Job Spec Creator",
+  "interview-generator": "Interview Generator",
+  "commute-calculator": "Commute Calculator",
+};
+
+const actionLabels: Record<string, string> = {
+  "cv-import": "CV imports",
+  "auto-rewrite": "Auto-rewrite",
+  "tailor-job-spec": "Tailor to job spec",
+  "anonymise": "Anonymise",
+  "intro-email": "Intro email",
+  "interview-questions": "Interview questions (bundled)",
+  "pdf-export": "PDF exports",
+  "docx-export": "DOCX exports",
+  "score": "CVs scored",
+  "generate-spec": "Specs generated",
+  "generate-questions": "Question sets generated",
+  "commute-lookup": "Commutes calculated",
+};
+
+// Which tools + actions to feature in the per-tool cards (in this order).
+const TOOL_LAYOUT: Array<{ tool: string; actions: string[] }> = [
+  {
+    tool: "cv-generator",
+    actions: ["pdf-export", "docx-export", "tailor-job-spec", "anonymise", "auto-rewrite", "intro-email", "interview-questions", "cv-import"],
+  },
+  { tool: "cv-scorer", actions: ["score"] },
+  { tool: "job-spec-creator", actions: ["generate-spec"] },
+  { tool: "interview-generator", actions: ["generate-questions"] },
+  { tool: "commute-calculator", actions: ["commute-lookup"] },
+];
+
+function getCount(rows: UsageRow[] | undefined, tool: string, action: string): number {
+  return rows?.find((r) => r.tool === tool && r.action === action)?.count ?? 0;
+}
+
+function UsageTab({ usage }: { usage: UsageStats | null }) {
+  if (!usage) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-400 shadow-sm">
+        <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
+        Loading usage stats…
+      </div>
+    );
+  }
+
+  const hasAnyData = usage.totals.allTime > 0;
+  return (
+    <div className="space-y-6">
+      {/* Headline totals */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatTile label="Actions today" value={usage.totals.today} />
+        <StatTile label="Actions this week" value={usage.totals.thisWeek} />
+        <StatTile label="Total actions all time" value={usage.totals.allTime} />
+      </div>
+
+      {!hasAnyData && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-xs text-amber-800">
+          No usage data yet. Actions taken across the tool suite start appearing here from now on.
+        </div>
+      )}
+
+      {/* Per-tool cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {TOOL_LAYOUT.map((row) => (
+          <div key={row.tool} className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-gray-100 bg-gray-50">
+              <p className="text-xs font-semibold text-[#1a3668] tracking-tight">{toolLabels[row.tool]}</p>
+            </div>
+            <table className="w-full text-sm">
+              <thead className="text-[10px] font-bold text-gray-500 uppercase tracking-wider bg-gray-50/50">
+                <tr>
+                  <th className="text-left px-4 py-1.5">Action</th>
+                  <th className="text-right px-4 py-1.5 w-16">Today</th>
+                  <th className="text-right px-4 py-1.5 w-16">7d</th>
+                  <th className="text-right px-4 py-1.5 w-20">All-time</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {row.actions.map((action) => {
+                  const today = getCount(usage.today, row.tool, action);
+                  const week = getCount(usage.thisWeek, row.tool, action);
+                  const all = getCount(usage.allTime, row.tool, action);
+                  return (
+                    <tr key={action} className={all === 0 ? "opacity-40" : ""}>
+                      <td className="px-4 py-2 text-xs text-gray-800">{actionLabels[action] ?? action}</td>
+                      <td className="px-4 py-2 text-xs text-right tabular-nums font-medium">{today}</td>
+                      <td className="px-4 py-2 text-xs text-right tabular-nums font-medium">{week}</td>
+                      <td className="px-4 py-2 text-xs text-right tabular-nums font-bold text-[#1a3668]">{all}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ))}
+      </div>
+
+      {/* Leaderboard */}
+      {usage.topUsers.length > 0 && (
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-gray-100 bg-gray-50">
+            <p className="text-xs font-semibold text-[#1a3668] tracking-tight">Most active users this week</p>
+          </div>
+          <table className="w-full text-sm">
+            <tbody className="divide-y divide-gray-50">
+              {usage.topUsers.map((u, i) => (
+                <tr key={u.email ?? i}>
+                  <td className="px-4 py-2 w-8 text-[10px] font-bold text-gray-400 uppercase tabular-nums">#{i + 1}</td>
+                  <td className="px-4 py-2 text-xs text-gray-800">{u.email ?? "—"}</td>
+                  <td className="px-4 py-2 text-xs text-right tabular-nums font-bold text-[#1a3668] w-24">{u.count} actions</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}

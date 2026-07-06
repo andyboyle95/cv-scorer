@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { HUMAN_STYLE_RULES, sanitizeProse, sanitizeProseList } from "@/lib/prose-style";
 import { requireSession } from "@/lib/session";
+import { logUsage } from "@/lib/usage";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -124,6 +125,11 @@ ${jobSpec.trim().slice(0, 8000)}`,
     const missing = skillsList.filter((s) => !returned.has(s.trim().toLowerCase()));
     const finalSkills = missing.length ? [...out.skills, ...missing] : out.skills;
 
+    await logUsage({
+      tool: "cv-generator",
+      action: "tailor-job-spec",
+      meta: { addedSkillsCount: (out.addedSkills ?? []).length },
+    });
     return NextResponse.json({
       profile: sanitizeProse(out.profile),
       skills: sanitizeProseList(finalSkills),

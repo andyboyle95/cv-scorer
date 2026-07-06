@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { HUMAN_STYLE_RULES, sanitizeProse } from "@/lib/prose-style";
 import { requireSession } from "@/lib/session";
+import { logUsage } from "@/lib/usage";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -71,6 +72,11 @@ Return only the rewritten summary text, no preamble.`,
       return NextResponse.json({ error: "No response from AI" }, { status: 500 });
     }
 
+    await logUsage({
+      tool: "cv-generator",
+      action: "auto-rewrite",
+      meta: { jobSpecAttached: !!jobSpecText, longer: wantLonger },
+    });
     return NextResponse.json({ summary: sanitizeProse(text.text) });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Rewrite failed";

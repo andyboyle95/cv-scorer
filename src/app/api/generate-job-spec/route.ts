@@ -4,6 +4,7 @@ import { generateJobSpec } from "@/lib/job-spec-claude";
 import { fetchWebsiteText } from "@/lib/fetch-website";
 import { sendLeadEmail } from "@/lib/send-lead-email";
 import type { JobSpecAnswers } from "@/lib/job-spec-config";
+import { logUsage } from "@/lib/usage";
 
 export const maxDuration = 60; // seconds
 
@@ -66,6 +67,14 @@ export async function POST(req: NextRequest) {
       console.error("[generate-job-spec] lead email failed:", err)
     );
 
+    // Public lead-gen form — session is usually null. Log anyway with
+    // the submitter's email so admins can see leads coming in.
+    await logUsage({
+      tool: "job-spec-creator",
+      action: "generate-spec",
+      userEmail: answers?.email ?? null,
+      userId: null,
+    });
     return NextResponse.json(spec);
   } catch (err) {
     console.error("[generate-job-spec] Error:", err);

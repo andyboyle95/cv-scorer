@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { HUMAN_STYLE_RULES, sanitizeProse, sanitizeProseList } from "@/lib/prose-style";
 import { requireSession } from "@/lib/session";
+import { logUsage } from "@/lib/usage";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -105,6 +106,7 @@ ${cvText.slice(0, 12000)}
       profile: sanitizeProse(raw.profile as string | undefined),
       skills: sanitizeProseList(raw.skills as string[] | undefined),
     };
+    await logUsage({ tool: "cv-generator", action: "cv-import" });
     return NextResponse.json(cleaned);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Extraction failed";
