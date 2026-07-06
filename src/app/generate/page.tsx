@@ -1259,7 +1259,7 @@ export default function GeneratePage() {
                 onClick={() => setSendOptionsOpen((o) => !o)}
                 className={`text-xs gap-1.5 ${sendAnonymously ? 'border-[#df2681]/60 text-[#df2681]' : ''}`}
                 disabled={!hasStarted}
-                title={hasStarted ? 'Anonymise this CV or draft an intro email' : 'Start a CV first'}
+                title={hasStarted ? 'Anonymise this CV or generate an intro email' : 'Start a CV first'}
               >
                 <Sparkles className="h-3.5 w-3.5" />
                 {sendAnonymously ? 'Anonymous send' : 'Send options'}
@@ -1323,7 +1323,7 @@ export default function GeneratePage() {
                       {generatingEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin text-[#1a3668]" /> : <Mail className="h-3.5 w-3.5 text-gray-600" />}
                     </span>
                     <div className="flex-1">
-                      <p className="text-xs font-semibold text-gray-800">Draft introduction email</p>
+                      <p className="text-xs font-semibold text-gray-800">Generate introduction email</p>
                       <p className="text-[10.5px] text-gray-500 mt-0.5 leading-snug">
                         Short teaser email pitching this candidate to a potential client. Uses the {sendAnonymously ? 'anonymised' : 'full'} CV.
                       </p>
@@ -2359,7 +2359,7 @@ export default function GeneratePage() {
               {generatingEmail && (
                 <div className="flex items-center justify-center gap-2 py-10 text-sm text-gray-500">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Drafting the email…
+                  Generating the email…
                 </div>
               )}
               {emailError && !generatingEmail && (
