@@ -1259,10 +1259,10 @@ export default function GeneratePage() {
                 onClick={() => setSendOptionsOpen((o) => !o)}
                 className={`text-xs gap-1.5 ${sendAnonymously ? 'border-[#df2681]/60 text-[#df2681]' : ''}`}
                 disabled={!hasStarted}
-                title={hasStarted ? 'Anonymise this CV or generate an intro email' : 'Start a CV first'}
+                title={hasStarted ? 'Anonymise the CV or generate an introduction email' : 'Start a CV first'}
               >
                 <Sparkles className="h-3.5 w-3.5" />
-                {sendAnonymously ? 'Anonymous send' : 'Send options'}
+                Anonymise / Generate Intro Email
                 <ChevronDown className="h-3 w-3 opacity-60" />
               </Button>
 
