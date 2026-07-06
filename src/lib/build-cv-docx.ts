@@ -13,14 +13,12 @@ import {
   Document,
   Footer,
   Header,
-  HeadingLevel,
   LevelFormat,
   PageBreak,
   Packer,
   Paragraph,
   ShadingType,
   Tab,
-  TabStopPosition,
   TabStopType,
   TextRun,
 } from "docx";
@@ -33,10 +31,12 @@ const LINE = "d9d3c4";
 
 // ── Small helpers ───────────────────────────────────────────────
 
+// Plain paragraph styled to look like a section heading. Avoiding
+// HeadingLevel + border combined (docx 9.x is finicky about that combo
+// and it was silently blowing up Packer.toBlob at runtime).
 const heading = (text: string) =>
   new Paragraph({
-    heading: HeadingLevel.HEADING_2,
-    spacing: { before: 220, after: 100 },
+    spacing: { before: 240, after: 80 },
     border: {
       bottom: { color: NAVY, size: 8, style: BorderStyle.SINGLE, space: 4 },
     },
@@ -45,7 +45,7 @@ const heading = (text: string) =>
         text: text.toUpperCase(),
         bold: true,
         color: NAVY,
-        size: 22, // 11pt
+        size: 22,
         font: "Arial",
       }),
     ],

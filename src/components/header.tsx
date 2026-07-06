@@ -4,9 +4,16 @@ import { UserMenu } from "./user-menu";
 
 // Two-tone header. Left block: white ground with the real Aaron Wallis
 // colour logo sitting on its native background — no awkward pill inside a
-// navy field. Right block: navy, holds the page title and the user chip.
-// The vertical seam between the two blocks IS the design element.
-export function Header({ title = "" }: { title?: string }) {
+// navy field. Right block: navy, holds the page title, an optional
+// `actions` slot (e.g. admin test-data buttons on /generate), and the
+// user chip.
+export function Header({
+  title = "",
+  actions,
+}: {
+  title?: string;
+  actions?: React.ReactNode;
+}) {
   return (
     <header className="flex items-stretch shadow-md">
       {/* Left — white block with the actual AW logo */}
@@ -26,7 +33,7 @@ export function Header({ title = "" }: { title?: string }) {
         />
       </Link>
 
-      {/* Right — navy block with page title + user chip */}
+      {/* Right — navy block with page title + optional actions + user chip */}
       <div className="flex-1 bg-[#1a3668] text-white px-5 sm:px-6 py-3 flex items-center justify-between gap-4 min-w-0">
         {title ? (
           <span className="text-[14px] sm:text-[15px] font-semibold tracking-tight truncate">
@@ -35,7 +42,10 @@ export function Header({ title = "" }: { title?: string }) {
         ) : (
           <span />
         )}
-        <UserMenu />
+        <div className="flex items-center gap-3">
+          {actions}
+          <UserMenu />
+        </div>
       </div>
     </header>
   );

@@ -276,6 +276,7 @@ export default function GeneratePage() {
   const [downloading, setDownloading] = useState(false)
   const [downloadingDocx, setDownloadingDocx] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const emptyStateFileInputRef = useRef<HTMLInputElement>(null)
 
   // Import state
   const [importOpen, setImportOpen] = useState(false)
@@ -666,17 +667,25 @@ export default function GeneratePage() {
   const handleDownloadDocx = async () => {
     setDownloadingDocx(true)
     try {
-      const [{ buildCvDocx }, { saveAs }] = await Promise.all([
-        import('@/lib/build-cv-docx'),
-        import('file-saver'),
-      ])
+      const { buildCvDocx } = await import('@/lib/build-cv-docx')
       const blob = await buildCvDocx(viewData)
       const slug = (viewData.candidateName || 'cv')
         .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-      saveAs(blob, `${slug}.docx`)
+      // Native blob download — no file-saver dependency (its ESM interop
+      // varies by bundler and was silently failing at runtime).
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${slug}.docx`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      // Revoke after a short delay so Chrome/Firefox finish reading it.
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
       void remoteSync()
     } catch (err) {
       console.error('DOCX download failed:', err)
+      alert('DOCX download failed. Please try again or use Download PDF.')
     } finally {
       setDownloadingDocx(false)
     }
@@ -1070,7 +1079,43 @@ export default function GeneratePage() {
     <>
       {/* ── Screen UI (hidden on print) ── */}
       <div className="min-h-screen bg-[#F7F7F7] flex flex-col print:hidden">
-        <Header title="CV Generator" />
+        <Header
+          title="CV Generator"
+          actions={
+            isAdmin ? (
+              <div className="flex items-center gap-1.5 mr-1 pr-3 border-r border-white/20">
+                <span
+                  className="text-[9px] font-bold uppercase tracking-widest text-[#df2681] bg-white/95 px-1.5 py-0.5 rounded"
+                  title="Admin-only test utilities"
+                >
+                  Admin
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setData(DEFAULT_DATA); setImportStatus('idle'); setHasStarted(true) }}
+                  className="text-[11px] font-semibold text-white/90 hover:text-white bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded transition-colors"
+                  title="Load Lavinia Goran (Enterprise AE) as sample CV data"
+                >
+                  Load Test CV
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setJobSpecText(TEST_JOB_SPEC)
+                    setJobSpecFileName('Test Job Spec — Enterprise AE')
+                    setJobSpecStatus('ready')
+                    setJobSpecError('')
+                    setJobSpecOpen(true)
+                  }}
+                  className="text-[11px] font-semibold text-white/90 hover:text-white bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded transition-colors"
+                  title="Attach a sample Enterprise AE job spec that maps onto the test CV"
+                >
+                  Load Test Spec
+                </button>
+              </div>
+            ) : null
+          }
+        />
 
         {/* Toolbar */}
         <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm">
@@ -1279,34 +1324,7 @@ export default function GeneratePage() {
                 </div>
               )}
             </div>
-            {/* Admin-only test data buttons — hidden for USER role */}
-            {isAdmin && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => { setData(DEFAULT_DATA); setImportStatus('idle'); setHasStarted(true) }}
-                  className="text-xs border-[#df2681]/40 text-[#df2681] hover:bg-[#df2681]/5"
-                >
-                  Load Test Data
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setJobSpecText(TEST_JOB_SPEC)
-                    setJobSpecFileName('Test Job Spec — Enterprise AE')
-                    setJobSpecStatus('ready')
-                    setJobSpecError('')
-                    setJobSpecOpen(true)
-                  }}
-                  className="text-xs border-[#1a3668]/40 text-[#1a3668] hover:bg-[#1a3668]/5"
-                  title="Loads a sample Enterprise AE job spec you can use to try the tailoring features"
-                >
-                  Load Test Job Spec
-                </Button>
-              </>
-            )}
+            {/* Admin test data buttons moved to the top Header (see <Header actions={…}/> above) */}
             <Button
               variant="outline"
               size="sm"
@@ -1428,7 +1446,11 @@ export default function GeneratePage() {
                   </p>
                 </div>
 
-                {/* Compact drop zone (smaller padding than before) */}
+                {/* Compact drop zone (smaller padding than before). Note the
+                    hidden file input is a SIBLING of the drop zone here — the
+                    main file input tag lives inside the Step 1 panel which
+                    doesn't render until hasStarted=true, so 'click to browse'
+                    would silently do nothing without this mirror. */}
                 <div
                   className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors ${
                     dragOver ? 'border-[#df2681] bg-pink-50' : 'border-gray-300 bg-gray-50 hover:border-[#1a3668]/50 hover:bg-gray-100/60'
@@ -1436,11 +1458,18 @@ export default function GeneratePage() {
                   onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
                   onDragLeave={() => setDragOver(false)}
                   onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => emptyStateFileInputRef.current?.click()}
                 >
                   <Upload className="h-6 w-6 mx-auto mb-1.5 text-gray-400" />
                   <p className="text-[13px] font-semibold text-[#1a3668]">Drop a CV file, or click to browse</p>
                   <p className="text-[10.5px] text-gray-500 mt-0.5">PDF &middot; DOCX &middot; DOC &middot; RTF &middot; TXT</p>
+                  <input
+                    ref={emptyStateFileInputRef}
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.docx,.doc,.rtf,.txt"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
+                  />
                 </div>
 
                 {/* Pre-import options — moved ABOVE paste so they're
@@ -2261,10 +2290,16 @@ export default function GeneratePage() {
 
           {/* RIGHT: Preview */}
           <div className="flex-1 overflow-auto bg-gray-300 p-8">
-            <div className="mb-4 text-center">
+            <div className="mb-4 text-center space-y-1.5">
               <span className="inline-block bg-white/80 text-xs text-gray-500 px-3 py-1 rounded-full shadow-sm">
-                Live preview — click &ldquo;Download PDF&rdquo; to export
+                Live preview — click &ldquo;Download PDF&rdquo; or &ldquo;DOCX&rdquo; to export
               </span>
+              <div>
+                <span className="inline-flex items-center gap-1.5 bg-[#df2681]/10 border border-[#df2681]/30 text-[#df2681] text-[10.5px] font-medium px-2.5 py-1 rounded-full">
+                  <Sparkles className="h-3 w-3" />
+                  Content overflowing a page? Insert page breaks between roles on the <strong>Roles</strong> tab.
+                </span>
+              </div>
             </div>
             <div style={{ transform: 'scale(0.72)', transformOrigin: 'top center' }}>
               <CvTemplate data={viewData} showBreaks />
