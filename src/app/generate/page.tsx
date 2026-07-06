@@ -366,6 +366,27 @@ export default function GeneratePage() {
     setData((prev) => (prev.dateSubmitted ? prev : { ...prev, dateSubmitted: new Date().toLocaleDateString('en-GB') }))
   }, [])
 
+  // Pre-fill the Consultant Name + Email from the signed-in user so every
+  // recruiter's submitted CVs go out under their own name — not Rob Scott's,
+  // who was hardcoded as the default in BLANK_DATA. We only overwrite when
+  // the field is empty OR still at the Rob-Scott default value, so a user
+  // who has manually customised those fields isn't clobbered.
+  const sessionName = session?.user?.name
+  const sessionEmail = session?.user?.email
+  useEffect(() => {
+    if (!sessionName && !sessionEmail) return
+    setData((prev) => {
+      const isDefaultName = !prev.consultant || prev.consultant === 'Rob Scott'
+      const isDefaultEmail = !prev.consultantEmail || prev.consultantEmail === 'robert.scott@aaronwallis.co.uk'
+      if (!isDefaultName && !isDefaultEmail) return prev
+      return {
+        ...prev,
+        consultant: isDefaultName && sessionName ? sessionName : prev.consultant,
+        consultantEmail: isDefaultEmail && sessionEmail ? sessionEmail : prev.consultantEmail,
+      }
+    })
+  }, [sessionName, sessionEmail])
+
   // Close the Send options dropdown when clicking outside it.
   useEffect(() => {
     if (!sendOptionsOpen) return
