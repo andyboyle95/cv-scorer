@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractPdfText } from "@/lib/parse-pdf";
 import { extractDocxText } from "@/lib/parse-docx";
+import { requireSession } from "@/lib/session";
 
 function stripRtf(rtf: string): string {
   // Remove RTF control words, groups and special chars
@@ -12,6 +13,7 @@ function stripRtf(rtf: string): string {
 }
 
 export async function POST(req: NextRequest) {
+  try { await requireSession() } catch (r) { return r as Response }
   const formData = await req.formData();
   const file = formData.get("file") as File;
 

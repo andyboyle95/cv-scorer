@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { HUMAN_STYLE_RULES, sanitizeProse } from "@/lib/prose-style";
+import { requireSession } from "@/lib/session";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
+  try { await requireSession() } catch (r) { return r as Response }
   let roughNotes: string,
     candidateName: string,
     roleAppliedFor: string,

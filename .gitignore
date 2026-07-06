@@ -45,3 +45,8 @@ cost-of-commuting.html
 
 # WC26 planner build artifact (regenerate via tools/wc26-captain-planner/build.js)
 tools/wc26-captain-planner/dist/
+
+# Playwright test artefacts
+/playwright-report/
+/test-results/
+/blob-report/

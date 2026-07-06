@@ -264,7 +264,10 @@ type ImportStatus = 'idle' | 'parsing' | 'extracting' | 'done' | 'error'
 export default function GeneratePage() {
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === 'ADMIN'
-  const [data, setData] = useState<CandidateData>({ ...BLANK_DATA, dateSubmitted: new Date().toLocaleDateString('en-GB') })
+  // Start with an empty date and set it in a mount effect below, otherwise
+  // SSR at 23:59 vs client at 00:01 (or different TZ) triggers a hydration
+  // mismatch and React discards the server-rendered HTML.
+  const [data, setData] = useState<CandidateData>({ ...BLANK_DATA })
   // First-run state — when true, the left panel shows the empty-state welcome
   // screen instead of the full editor. Any of the three start paths (import
   // file, paste text, start blank) flips it, and the New CV button resets it.
@@ -355,6 +358,12 @@ export default function GeneratePage() {
 
   const set = useCallback(<K extends keyof CandidateData>(key: K, value: CandidateData[K]) => {
     setData((prev) => ({ ...prev, [key]: value }))
+  }, [])
+
+  // Populate the submission date on mount only — avoids SSR/client mismatch
+  // when the two are in different timezones or midnight-adjacent times.
+  useEffect(() => {
+    setData((prev) => (prev.dateSubmitted ? prev : { ...prev, dateSubmitted: new Date().toLocaleDateString('en-GB') }))
   }, [])
 
   // Close the Send options dropdown when clicking outside it.
@@ -574,9 +583,11 @@ export default function GeneratePage() {
 
   const handleToggleAnonymous = async (checked: boolean) => {
     if (checked) {
-      // Turn ON — anonymise (which also snapshots)
-      setSendAnonymously(true)
-      await runAnonymise()
+      // Turn ON — anonymise first, THEN flip the flag on success. If the
+      // API fails, sendAnonymously stays false so downstream flows (like
+      // the intro email) can't mistakenly claim the CV is anonymised.
+      const result = await runAnonymise()
+      if (result) setSendAnonymously(true)
       return
     }
     // Turn OFF — offer to restore the pre-anonymise snapshot if we have one.
@@ -675,7 +686,12 @@ export default function GeneratePage() {
       setData((prev) => ({
         ...prev,
         profile: out.profile || prev.profile,
-        skills: out.skills?.length ? out.skills : prev.skills,
+        // Trust the API's skills array as-is — the endpoint has a defensive
+        // merge that guarantees no original skill is dropped, so an empty
+        // array here really means "no changes needed". Silently keeping
+        // prev.skills used to mask the "tailor did nothing" case as
+        // "tailor is broken".
+        skills: Array.isArray(out.skills) ? out.skills : prev.skills,
       }))
       setAddedSkills(out.addedSkills || [])
     } catch (err) {
@@ -783,6 +799,7 @@ export default function GeneratePage() {
       void remoteSync()
     } catch (err) {
       console.error('PDF download failed:', err)
+      alert('PDF download failed. Please try again, or use the DOCX button instead.')
     } finally {
       setDownloading(false)
     }
@@ -798,7 +815,19 @@ export default function GeneratePage() {
       profile: (extracted.profile as string) ?? prev.profile,
       skills: (extracted.skills as string[])?.length ? extracted.skills as string[] : prev.skills,
       experience: (extracted.experience as Omit<ExperienceEntry, 'id'>[])?.length
-        ? (extracted.experience as Omit<ExperienceEntry, 'id'>[]).map((e, i) => ({ ...e, id: String(i + 1) }))
+        ? (extracted.experience as Omit<ExperienceEntry, 'id'>[]).map((e, i) => ({
+            ...e,
+            // Defend against Claude occasionally omitting schema-required
+            // fields on messy CVs — downstream renders assume these are
+            // present and would throw on undefined.filter/undefined.map.
+            bullets: Array.isArray(e.bullets) ? e.bullets : [],
+            description: e.description ?? '',
+            company: e.company ?? '',
+            role: e.role ?? '',
+            dateFrom: e.dateFrom ?? '',
+            dateTo: e.dateTo ?? '',
+            id: String(i + 1),
+          }))
         : prev.experience,
       qualifications: (extracted.qualifications as string[])?.length ? extracted.qualifications as string[] : prev.qualifications,
       languages: (extracted.languages as string[])?.length ? extracted.languages as string[] : prev.languages,
@@ -825,6 +854,10 @@ export default function GeneratePage() {
       setImportStatus('done')
       setPasteText('')
       setHasStarted(true)
+      // Fresh CV = fresh anonymise state. Otherwise a later untick would
+      // restore whatever candidate was loaded BEFORE this import.
+      setPreAnonymiseSnapshot(null)
+      setSendAnonymously(false)
       // If the recruiter set intent BEFORE importing (attached a job spec
       // and/or ticked anonymous), chain those on the next render tick so
       // the first preview reflects them.
@@ -1117,7 +1150,13 @@ export default function GeneratePage() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => { setData(DEFAULT_DATA); setImportStatus('idle'); setHasStarted(true) }}
+                  onClick={() => {
+                    setData(DEFAULT_DATA)
+                    setImportStatus('idle')
+                    setHasStarted(true)
+                    setPreAnonymiseSnapshot(null)
+                    setSendAnonymously(false)
+                  }}
                   className="text-[11px] font-semibold text-white/90 hover:text-white bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded transition-colors"
                   title="Load Lavinia Goran (Enterprise AE) as sample CV data"
                 >
@@ -1154,6 +1193,7 @@ export default function GeneratePage() {
               variant="outline"
               size="sm"
               onClick={() => {
+                // Client-only path (button click) so `new Date()` here is safe
                 setData({ ...BLANK_DATA, dateSubmitted: new Date().toLocaleDateString('en-GB') })
                 setImportStatus('idle')
                 setHasStarted(false)

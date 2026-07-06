@@ -25,6 +25,9 @@ const PUBLIC_PREFIXES = [
   "/api/auth", // NextAuth endpoints
   "/tools", // static tools like WC26 planner
   "/job-spec", // public lead-gen tool that emails leads back to info@aaronwallis.co.uk
+  "/api/generate-job-spec", // /job-spec's server actions — must be public too
+  "/api/regenerate-job-spec",
+  "/api/extract-job-brief",
   "/_next",
   "/favicon.ico",
   "/aaron-wallis-logo.png",
@@ -50,9 +53,17 @@ function hasSessionCookie(req: NextRequest): boolean {
   return SESSION_COOKIE_NAMES.some((name) => !!req.cookies.get(name)?.value);
 }
 
+// Local-only auth bypass for Playwright / smoke tests. Two guards:
+//   1. Env var must be exactly "1" (not just truthy — avoids "0"/"false" foot-guns)
+//   2. NODE_ENV must NOT be "production" — belt and braces so nobody can turn
+//      auth off on Render even if the env var gets set there by accident.
+const TEST_AUTH_BYPASS =
+  process.env.TEST_AUTH_BYPASS === "1" && process.env.NODE_ENV !== "production";
+
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  if (TEST_AUTH_BYPASS) return NextResponse.next();
   if (isPublic(pathname)) return NextResponse.next();
 
   if (!hasSessionCookie(req)) {

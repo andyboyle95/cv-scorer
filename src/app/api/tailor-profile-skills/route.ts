@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { HUMAN_STYLE_RULES, sanitizeProse, sanitizeProseList } from "@/lib/prose-style";
+import { requireSession } from "@/lib/session";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -38,6 +39,7 @@ const tailoringSchema = {
 };
 
 export async function POST(req: NextRequest) {
+  try { await requireSession() } catch (r) { return r as Response }
   let profile: string,
     skills: string[],
     experience: ExperienceIn[],
