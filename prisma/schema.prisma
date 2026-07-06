@@ -33,6 +33,25 @@ model User {
 
   accounts Account[]
   sessions Session[]
+  cvDrafts CvDraft[]
+}
+
+// CV drafts — durable per-user saved CVs powering the toolbar Recent
+// dropdown. Client also keeps a localStorage copy for aggressive
+// keystroke-level auto-save; this table is the cross-device source of
+// truth and only writes on explicit save / on Download PDF / every 60s.
+model CvDraft {
+  id             String   @id @default(cuid())
+  userId         String
+  candidateName  String?
+  roleAppliedFor String?
+  data           Json     // full CandidateData blob
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt(sort: Desc)])
 }
 
 model Account {

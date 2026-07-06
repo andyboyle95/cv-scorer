@@ -1,11 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#1a3668"/>
       <stop offset="1" stop-color="#0e1f3f"/>
     </linearGradient>
   </defs>
-  <rect width="180" height="180" rx="40" fill="url(#g)"/>
-  <rect x="0" y="0" width="180" height="10" fill="#df2681"/>
-  <text x="90" y="120" text-anchor="middle" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif" font-size="72" font-weight="800" fill="#ffffff" letter-spacing="-3">AW</text>
+  <rect width="180" height="180" rx="40" fill="url(#bg)"/>
+
+  <path d="M50 42 h56 l22 22 v72 a8 8 0 0 1 -8 8 h-70 a8 8 0 0 1 -8 -8 v-86 a8 8 0 0 1 8 -8 z"
+        fill="#ffffff"/>
+  <path d="M106 42 v22 h22 z" fill="#e9edf5"/>
+
+  <rect x="62" y="78" width="52" height="6" rx="3" fill="#1a3668" opacity=".55"/>
+  <rect x="62" y="92" width="46" height="6" rx="3" fill="#1a3668" opacity=".35"/>
+  <rect x="62" y="106" width="34" height="6" rx="3" fill="#1a3668" opacity=".35"/>
+
+  <g transform="translate(118 112)">
+    <path d="M0 -20 L4.6 -4.6 L20 0 L4.6 4.6 L0 20 L-4.6 4.6 L-20 0 L-4.6 -4.6 Z"
+          fill="#df2681"/>
+    <circle cx="0" cy="0" r="5" fill="#ffffff"/>
+  </g>
 </svg>

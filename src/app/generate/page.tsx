@@ -274,6 +274,7 @@ export default function GeneratePage() {
   const [rewriting, setRewriting] = useState(false)
   const [rewriteError, setRewriteError] = useState('')
   const [downloading, setDownloading] = useState(false)
+  const [downloadingDocx, setDownloadingDocx] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Import state
@@ -292,6 +293,17 @@ export default function GeneratePage() {
   // auto actions so the first preview reflects the recruiter's choices
   // (tailor first, then anonymise on top).
   const [autoPrepPending, setAutoPrepPending] = useState(false)
+
+  // Auto-save state ────────────────────────────────────────────────
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null)
+  const [lastSavedLocal, setLastSavedLocal] = useState<Date | null>(null)
+  const [lastSavedRemote, setLastSavedRemote] = useState<Date | null>(null)
+  const [savingRemote, setSavingRemote] = useState(false)
+  const [recentDrafts, setRecentDrafts] = useState<Array<{ id: string; candidateName: string | null; roleAppliedFor: string | null; updatedAt: string }>>([])
+  const [recentOpen, setRecentOpen] = useState(false)
+  const recentRef = useRef<HTMLDivElement>(null)
+  const [restoreDraft, setRestoreDraft] = useState<{ data: CandidateData; savedAt: number } | null>(null)
+  const [now, setNow] = useState(() => Date.now())
 
   // Job-spec tailoring state. Step 2 in the reordered layout; optional so
   // it starts collapsed — attach when needed.
@@ -349,6 +361,99 @@ export default function GeneratePage() {
     document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
   }, [sendOptionsOpen])
+
+  // Close the Recent dropdown when clicking outside it.
+  useEffect(() => {
+    if (!recentOpen) return
+    const onClick = (e: MouseEvent) => {
+      if (recentRef.current && !recentRef.current.contains(e.target as Node)) {
+        setRecentOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [recentOpen])
+
+  // Tick every 10s so the "saved 3s ago" chip updates without a re-render on every keystroke.
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 10_000)
+    return () => clearInterval(t)
+  }, [])
+
+  // localStorage auto-save — debounced 2s after any data change.
+  // Namespaced by session.user.id so multiple recruiters on one browser
+  // don't cross-pollute drafts. Only runs after the recruiter has started.
+  const localStorageKey = session?.user?.id ? `awapps.cv-draft.v1.${session.user.id}` : null
+  useEffect(() => {
+    if (!hasStarted || !localStorageKey) return
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem(localStorageKey, JSON.stringify({ data, savedAt: Date.now(), draftId: currentDraftId }))
+        setLastSavedLocal(new Date())
+      } catch { /* localStorage may be disabled — silent */ }
+    }, 2000)
+    return () => clearTimeout(t)
+  }, [data, hasStarted, localStorageKey, currentDraftId])
+
+  // Remote sync — every 60s while editing, push to Postgres if the local
+  // save is newer than the remote save. Also fires on explicit Save button
+  // and on Download PDF (see handlers).
+  const remoteSync = useCallback(async () => {
+    if (!hasStarted || !session?.user) return
+    setSavingRemote(true)
+    try {
+      const res = await fetch('/api/cv-drafts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: currentDraftId,
+          candidateName: data.candidateName || null,
+          roleAppliedFor: data.roleAppliedFor || null,
+          data,
+        }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (res.ok && json.draft?.id) {
+        setCurrentDraftId(json.draft.id)
+        setLastSavedRemote(new Date())
+      }
+    } catch { /* swallow — local save has us covered */ }
+    finally { setSavingRemote(false) }
+  }, [hasStarted, session?.user, currentDraftId, data])
+
+  useEffect(() => {
+    if (!hasStarted) return
+    const t = setInterval(() => { void remoteSync() }, 60_000)
+    return () => clearInterval(t)
+  }, [hasStarted, remoteSync])
+
+  // Refresh the recent-drafts list on mount + after each remote save.
+  const refreshRecent = useCallback(async () => {
+    try {
+      const res = await fetch('/api/cv-drafts')
+      const json = await res.json().catch(() => ({}))
+      if (Array.isArray(json.drafts)) setRecentDrafts(json.drafts)
+    } catch { /* silent */ }
+  }, [])
+
+  useEffect(() => {
+    void refreshRecent()
+  }, [refreshRecent, lastSavedRemote])
+
+  // On mount, check localStorage for a recent draft and offer restore.
+  useEffect(() => {
+    if (!localStorageKey || hasStarted) return
+    try {
+      const raw = localStorage.getItem(localStorageKey)
+      if (!raw) return
+      const parsed = JSON.parse(raw) as { data?: CandidateData; savedAt?: number; draftId?: string }
+      if (!parsed?.data || !parsed.savedAt) return
+      // Only offer restore if the draft is <7 days old.
+      if (Date.now() - parsed.savedAt > 7 * 24 * 60 * 60 * 1000) return
+      setRestoreDraft({ data: parsed.data, savedAt: parsed.savedAt })
+    } catch { /* silent */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localStorageKey])
 
   // Run the pre-import intent chain (tailor to job spec, then anonymise)
   // once the fresh CV data has landed in state. Tailor first so anonymise
@@ -556,6 +661,27 @@ export default function GeneratePage() {
 
   // ── PDF download ─────────────────────────────────────────────
 
+  // ── DOCX download ─────────────────────────────────────────────
+
+  const handleDownloadDocx = async () => {
+    setDownloadingDocx(true)
+    try {
+      const [{ buildCvDocx }, { saveAs }] = await Promise.all([
+        import('@/lib/build-cv-docx'),
+        import('file-saver'),
+      ])
+      const blob = await buildCvDocx(viewData)
+      const slug = (viewData.candidateName || 'cv')
+        .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+      saveAs(blob, `${slug}.docx`)
+      void remoteSync()
+    } catch (err) {
+      console.error('DOCX download failed:', err)
+    } finally {
+      setDownloadingDocx(false)
+    }
+  }
+
   const handleDownload = async () => {
     setDownloading(true)
     try {
@@ -618,6 +744,9 @@ export default function GeneratePage() {
       const slug = (viewData.candidateName || 'cv')
         .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
       pdf!.save(`${slug}.pdf`)
+      // Milestone save — persist the current state to Postgres so it lands
+      // in the Recent list. Runs in the background; ignored if it fails.
+      void remoteSync()
     } catch (err) {
       console.error('PDF download failed:', err)
     } finally {
@@ -961,11 +1090,113 @@ export default function GeneratePage() {
                 clearJobSpec()
                 setSendAnonymously(false)
                 setAnonymisedData(null)
+                setCurrentDraftId(null)
+                setLastSavedLocal(null)
+                setLastSavedRemote(null)
+                setRestoreDraft(null)
+                if (localStorageKey) {
+                  try { localStorage.removeItem(localStorageKey) } catch {}
+                }
               }}
               className="text-xs"
             >
               New CV
             </Button>
+
+            {/* Recent CVs dropdown */}
+            <div ref={recentRef} className="relative">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setRecentOpen((o) => !o)}
+                className="text-xs gap-1.5"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Recent
+                <ChevronDown className="h-3 w-3 opacity-60" />
+              </Button>
+
+              {recentOpen && (
+                <div
+                  className="absolute right-0 top-full mt-1.5 w-80 bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden z-40"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="px-3 py-2 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Recent CVs</p>
+                    <span className="text-[10px] text-gray-400">{recentDrafts.length} saved</span>
+                  </div>
+                  {recentDrafts.length === 0 && (
+                    <p className="px-3 py-4 text-[11px] text-gray-400 text-center">
+                      No saved CVs yet. Every CV you download gets saved here automatically.
+                    </p>
+                  )}
+                  <div className="max-h-[420px] overflow-y-auto">
+                    {recentDrafts.map((d) => (
+                      <div key={d.id} className="flex items-center gap-2 border-b border-gray-50 hover:bg-gray-50 group">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            setRecentOpen(false)
+                            try {
+                              const res = await fetch(`/api/cv-drafts/${d.id}`)
+                              const json = await res.json()
+                              if (json.draft?.data) {
+                                setData(json.draft.data as CandidateData)
+                                setCurrentDraftId(d.id)
+                                setHasStarted(true)
+                                setLastSavedRemote(new Date(d.updatedAt))
+                              }
+                            } catch { /* silent */ }
+                          }}
+                          className="flex-1 text-left px-3 py-2.5 min-w-0"
+                        >
+                          <p className="text-xs font-semibold text-gray-800 truncate">
+                            {d.candidateName || 'Untitled CV'}
+                          </p>
+                          <p className="text-[10.5px] text-gray-500 truncate">
+                            {d.roleAppliedFor ? `${d.roleAppliedFor} · ` : ''}
+                            {timeAgo(new Date(d.updatedAt).getTime(), now)}
+                          </p>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!confirm(`Delete "${d.candidateName || 'this CV'}" from your saved drafts?`)) return
+                            await fetch(`/api/cv-drafts/${d.id}`, { method: 'DELETE' })
+                            void refreshRecent()
+                          }}
+                          className="p-2 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Delete this draft"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Auto-save chip — shows current save status. Clicking triggers a manual remote sync. */}
+            {hasStarted && (
+              <button
+                type="button"
+                onClick={remoteSync}
+                disabled={savingRemote}
+                className="flex items-center gap-1.5 text-[10.5px] font-medium text-gray-500 hover:text-[#1a3668] px-2 py-1 rounded transition-colors disabled:opacity-60"
+                title="Force save this CV now"
+              >
+                {savingRemote ? (
+                  <><Loader2 className="h-3 w-3 animate-spin" /> Saving…</>
+                ) : lastSavedRemote ? (
+                  <><CheckCircle2 className="h-3 w-3 text-green-500" /> Saved {timeAgo(lastSavedRemote.getTime(), now)}</>
+                ) : lastSavedLocal ? (
+                  <><CheckCircle2 className="h-3 w-3 text-amber-400" /> Draft only</>
+                ) : (
+                  <>Not saved</>
+                )}
+              </button>
+            )}
 
             {/* Send options — anonymise + intro email (moved from Cover tab) */}
             <div ref={sendOptionsRef} className="relative">
@@ -1093,6 +1324,18 @@ export default function GeneratePage() {
               Print to PDF
             </Button>
             <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadDocx}
+              disabled={downloadingDocx}
+              className="text-xs gap-1.5"
+              title="Download as a Word document (.docx)"
+            >
+              {downloadingDocx
+                ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> DOCX…</>
+                : <><FileDown className="h-3.5 w-3.5" /> DOCX</>}
+            </Button>
+            <Button
               onClick={handleDownload}
               disabled={downloading}
               className="bg-[#df2681] hover:bg-[#c01f6e] text-white gap-2"
@@ -1136,6 +1379,45 @@ export default function GeneratePage() {
 
             {!hasStarted && !busy && !tailoringProfile && !anonymising && (
               <div className="p-6 space-y-4">
+                {/* Restore prompt — only shown if there's an unsaved
+                    localStorage draft <7 days old for the current user. */}
+                {restoreDraft && (
+                  <div className="rounded-lg border-2 border-amber-200 bg-amber-50 p-3 flex items-start gap-2.5">
+                    <RefreshCw className="h-4 w-4 text-amber-700 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-amber-900">
+                        You have unsaved work from {timeAgo(restoreDraft.savedAt, now)}
+                      </p>
+                      <p className="text-[10.5px] text-amber-800 mt-0.5 leading-snug">
+                        Draft found in this browser but not yet saved to your account.
+                      </p>
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setData(restoreDraft.data)
+                            setHasStarted(true)
+                            setRestoreDraft(null)
+                          }}
+                          className="text-[11px] font-semibold text-white bg-amber-600 hover:bg-amber-700 px-3 py-1 rounded"
+                        >
+                          Restore
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRestoreDraft(null)
+                            if (localStorageKey) { try { localStorage.removeItem(localStorageKey) } catch {} }
+                          }}
+                          className="text-[11px] font-semibold text-amber-700 hover:text-amber-900 px-3 py-1"
+                        >
+                          Discard
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-[#df2681] mb-1.5">Start here</p>
                   <h2 className="text-lg font-bold text-[#1a3668] leading-tight mb-1.5 tracking-tight">
@@ -1704,42 +1986,78 @@ export default function GeneratePage() {
                 </TabsContent>
 
                 {/* Experience */}
-                <TabsContent value="experience" className="space-y-4 pt-4">
+                <TabsContent value="experience" className="space-y-3 pt-4">
+                  {/* Page-break helper tip — most-used feature, previously
+                      buried in a card footer checkbox that nobody found. */}
+                  <div className="flex items-start gap-2 rounded-lg border border-[#df2681]/20 bg-[#df2681]/[0.05] p-2.5">
+                    <Sparkles className="h-3.5 w-3.5 text-[#df2681] flex-shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-gray-600 leading-snug">
+                      <span className="font-semibold text-[#1a3668]">Content overflowing a page in the preview?</span>{' '}
+                      Use the &ldquo;Insert page break&rdquo; controls between roles below to push the next role onto a fresh page.
+                    </p>
+                  </div>
+
                   {data.experience.map((exp, idx) => (
-                    <div key={exp.id} className="border border-gray-200 rounded-lg p-3 space-y-2.5 bg-gray-50">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-[#1a3668]">{idx + 1}. {exp.company || 'New Role'}</span>
-                        <button onClick={() => removeExp(exp.id)} className="text-red-400 hover:text-red-600 p-0.5">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                    <Fragment key={exp.id}>
+                      <div className="border border-gray-200 rounded-lg p-3 space-y-2.5 bg-gray-50">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-[#1a3668]">{idx + 1}. {exp.company || 'New Role'}</span>
+                          <button onClick={() => removeExp(exp.id)} className="text-red-400 hover:text-red-600 p-0.5" title="Delete this role">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Field label="From"><Input value={exp.dateFrom} onChange={(e) => updateExp(exp.id, 'dateFrom', e.target.value)} className="text-xs h-7" placeholder="Jan 2020" /></Field>
+                          <Field label="To"><Input value={exp.dateTo} onChange={(e) => updateExp(exp.id, 'dateTo', e.target.value)} className="text-xs h-7" placeholder="Dec 2022" /></Field>
+                        </div>
+                        <Field label="Company"><Input value={exp.company} onChange={(e) => updateExp(exp.id, 'company', e.target.value)} className="text-xs h-7" /></Field>
+                        <Field label="Job Title"><Input value={exp.role} onChange={(e) => updateExp(exp.id, 'role', e.target.value)} className="text-xs h-7" /></Field>
+                        <Field label="Company Description (optional)">
+                          <Textarea value={exp.description} onChange={(e) => updateExp(exp.id, 'description', e.target.value)} className="text-xs min-h-[50px]" />
+                        </Field>
+                        <Field label="Bullet Points (one per line)">
+                          <Textarea value={getBullets(exp)} onChange={(e) => updateBullets(exp.id, e.target.value)} className="text-xs min-h-[100px] font-mono" />
+                        </Field>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Field label="From"><Input value={exp.dateFrom} onChange={(e) => updateExp(exp.id, 'dateFrom', e.target.value)} className="text-xs h-7" placeholder="Jan 2020" /></Field>
-                        <Field label="To"><Input value={exp.dateTo} onChange={(e) => updateExp(exp.id, 'dateTo', e.target.value)} className="text-xs h-7" placeholder="Dec 2022" /></Field>
-                      </div>
-                      <Field label="Company"><Input value={exp.company} onChange={(e) => updateExp(exp.id, 'company', e.target.value)} className="text-xs h-7" /></Field>
-                      <Field label="Job Title"><Input value={exp.role} onChange={(e) => updateExp(exp.id, 'role', e.target.value)} className="text-xs h-7" /></Field>
-                      <Field label="Company Description (optional)">
-                        <Textarea value={exp.description} onChange={(e) => updateExp(exp.id, 'description', e.target.value)} className="text-xs min-h-[50px]" />
-                      </Field>
-                      <Field label="Bullet Points (one per line)">
-                        <Textarea value={getBullets(exp)} onChange={(e) => updateBullets(exp.id, e.target.value)} className="text-xs min-h-[100px] font-mono" />
-                      </Field>
-                      <div className="pt-2 border-t border-gray-100">
-                        <label className="flex items-center gap-2 cursor-pointer group">
-                          <input
-                            type="checkbox"
-                            checked={exp.pageBreakAfter ?? false}
-                            onChange={(e) => updateExp(exp.id, 'pageBreakAfter', e.target.checked)}
-                            className="w-3.5 h-3.5 rounded flex-shrink-0"
-                            style={{ accentColor: '#1a3668' }}
-                          />
-                          <span className="text-[10px] text-gray-500 group-hover:text-[#1a3668]">
-                            Start next role on a new page
+
+                      {/* Page-break inserter — sits BETWEEN cards, matches
+                          the mental model 'break here'. Shown only when
+                          there's a following role. Two states:
+                            - inactive: subtle dashed 'Insert page break'
+                            - active:   bright pink '✂ PAGE BREAK · click to remove' */}
+                      {idx < data.experience.length - 1 && (
+                        <button
+                          type="button"
+                          onClick={() => updateExp(exp.id, 'pageBreakAfter', !exp.pageBreakAfter)}
+                          className={`w-full flex items-center gap-2 py-1.5 rounded-md group transition-all ${
+                            exp.pageBreakAfter
+                              ? 'bg-[#df2681]/8 border border-[#df2681]/40 hover:bg-[#df2681]/12'
+                              : 'border border-transparent hover:bg-gray-50'
+                          }`}
+                          title={exp.pageBreakAfter ? 'Remove the page break — next role will follow on the same page' : 'Push the next role onto a new page'}
+                        >
+                          <span className={`flex-1 h-px border-t-2 ${
+                            exp.pageBreakAfter
+                              ? 'border-dashed border-[#df2681]/60'
+                              : 'border-dashed border-gray-200 group-hover:border-[#1a3668]/40'
+                          }`} />
+                          <span className={`text-[10px] font-bold uppercase tracking-widest whitespace-nowrap flex items-center gap-1 ${
+                            exp.pageBreakAfter ? 'text-[#df2681]' : 'text-gray-400 group-hover:text-[#1a3668]'
+                          }`}>
+                            {exp.pageBreakAfter ? (
+                              <>✂ Page break · click to remove</>
+                            ) : (
+                              <><Plus className="h-3 w-3" /> Insert page break</>
+                            )}
                           </span>
-                        </label>
-                      </div>
-                    </div>
+                          <span className={`flex-1 h-px border-t-2 ${
+                            exp.pageBreakAfter
+                              ? 'border-dashed border-[#df2681]/60'
+                              : 'border-dashed border-gray-200 group-hover:border-[#1a3668]/40'
+                          }`} />
+                        </button>
+                      )}
+                    </Fragment>
                   ))}
                   <Button variant="outline" size="sm" onClick={addExp} className="w-full gap-1.5 text-xs">
                     <Plus className="h-3.5 w-3.5" /> Add Role
@@ -2079,6 +2397,20 @@ export default function GeneratePage() {
       )}
     </>
   )
+}
+
+// ─────────────────────────────────────────────────────────────
+// Relative time label — "just now" / "3s ago" / "12 min ago" / "yesterday" / "3 days ago".
+// Reads with the current tick from an outer setState so the chip updates
+// on its own without requiring a re-render per keystroke.
+function timeAgo(then: number, now: number): string {
+  const diff = Math.max(0, now - then) / 1000
+  if (diff < 5) return 'just now'
+  if (diff < 60) return `${Math.floor(diff)}s ago`
+  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+  if (diff < 172800) return 'yesterday'
+  return `${Math.floor(diff / 86400)} days ago`
 }
 
 // ─────────────────────────────────────────────────────────────
