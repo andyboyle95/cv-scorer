@@ -133,6 +133,27 @@ function groupByPageBreak(entries: ExperienceEntry[]): ExperienceEntry[][] {
 
 const PAGE_STYLE = { width: '210mm', minHeight: '297mm', padding: '0 14mm 10mm' } as const
 
+// A4 page-cut guide — floats at 297mm from the top of the containing
+// .cv-page div, so recruiters can see at a glance if content is spilling
+// past the printable area of an A4 page. Preview-only; print:hidden keeps
+// it out of the PDF/DOCX captures. Non-interactive so it never blocks
+// clicks on the underlying content.
+const PageCutLine = () => (
+  <div
+    className="absolute inset-x-0 pointer-events-none print:hidden"
+    style={{ top: '297mm', zIndex: 10 }}
+    aria-hidden="true"
+  >
+    <div className="border-t-2 border-dashed border-red-500/55" />
+    <span
+      className="absolute right-4 -top-2.5 text-[8px] font-bold uppercase tracking-widest bg-white px-1.5"
+      style={{ color: 'rgba(239,68,68,0.75)' }}
+    >
+      ✂ A4 page cut
+    </span>
+  </div>
+)
+
 const PageBreakMarker = () => (
   <div
     className="flex items-center gap-2 my-4 print:hidden select-none"
@@ -200,7 +221,8 @@ export function CvTemplate({ data, printRef, showBreaks = false }: CvTemplatePro
       <div ref={printRef as React.RefObject<HTMLDivElement>} className="font-sans text-[11px] text-gray-900">
 
         {/* ── COVER PAGE ── */}
-        <div className="cv-page bg-white shadow-md rounded mx-auto" style={PAGE_STYLE}>
+        <div className="cv-page bg-white shadow-md rounded mx-auto relative" style={PAGE_STYLE}>
+          {showBreaks && <PageCutLine />}
           <BrandStrip />
 
           <div className="flex items-start justify-between mt-5 mb-8">
@@ -277,7 +299,8 @@ export function CvTemplate({ data, printRef, showBreaks = false }: CvTemplatePro
         {showBreaks && <PageBreakMarker />}
 
         {/* ── MAIN CV PAGE ── */}
-        <div className="cv-page bg-white shadow-md rounded mx-auto mt-4 print:mt-0" style={PAGE_STYLE}>
+        <div className="cv-page bg-white shadow-md rounded mx-auto mt-4 print:mt-0 relative" style={PAGE_STYLE}>
+          {showBreaks && <PageCutLine />}
           <BrandStrip />
           <LogoRow />
 
@@ -315,7 +338,8 @@ export function CvTemplate({ data, printRef, showBreaks = false }: CvTemplatePro
           return (
             <Fragment key={idx}>
               {showBreaks && <PageBreakMarker />}
-              <div className="cv-page bg-white shadow-md rounded mx-auto mt-4 print:mt-0" style={PAGE_STYLE}>
+              <div className="cv-page bg-white shadow-md rounded mx-auto mt-4 print:mt-0 relative" style={PAGE_STYLE}>
+          {showBreaks && <PageCutLine />}
                 <BrandStrip />
                 <LogoRow />
                 <section className="mb-4">

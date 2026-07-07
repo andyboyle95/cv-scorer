@@ -2355,26 +2355,42 @@ export default function GeneratePage() {
                                 <p className="text-[9px] text-gray-400 mt-1.5 leading-relaxed">
                                   <span className="font-semibold" style={{ color: '#1a3668' }}>↳ </span>{q.followUp}
                                 </p>
-                                {i < interviewQuestions.length - 1 && (
-                                  <label className="flex items-center gap-1.5 mt-2 pt-1.5 border-t border-gray-200 cursor-pointer select-none">
-                                    <input
-                                      type="checkbox"
-                                      checked={!!q.pageBreakAfter}
-                                      onChange={() => iqTogglePageBreak(i)}
-                                      className="h-2.5 w-2.5 flex-shrink-0"
-                                      style={{ accentColor: '#1a3668' }}
-                                    />
-                                    <span className="text-[9px] text-gray-400 hover:text-[#1a3668]">Start next question on a new page</span>
-                                  </label>
-                                )}
                               </div>
                             )}
-                            {q.pageBreakAfter && i < interviewQuestions.length - 1 && (
-                              <div className="flex items-center gap-2 py-0.5">
-                                <div className="flex-1 border-t-2 border-dashed" style={{ borderColor: '#1a3668', opacity: 0.35 }} />
-                                <span className="text-[8px] font-bold uppercase tracking-widest px-1" style={{ color: '#1a3668', opacity: 0.5 }}>Page break</span>
-                                <div className="flex-1 border-t-2 border-dashed" style={{ borderColor: '#1a3668', opacity: 0.35 }} />
-                              </div>
+                            {/* Insert-page-break toggle BETWEEN questions —
+                                same pattern as the Roles tab so recruiters
+                                learn one mental model, not two. */}
+                            {i < interviewQuestions.length - 1 && (
+                              <button
+                                type="button"
+                                onClick={() => iqTogglePageBreak(i)}
+                                className={`w-full flex items-center gap-2 py-1.5 rounded-md group transition-all ${
+                                  q.pageBreakAfter
+                                    ? 'bg-[#df2681]/8 border border-[#df2681]/40 hover:bg-[#df2681]/12'
+                                    : 'border border-transparent hover:bg-gray-50'
+                                }`}
+                                title={q.pageBreakAfter ? 'Remove the page break — next question will follow on the same page' : 'Push the next question onto a new page'}
+                              >
+                                <span className={`flex-1 h-px border-t-2 ${
+                                  q.pageBreakAfter
+                                    ? 'border-dashed border-[#df2681]/60'
+                                    : 'border-dashed border-gray-200 group-hover:border-[#1a3668]/40'
+                                }`} />
+                                <span className={`text-[10px] font-bold uppercase tracking-widest whitespace-nowrap flex items-center gap-1 ${
+                                  q.pageBreakAfter ? 'text-[#df2681]' : 'text-gray-400 group-hover:text-[#1a3668]'
+                                }`}>
+                                  {q.pageBreakAfter ? (
+                                    <>✂ Page break · click to remove</>
+                                  ) : (
+                                    <><Plus className="h-3 w-3" /> Insert page break</>
+                                  )}
+                                </span>
+                                <span className={`flex-1 h-px border-t-2 ${
+                                  q.pageBreakAfter
+                                    ? 'border-dashed border-[#df2681]/60'
+                                    : 'border-dashed border-gray-200 group-hover:border-[#1a3668]/40'
+                                }`} />
+                              </button>
                             )}
                           </Fragment>
                         ))}
