@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Users, Globe, Activity, ArrowLeft, Plus, Loader2, Shield, RefreshCw, X, BarChart3 } from "lucide-react";
+import { Users, Globe, Activity, ArrowLeft, Plus, Loader2, Shield, RefreshCw, X, BarChart3, Inbox, AlertTriangle, Send, CheckCircle2 } from "lucide-react";
 import { Header } from "@/components/header";
 import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
@@ -49,6 +49,38 @@ interface UsageRow {
   count: number;
 }
 
+interface LeadRow {
+  id: string;
+  name: string;
+  email: string;
+  companyUrl: string | null;
+  jobTitle: string | null;
+  industry: string | null;
+  seniority: string | null;
+  notifyStatus: string;
+  notifyError: string | null;
+  copyStatus: string;
+  copyError: string | null;
+  createdAt: string;
+}
+
+interface LeadEmailConfig {
+  hasApiKey: boolean;
+  from: string;
+  isTestSender: boolean;
+  notify: string[];
+  problems: string[];
+}
+
+interface LeadsPayload {
+  leads: LeadRow[];
+  total: number;
+  undelivered: number;
+  config: LeadEmailConfig;
+  tableReady: boolean;
+  error?: string;
+}
+
 interface UsageStats {
   totals: { today: number; thisWeek: number; allTime: number };
   today: UsageRow[];
@@ -58,7 +90,8 @@ interface UsageStats {
 }
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<"users" | "domains" | "activity" | "usage">("users");
+  const [tab, setTab] = useState<"users" | "domains" | "activity" | "usage" | "leads">("users");
+  const [leads, setLeads] = useState<LeadsPayload | null>(null);
   const [usage, setUsage] = useState<UsageStats | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -68,18 +101,20 @@ export default function AdminPage() {
 
   const refreshAll = useCallback(async () => {
     setLoading(true);
-    const [s, u, d, a, up] = await Promise.all([
+    const [s, u, d, a, up, ld] = await Promise.all([
       fetch("/api/admin/stats").then((r) => r.json()),
       fetch("/api/admin/users").then((r) => r.json()),
       fetch("/api/admin/domains").then((r) => r.json()),
       fetch("/api/admin/activity").then((r) => r.json()),
       fetch("/api/admin/usage-stats").then((r) => r.json()),
+      fetch("/api/admin/leads").then((r) => r.json()).catch(() => null),
     ]);
     setStats(s);
     setUsers(u.users ?? []);
     setDomains(d.domains ?? []);
     setActivity(a.events ?? []);
     setUsage(up ?? null);
+    setLeads(ld ?? null);
     setLoading(false);
   }, []);
 
@@ -128,6 +163,14 @@ export default function AdminPage() {
           <TabButton active={tab === "usage"} onClick={() => setTab("usage")} icon={BarChart3}>
             Usage
           </TabButton>
+          <TabButton active={tab === "leads"} onClick={() => setTab("leads")} icon={Inbox}>
+            Leads
+            {leads && leads.undelivered > 0 && (
+              <span className="ml-1 text-[10px] font-bold bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full">
+                {leads.undelivered}
+              </span>
+            )}
+          </TabButton>
           <TabButton active={tab === "activity"} onClick={() => setTab("activity")} icon={Activity}>
             Activity
           </TabButton>
@@ -136,6 +179,7 @@ export default function AdminPage() {
         {tab === "users" && <UsersTab users={users} onChange={refreshAll} />}
         {tab === "domains" && <DomainsTab domains={domains} onChange={refreshAll} />}
         {tab === "usage" && <UsageTab usage={usage} />}
+        {tab === "leads" && <LeadsTab data={leads} onChange={refreshAll} />}
         {tab === "activity" && <ActivityTab events={activity} />}
       </main>
     </div>
@@ -645,5 +689,159 @@ function UsageTab({ usage }: { usage: UsageStats | null }) {
         </div>
       )}
     </div>
+  );
+}
+
+// ─── Leads tab ──────────────────────────────────────────────────────────────
+//
+// Job Spec Creator enquiries. Leads are stored in the database at the moment
+// the spec is generated, so this list is complete regardless of whether the
+// notification email got through — and the per-row delivery badges show
+// exactly which ones didn't.
+
+function LeadsTab({ data, onChange }: { data: LeadsPayload | null; onChange: () => void }) {
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<string | null>(null);
+
+  const sendTest = async () => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const res = await fetch("/api/admin/leads", { method: "POST" });
+      const json = await res.json();
+      setTestResult(
+        json.status === "sent"
+          ? `Test email accepted by Resend — check ${json.to}.`
+          : `Test failed (${json.status}): ${json.error ?? "unknown error"}`
+      );
+    } catch (err) {
+      setTestResult(err instanceof Error ? err.message : "Test request failed.");
+    } finally {
+      setTesting(false);
+      onChange();
+    }
+  };
+
+  if (!data) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-6 text-center text-gray-400 shadow-sm">
+        <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Email configuration health */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm space-y-3">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+              Lead email delivery
+            </p>
+            <p className="mt-1 text-xs text-gray-600">
+              Sending from <span className="font-mono">{data.config.from}</span> to{" "}
+              <span className="font-mono">
+                {data.config.notify.join(", ") || "(nobody — not configured)"}
+              </span>
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={sendTest} disabled={testing} className="text-xs gap-1.5 shrink-0">
+            {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+            Send test email
+          </Button>
+        </div>
+
+        {data.config.problems.map((p) => (
+          <div key={p} className="flex gap-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>{p}</span>
+          </div>
+        ))}
+        {data.config.problems.length === 0 && (
+          <div className="flex gap-2 rounded border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-800">
+            <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>Sender and recipients are configured.</span>
+          </div>
+        )}
+        {!data.tableReady && (
+          <div className="flex gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>{data.error}</span>
+          </div>
+        )}
+        {testResult && <p className="text-xs text-gray-600">{testResult}</p>}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <StatTile label="Leads captured" value={data.total} />
+        <StatTile label="Notifications not delivered" value={data.undelivered} />
+      </div>
+
+      <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto shadow-sm">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+            <tr>
+              <th className="text-left px-4 py-2">When</th>
+              <th className="text-left px-4 py-2">Name</th>
+              <th className="text-left px-4 py-2">Email</th>
+              <th className="text-left px-4 py-2">Role</th>
+              <th className="text-left px-4 py-2">Company</th>
+              <th className="text-left px-4 py-2">Notified</th>
+              <th className="text-left px-4 py-2">Their copy</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {data.leads.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-4 py-6 text-center text-gray-400">
+                  No leads captured yet.
+                </td>
+              </tr>
+            )}
+            {data.leads.map((l) => (
+              <tr key={l.id}>
+                <td className="px-4 py-2 text-xs text-gray-500 whitespace-nowrap tabular-nums">
+                  {new Date(l.createdAt).toLocaleString("en-GB")}
+                </td>
+                <td className="px-4 py-2 text-xs font-medium text-[#1a3668]">{l.name}</td>
+                <td className="px-4 py-2 text-xs">
+                  <a href={`mailto:${l.email}`} className="text-[#df2681] hover:underline">
+                    {l.email}
+                  </a>
+                </td>
+                <td className="px-4 py-2 text-xs text-gray-600">{l.jobTitle ?? "—"}</td>
+                <td className="px-4 py-2 text-xs text-gray-500 truncate max-w-[12rem]">
+                  {l.companyUrl ?? "—"}
+                </td>
+                <td className="px-4 py-2">
+                  <DeliveryBadge status={l.notifyStatus} error={l.notifyError} />
+                </td>
+                <td className="px-4 py-2">
+                  <DeliveryBadge status={l.copyStatus} error={l.copyError} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function DeliveryBadge({ status, error }: { status: string; error: string | null }) {
+  const colors: Record<string, string> = {
+    sent: "bg-green-100 text-green-700",
+    failed: "bg-red-100 text-red-700",
+    skipped: "bg-gray-100 text-gray-600",
+    pending: "bg-amber-100 text-amber-700",
+  };
+  return (
+    <span
+      title={error ?? undefined}
+      className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${colors[status] ?? "bg-gray-100 text-gray-700"}`}
+    >
+      {status}
+    </span>
   );
 }

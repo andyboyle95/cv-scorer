@@ -157,3 +157,38 @@ enum Role {
   ADMIN
   USER
 }
+
+// Job Spec Creator leads. The /job-spec form is a public lead-gen tool
+// embedded in an iframe on aaronwallis.co.uk — the whole point of it is that
+// we get the enquirer's details. Email delivery is a best-effort side-channel
+// (Resend can be misconfigured, rate-limited or down), so the row written here
+// is the source of truth: a lead is captured the moment the spec is generated,
+// whether or not the notification email ever leaves the building.
+//
+// notifyStatus / copyStatus track the two emails we attempt per submission so
+// the /admin Leads tab can show delivery failures instead of hiding them.
+//   "sent"    — Resend accepted it
+//   "failed"  — Resend rejected it (reason in notifyError / copyError)
+//   "skipped" — not attempted (no RESEND_API_KEY configured)
+//   "pending" — row written, send not finished (process died mid-request)
+model Lead {
+  id           String   @id @default(cuid())
+  source       String   @default("job-spec-creator")
+  name         String
+  email        String
+  companyUrl   String?
+  jobTitle     String?
+  industry     String?
+  jobFunction  String?
+  seniority    String?
+  answers      Json // full submitted form payload
+  spec         Json? // the generated job + person spec
+  notifyStatus String   @default("pending")
+  notifyError  String?
+  copyStatus   String   @default("pending")
+  copyError    String?
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt(sort: Desc)])
+  @@index([email])
+}

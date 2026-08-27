@@ -24,9 +24,9 @@ Create `.env.local` (local) or set these in the host's environment:
 | Variable | Required | Purpose |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | **Yes** | All AI features (job spec, CV scorer/generator, interview questions). Without it those routes return 503. |
-| `RESEND_API_KEY` | For lead emails | Job Spec Creator lead notifications. *(Currently has a baked-in fallback in `src/lib/send-lead-email.ts` — move it here and delete the literal, then rotate the key.)* |
-| `LEAD_FROM_EMAIL` | For lead emails | Verified Resend sender, e.g. `Job Spec <noreply@aaronwallis.co.uk>`. |
-| `LEAD_NOTIFICATION_EMAIL` | Optional | Where lead emails are sent (defaults to a hard-coded address). |
+| `RESEND_API_KEY` | For lead emails | Job Spec Creator lead notifications. No fallback — if unset, leads are still captured in the DB but no email is sent. |
+| `LEAD_FROM_EMAIL` | **Yes, for lead emails** | Sender on a **verified domain** in Resend, e.g. `Job Spec <noreply@aaronwallis.co.uk>`. If unset we fall back to Resend's shared test sender `onboarding@resend.dev`, which only delivers to the Resend account owner's own address — every other recipient is rejected with a 403. This is the usual cause of "leads aren't coming through". |
+| `LEAD_NOTIFICATION_EMAIL` | Optional | Where lead notifications go. Comma-separated for several recipients. Defaults to `info@aaronwallis.co.uk`. |
 | `SITE_PASSWORD`, `AUTH_SECRET` | No | Legacy password gate. The middleware currently does **not** enforce auth. |
 
 See `.env.example`.
@@ -81,10 +81,31 @@ path **and** proxy it:
 fine — the other tools simply also sit under `/job-spec`. To keep their URLs
 clean, deploy the Job Spec Creator as its own instance.)
 
+## 6b. Job Spec Creator leads
+
+The `/job-spec` form is a public lead-gen tool (embedded via iframe on
+aaronwallis.co.uk). Every submission writes a row to the `Lead` table **before**
+any email is attempted, so leads survive a broken mail setup. They are listed
+under **/admin → Leads**, with a per-lead delivery badge showing whether the
+internal notification and the enquirer's copy actually went out.
+
+Checklist when leads aren't arriving by email:
+
+1. Run the migrations against production — `npm run db:migrate`. Without the
+   `Lead` table the admin tab says so explicitly.
+2. Open **/admin → Leads**. The panel at the top shows the sender in use, the
+   recipients, and any configuration problems.
+3. Press **Send test email**. It emails the signed-in admin and reports
+   Resend's exact response.
+4. If the sender is `onboarding@resend.dev`, verify a domain in Resend and set
+   `LEAD_FROM_EMAIL` to an address on it. The test sender cannot deliver to
+   anyone but the Resend account owner.
+5. Set `LEAD_NOTIFICATION_EMAIL` to where leads should land.
+
 ## 7. Notes
 - **Not a static export.** `next export` will not work — the `/api/*` routes
   need a server.
-- **Secrets:** rotate the Resend key once it's moved into env vars.
+- **Secrets:** the Resend key that used to be hard-coded in `src/lib/send-lead-email.ts` has been removed, but it is still in git history — **rotate it in Resend**.
 - **External services used at runtime:** Anthropic API, Resend, `postcodes.io`
   + OSRM (commute tool), OpenStreetMap tiles. Outbound HTTPS must be allowed.
 - **Node packages requiring server runtime:** `pdf-parse`, `mammoth`

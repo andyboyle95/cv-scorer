@@ -9,6 +9,7 @@ export default function JobSpecPage() {
   const [submitting, setSubmitting] = useState(false);
   const [spec, setSpec] = useState<GeneratedJobSpec | null>(null);
   const [answers, setAnswers] = useState<JobSpecFormData | null>(null);
+  const [emailedToYou, setEmailedToYou] = useState(false);
   const [error, setError] = useState("");
 
   const handleSubmit = async (data: JobSpecFormData) => {
@@ -24,8 +25,13 @@ export default function JobSpecPage() {
         const { error: msg } = await res.json().catch(() => ({}));
         throw new Error(msg ?? "Something went wrong. Please try again.");
       }
-      const result: GeneratedJobSpec = await res.json();
+      // The API appends a `_delivery` block describing what actually got
+      // emailed; the spec itself is everything else.
+      const result: GeneratedJobSpec & {
+        _delivery?: { emailedToYou?: boolean };
+      } = await res.json();
       setAnswers(data);
+      setEmailedToYou(Boolean(result._delivery?.emailedToYou));
       setSpec(result);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
@@ -43,6 +49,7 @@ export default function JobSpecPage() {
   const handleRestart = () => {
     setSpec(null);
     setAnswers(null);
+    setEmailedToYou(false);
     setError("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -62,6 +69,7 @@ export default function JobSpecPage() {
         answers={answers}
         onRestart={handleRestart}
         onEditAnswers={handleEditAnswers}
+        emailedToYou={emailedToYou}
       />
     );
   }

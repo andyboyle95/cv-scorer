@@ -66,6 +66,9 @@ interface JobSpecEditorProps {
   answers: JobSpecFormData;
   onRestart: () => void;
   onEditAnswers: () => void;
+  /** True only when Resend actually accepted the visitor's copy. We never
+   *  claim an email was sent when it wasn't. */
+  emailedToYou?: boolean;
 }
 
 const SECTIONS: {
@@ -150,6 +153,7 @@ export function JobSpecEditor({
   answers,
   onRestart,
   onEditAnswers,
+  emailedToYou = false,
 }: JobSpecEditorProps) {
   const [data, setData] = useState<EditableSpec>(() =>
     initFromSpec(spec, answers)
@@ -335,6 +339,15 @@ export function JobSpecEditor({
             </Button>
           </div>
         </div>
+
+        {emailedToYou && (
+          <div className="px-4 pb-3">
+            <p className="rounded border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-800">
+              A copy of this job spec has been emailed to{" "}
+              <strong>{answers.email}</strong>.
+            </p>
+          </div>
+        )}
 
         {/* Consultant CTA */}
         <a

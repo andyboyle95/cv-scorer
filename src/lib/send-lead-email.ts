@@ -8,96 +8,241 @@ import {
   type JobSpecAnswers,
 } from "./job-spec-config";
 
-// Emails the generated spec via the Resend REST API. No database is used —
-// leads are only ever emailed (GDPR: nothing is stored server-side).
+// Emails the generated spec via the Resend REST API.
 //
-// Configured via env vars (set these in Render):
-//   RESEND_API_KEY          — Resend API key
-//   LEAD_FROM_EMAIL         — verified sender, e.g. "Aaron Wallis Job Spec <noreply@send.aaronwallis.co.uk>"
-//   LEAD_NOTIFICATION_EMAIL — where leads land (e.g. info@aaronwallis.co.uk)
+// Configured via env vars (set these in Render → Environment):
+//   RESEND_API_KEY          — Resend API key. No fallback: if this is unset,
+//                             nothing is sent and the Lead row records why.
+//   LEAD_FROM_EMAIL         — verified sender on a domain you own in Resend,
+//                             e.g. "Aaron Wallis Job Spec <noreply@aaronwallis.co.uk>"
+//   LEAD_NOTIFICATION_EMAIL — where leads land. Comma-separated for several.
 //
-// Two emails are sent per submission:
+// Two emails are attempted per submission:
 //   1. Lead notification → LEAD_NOTIFICATION_EMAIL (full details + spec)
-//   2. A copy of the spec → the person who filled in the form (answers.email)
-// NOTE: sending to info@ and to applicants both require a VERIFIED domain in
-// Resend. The test sender (onboarding@resend.dev) only delivers to your own
-// Resend account address.
+//   2. A copy of the spec → the person who filled in the form
+//
+// IMPORTANT: both of those require a VERIFIED DOMAIN in Resend. Resend's
+// shared test sender (onboarding@resend.dev) will only ever deliver to the
+// email address that owns the Resend account — every other recipient is
+// rejected with a 403. That is the single most common reason leads "vanish",
+// so isTestSender() is surfaced all the way up to the admin dashboard.
 
 const PHONE = "01908 061 400";
+const RESEND_TEST_SENDER = "onboarding@resend.dev";
+
+/** Per-recipient outcome, persisted onto the Lead row. */
+export type DeliveryStatus = "sent" | "failed" | "skipped";
+
+export interface DeliveryResult {
+  status: DeliveryStatus;
+  error?: string;
+}
+
+export interface LeadEmailResult {
+  notification: DeliveryResult;
+  copy: DeliveryResult;
+}
+
+export interface LeadEmailConfig {
+  hasApiKey: boolean;
+  from: string;
+  /** True when falling back to Resend's shared test sender — delivery to
+   *  anyone but the Resend account owner WILL fail. */
+  isTestSender: boolean;
+  notify: string[];
+  /** Human-readable list of problems; empty means the config looks sane. */
+  problems: string[];
+}
+
+/** Reads the mail config without sending anything. Used by the admin
+ *  dashboard so misconfiguration is visible before a lead is lost. */
+export function getLeadEmailConfig(): LeadEmailConfig {
+  const apiKey = process.env.RESEND_API_KEY?.trim() ?? "";
+  const from = process.env.LEAD_FROM_EMAIL?.trim() || `Job Spec Creator <${RESEND_TEST_SENDER}>`;
+  const notify = parseRecipients(
+    process.env.LEAD_NOTIFICATION_EMAIL || "info@aaronwallis.co.uk"
+  );
+  const isTestSender = from.includes(RESEND_TEST_SENDER);
+
+  const problems: string[] = [];
+  if (!apiKey) {
+    problems.push(
+      "RESEND_API_KEY is not set — no lead emails are being sent at all."
+    );
+  }
+  if (isTestSender) {
+    problems.push(
+      "LEAD_FROM_EMAIL is not set, so we fall back to Resend's shared test " +
+        "sender (onboarding@resend.dev). Resend only delivers from that " +
+        "address to the email that owns the Resend account — every other " +
+        "recipient is rejected. Verify a domain in Resend and set " +
+        "LEAD_FROM_EMAIL to an address on it."
+    );
+  }
+  if (!notify.length) {
+    problems.push("LEAD_NOTIFICATION_EMAIL resolved to no valid recipients.");
+  }
+
+  return { hasApiKey: Boolean(apiKey), from, isTestSender, notify, problems };
+}
+
+function parseRecipients(raw: string): string[] {
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => isEmail(s));
+}
+
+function isEmail(s: string): boolean {
+  return /^\S+@\S+\.\S+$/.test(s);
+}
 
 export async function sendLeadEmail(
   answers: JobSpecAnswers,
   spec: GeneratedJobSpec
-): Promise<boolean> {
-  const apiKey =
-    process.env.RESEND_API_KEY || "re_E7NwRa2F_AiY9ZHpLCFB7VN7AbpraFG87";
-  const from =
-    process.env.LEAD_FROM_EMAIL || "Job Spec Creator <onboarding@resend.dev>";
-  const notify =
-    process.env.LEAD_NOTIFICATION_EMAIL || "info@aaronwallis.co.uk";
+): Promise<LeadEmailResult> {
+  const config = getLeadEmailConfig();
+  const apiKey = process.env.RESEND_API_KEY?.trim() ?? "";
 
-  if (!apiKey || !from) {
-    console.warn("[lead-email] RESEND_API_KEY/LEAD_FROM_EMAIL not set — skipping.");
-    return false;
+  if (!apiKey) {
+    // Loud, and with the lead details in the log, so a misconfigured deploy
+    // still leaves a recoverable trace in Render's logs.
+    console.error(
+      "[lead-email] RESEND_API_KEY is not set — lead NOT emailed:",
+      JSON.stringify({ name: answers.name, email: answers.email, jobTitle: answers.jobTitle })
+    );
+    const skipped: DeliveryResult = {
+      status: "skipped",
+      error: "RESEND_API_KEY is not set",
+    };
+    return { notification: skipped, copy: { ...skipped } };
+  }
+
+  if (config.isTestSender) {
+    console.warn("[lead-email] " + config.problems.join(" "));
   }
 
   const role = answers.jobTitle || "your role";
 
-  // 1) Internal lead notification
-  const leadOk = await sendEmail(apiKey, {
-    from,
-    to: notify,
-    reply_to: answers.email,
-    subject: `New Job Spec lead: ${answers.name} — ${role}`,
-    html: renderLeadHtml(answers, spec),
-  });
+  // Both sends are independent — a bounced copy to the enquirer must never
+  // stop the internal notification (or vice versa), so run them together and
+  // report each outcome separately.
+  const [notification, copy] = await Promise.all([
+    config.notify.length
+      ? sendEmail(apiKey, {
+          from: config.from,
+          to: config.notify,
+          reply_to: answers.email,
+          subject: `New Job Spec lead: ${answers.name} — ${role}`,
+          html: renderLeadHtml(answers, spec),
+        })
+      : Promise.resolve<DeliveryResult>({
+          status: "failed",
+          error: "No valid LEAD_NOTIFICATION_EMAIL recipient configured",
+        }),
+    isEmail(answers.email)
+      ? sendEmail(apiKey, {
+          from: config.from,
+          to: [answers.email],
+          reply_to: config.notify[0] ?? answers.email,
+          subject: `Your job specification — ${role}`,
+          html: renderApplicantHtml(answers, spec),
+        })
+      : Promise.resolve<DeliveryResult>({
+          status: "skipped",
+          error: "Submitted email address was not valid",
+        }),
+  ]);
 
-  // 2) Copy to the person who completed the form
-  let applicantOk = true;
-  if (answers.email && /\S+@\S+\.\S+/.test(answers.email)) {
-    applicantOk = await sendEmail(apiKey, {
-      from,
-      to: answers.email,
-      reply_to: notify,
-      subject: `Your job specification — ${role}`,
-      html: renderApplicantHtml(answers, spec),
-    });
+  return { notification, copy };
+}
+
+/** Sends a short test email. Used by the admin "send test email" button so
+ *  the whole path can be proven without filling in the public form. */
+export async function sendTestLeadEmail(to: string): Promise<DeliveryResult> {
+  const config = getLeadEmailConfig();
+  const apiKey = process.env.RESEND_API_KEY?.trim() ?? "";
+  if (!apiKey) {
+    return { status: "skipped", error: "RESEND_API_KEY is not set" };
   }
-
-  return leadOk && applicantOk;
+  return sendEmail(apiKey, {
+    from: config.from,
+    to: [to],
+    reply_to: to,
+    subject: "Job Spec Creator — lead email test",
+    html: wrapper(
+      `<h2 style="color:#1a3668;">Lead emails are working</h2>
+       <p>This test was sent from <strong>${escapeHtml(config.from)}</strong>.</p>
+       <p>If you received this, new Job Spec Creator leads will reach
+          <strong>${escapeHtml(config.notify.join(", ") || "(no recipient configured)")}</strong>.</p>`
+    ),
+  });
 }
 
 interface EmailPayload {
   from: string;
-  to: string;
+  to: string[];
   reply_to: string;
   subject: string;
   html: string;
 }
 
-async function sendEmail(apiKey: string, payload: EmailPayload): Promise<boolean> {
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      console.error(
-        `[lead-email] Resend error sending to ${payload.to}:`,
-        res.status,
-        await res.text()
-      );
-      return false;
+// Resend occasionally 429s or 5xxs. Those are worth one or two quick retries;
+// a 4xx (bad sender, unverified domain, invalid recipient) never is — it will
+// fail identically forever, so we surface the reason immediately.
+const MAX_ATTEMPTS = 3;
+const RETRY_DELAYS_MS = [500, 1500];
+const REQUEST_TIMEOUT_MS = 10_000;
+
+async function sendEmail(apiKey: string, payload: EmailPayload): Promise<DeliveryResult> {
+  let lastError = "Unknown error";
+
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+
+      if (res.ok) return { status: "sent" };
+
+      // Classify on the status code alone. Reading the body is only for the
+      // error message, so it happens inside its own try — a body-read failure
+      // must never demote a permanent 4xx into "retryable" and burn attempts
+      // on a request that can only ever fail the same way.
+      const status = res.status;
+      let body = "";
+      try {
+        body = (await res.text()).slice(0, 500);
+      } catch {
+        body = "(response body unreadable)";
+      }
+      lastError = `Resend ${status}: ${body}`;
+      console.error(`[lead-email] error sending to ${payload.to.join(", ")}:`, lastError);
+
+      // Permanent rejection — retrying changes nothing.
+      if (status < 500 && status !== 429) {
+        return { status: "failed", error: lastError };
+      }
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err);
+      console.error("[lead-email] request failed:", lastError);
     }
-    return true;
-  } catch (err) {
-    console.error("[lead-email] Failed to send:", err);
-    return false;
+
+    const delay = RETRY_DELAYS_MS[attempt];
+    if (delay !== undefined) await sleep(delay);
   }
+
+  return { status: "failed", error: lastError };
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // --- Shared spec markup -----------------------------------------------------
