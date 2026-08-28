@@ -1,0 +1,1073 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Option A — iPhone comparison, decision-led (O2 concept)</title>
+<style>
+@font-face{
+  font-family:'On Air';font-style:normal;font-weight:300 900;font-display:swap;
+  src:url(__FONT_ONAIR__) format('woff2-variations');
+}
+
+/* O2 design tokens, read from o2.co.uk's own stylesheet */
+:root{
+  --o2-blue:#0050ff;
+  --o2-blue-hover:#00008c;
+  --o2-blue-focus:#000066;
+  --o2-navy:#0019a5;
+  --tint:#d4e2ff;
+  --tint-2:#e5eeff;
+  --ink:#111;
+  --ink-2:#333;
+  --ink-3:#767676;
+  --line:#e5e5e5;
+  --line-2:#f0f2f5;
+  --bg:#fff;
+  --bg-alt:#f6f8fb;
+  --ok:#348437;
+  --ok-bg:#eaf5ea;
+  --warn:#8a5a00;
+  --warn-bg:#fff6e6;
+  --r:12px; --r-lg:20px; --r-xl:28px;
+  --sh:0 1px 2px rgba(0,0,0,.05),0 4px 16px rgba(0,0,0,.06);
+  --sh-lg:0 8px 24px rgba(0,0,0,.08),0 24px 64px rgba(0,0,0,.10);
+  --font:'On Air',Arial,Helvetica,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;font-family:var(--font);color:var(--ink);background:var(--bg);font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased}
+img{max-width:100%;display:block}
+button{font:inherit;color:inherit}
+a{color:var(--o2-blue)}
+h1,h2,h3,h4{margin:0;line-height:1.1;letter-spacing:-.022em;font-weight:700}
+h1{font-size:clamp(36px,6vw,68px);letter-spacing:-.032em}
+h2{font-size:clamp(28px,4.2vw,44px);letter-spacing:-.028em}
+h3{font-size:clamp(19px,2.3vw,24px)}
+p{margin:0}
+:focus-visible{outline:3px solid var(--o2-focus,#000066);outline-offset:2px}
+.wrap{max-width:1200px;margin:0 auto;padding:0 20px}
+section[id]{scroll-margin-top:126px}
+.muted{color:var(--ink-3)}
+.tiny{font-size:13.5px;line-height:1.45}
+.sm{font-size:15px}
+.eyebrow{font-size:13px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--o2-blue)}
+.section{padding:80px 0}
+.section--alt{background:var(--bg-alt)}
+.shead{max-width:60ch;margin-bottom:36px}
+.shead p{color:var(--ink-2);margin-top:14px;font-size:19px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border:0;cursor:pointer;
+  border-radius:99px;padding:14px 28px;font-weight:600;font-size:16px;text-decoration:none;transition:.15s}
+.btn--p{background:var(--o2-blue);color:#fff}
+.btn--p:hover{background:var(--o2-blue-hover)}
+.btn--w{background:#fff;color:var(--o2-navy)}
+.btn--w:hover{background:var(--tint)}
+.btn--g{background:transparent;color:#fff;box-shadow:inset 0 0 0 2px rgba(255,255,255,.7)}
+.btn--g:hover{background:rgba(255,255,255,.14)}
+.btn--o{background:#fff;color:var(--o2-blue);box-shadow:inset 0 0 0 2px var(--o2-blue)}
+.btn--o:hover{background:var(--tint-2)}
+.btn--sm{padding:10px 20px;font-size:15px}
+
+/* ---------- concept bar + chrome ---------- */
+.concept{background:#111;color:#fff;font-size:13px;padding:9px 20px;display:flex;gap:12px;
+  align-items:center;justify-content:center;flex-wrap:wrap;text-align:center}
+.concept b{background:#fff;color:#111;padding:2px 9px;border-radius:99px;font-size:11px;letter-spacing:.07em;text-transform:uppercase}
+.nav{border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);z-index:70}
+.nav .wrap{display:flex;align-items:center;gap:30px;height:66px}
+.logo{width:36px;height:37px;color:var(--o2-blue);flex:none}
+.logo svg{display:block;width:100%;height:100%}
+.logo svg path{fill:currentColor}
+.nav nav{display:flex;gap:24px;font-size:16px}
+.nav nav a{color:var(--ink);text-decoration:none;padding:8px 0;border-bottom:2px solid transparent}
+.nav nav a[aria-current]{border-color:var(--o2-blue);font-weight:600}
+.nav .icons{margin-left:auto;display:flex;gap:18px;color:var(--ink-2);font-size:15px}
+@media(max-width:900px){.nav nav{display:none}}
+
+/* ---------- hero: O2 brand gradient ---------- */
+.hero{
+  background:radial-gradient(120% 120% at 82% 10%, #1f5cff 0%, #0032c8 42%, #0019a5 100%);
+  color:#fff;position:relative;overflow:hidden;
+}
+/* O2 bubble motif, as used on their own hero banners */
+.hero .bub{position:absolute;border-radius:50%;background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.30), rgba(255,255,255,.05) 55%, rgba(255,255,255,0) 72%);pointer-events:none}
+.hero .b1{width:340px;height:340px;top:-120px;right:-60px}
+.hero .b2{width:190px;height:190px;bottom:-70px;left:-50px}
+.hero .b3{width:110px;height:110px;top:52%;right:24%}
+.hero .wrap{position:relative;z-index:2;display:grid;grid-template-columns:1.02fr .98fr;gap:40px;align-items:center;padding-top:62px;padding-bottom:62px}
+.hero .crumb{font-size:14px;color:#b9ceff;margin-bottom:18px}
+.hero .crumb a{color:#b9ceff;text-decoration:none}
+.hero p.lede{font-size:clamp(18px,2.1vw,22px);color:#dbe6ff;margin-top:18px;max-width:46ch}
+.hero .ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:32px}
+.hero-shots{display:flex;justify-content:center;align-items:flex-end;gap:0;min-height:400px}
+.hero-shots img{filter:drop-shadow(0 26px 50px rgba(0,0,0,.42))}
+.hero-shots img:nth-child(1){width:30%;transform:translateX(6%) rotate(-5deg)}
+.hero-shots img:nth-child(2){width:37%;position:relative;z-index:2}
+.hero-shots img:nth-child(3){width:30%;transform:translateX(-6%) rotate(5deg)}
+@media(max-width:920px){.hero .wrap{grid-template-columns:1fr;padding-top:34px;padding-bottom:44px}.hero-shots{min-height:250px;order:-1}}
+
+/* jump nav */
+.jump{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:66px;z-index:60}
+.jump .wrap{display:flex;gap:6px;overflow-x:auto;padding-top:10px;padding-bottom:10px;scrollbar-width:none}
+.jump .wrap::-webkit-scrollbar{display:none}
+.jump a{white-space:nowrap;text-decoration:none;color:var(--ink-2);font-size:15px;font-weight:500;
+  padding:8px 15px;border-radius:99px;border:1px solid transparent}
+.jump a:hover{background:var(--tint-2);color:var(--o2-blue)}
+.jump a.on{background:var(--o2-navy);color:#fff}
+@media(max-width:900px){.jump{top:66px}}
+
+/* ---------- range tiers ---------- */
+.tier{margin-bottom:44px}
+.tier__head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;padding-bottom:14px;border-bottom:2px solid var(--line);margin-bottom:24px}
+.tier__head h3{font-size:26px}
+.badge{font-size:11.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:4px 10px;border-radius:6px;background:var(--tint);color:var(--o2-navy)}
+.badge--new{background:var(--o2-blue);color:#fff}
+.tier__head p{width:100%;color:var(--ink-3);font-size:15.5px;margin-top:2px}
+
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:16px}
+.mcard{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:18px;display:flex;
+  flex-direction:column;gap:12px;position:relative;transition:.18s}
+.mcard:hover{box-shadow:var(--sh);transform:translateY(-3px);border-color:#c9d6f2}
+.mcard.picked{border-color:var(--o2-blue);box-shadow:0 0 0 3px rgba(0,80,255,.14)}
+.mcard__art{height:190px;display:grid;place-items:center}
+.mcard__art img{max-height:190px;width:auto;margin:0 auto}
+.mcard__name{font-size:18px;font-weight:700}
+.mcard__who{font-size:14.5px;color:var(--ink-3);line-height:1.45;flex:1}
+.keyfacts{display:flex;gap:6px;flex-wrap:wrap}
+.fact{font-size:12.5px;background:var(--bg-alt);border:1px solid var(--line);border-radius:99px;padding:4px 10px;color:var(--ink-2)}
+.pickbtn{border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:9px 14px;font-size:14.5px;
+  font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s;color:var(--o2-blue)}
+.pickbtn:hover{border-color:var(--o2-blue);background:var(--tint-2)}
+.mcard.picked .pickbtn{background:var(--o2-blue);border-color:var(--o2-blue);color:#fff}
+
+/* older-generation group */
+.gengroup{background:#fff;border:1px solid var(--line);border-radius:var(--r-xl);overflow:hidden}
+.gengroup__top{display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:center}
+.gengroup__photo{background:var(--bg-alt);padding:24px;display:grid;place-items:center;min-height:230px}
+.gengroup__photo img{max-height:220px;width:auto}
+.gengroup__txt{padding:28px}
+.gengroup__txt p{color:var(--ink-2);margin-top:10px;font-size:16px}
+.gengroup__list{border-top:1px solid var(--line);padding:0}
+@media(max-width:820px){.gengroup__top{grid-template-columns:1fr}}
+
+.minirow{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:1px solid var(--line-2);flex-wrap:wrap}
+.minirow:last-child{border-bottom:0}
+.minirow .nm{font-weight:600;min-width:170px}
+.minirow .fx{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.minirow .pickbtn{padding:7px 13px;font-size:13.5px}
+
+/* ---------- tool shell ---------- */
+.tool{background:#fff;border:1px solid var(--line);border-radius:var(--r-xl);box-shadow:var(--sh);overflow:hidden}
+.tool__bar{padding:18px 24px;border-bottom:1px solid var(--line);display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:#fff}
+.tool__body{padding:28px 24px 32px}
+.pickers{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.sel{border:1.5px solid var(--line);border-radius:10px;padding:10px 13px;background:#fff;font-size:15px;font-family:inherit;max-width:100%}
+.sel:focus{border-color:var(--o2-blue);outline:none}
+.lbl{font-size:13.5px;font-weight:600;color:var(--ink-3)}
+
+/* ---------- SIZE tool ---------- */
+.stage{background:var(--bg-alt);border-radius:var(--r-lg);padding:30px 20px;display:flex;justify-content:center;
+  align-items:flex-end;gap:26px;flex-wrap:wrap;min-height:340px;overflow-x:auto}
+.dev{display:flex;flex-direction:column;align-items:center;gap:10px}
+.dev__body{position:relative;border-radius:14px;background:linear-gradient(160deg,#2b2f36,#14171c);
+  box-shadow:0 10px 24px rgba(0,0,0,.18);border:1px solid rgba(0,0,0,.3);display:grid;place-items:center}
+.dev__screen{position:absolute;inset:3.5%;border-radius:11px;
+  background:linear-gradient(150deg,#0050ff,#0019a5 60%,#001a6e)}
+.dev__island{position:absolute;top:3.5%;left:50%;transform:translate(-50%,60%);background:#000;border-radius:99px}
+.dev__cap{font-size:13.5px;text-align:center;line-height:1.35}
+.dev__cap b{display:block;font-size:15px;font-weight:600}
+.dev.hl .dev__body{outline:3px solid var(--o2-blue);outline-offset:4px}
+
+.calib{background:var(--tint-2);border:1px solid #c2d5ff;border-radius:var(--r);padding:16px 18px;margin-top:22px}
+.calib__top{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.calib__top b{font-size:15.5px}
+.calib input[type=range]{flex:1;min-width:200px;accent-color:var(--o2-blue)}
+.card-ref{height:54px;background:linear-gradient(135deg,#0050ff,#00008c);border-radius:7px;margin-top:14px;
+  position:relative;box-shadow:var(--sh);display:grid;place-items:center;color:#fff;font-size:12.5px;letter-spacing:.04em}
+.card-ref::after{content:"";position:absolute;left:9px;top:11px;width:26px;height:19px;border-radius:3px;background:rgba(255,255,255,.55)}
+
+/* ---------- ZOOM tool ---------- */
+.zgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:780px){.zgrid{grid-template-columns:1fr}}
+.view{border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;background:#0a0d14}
+.view__port{position:relative;aspect-ratio:4/3;overflow:hidden}
+.view__scene{position:absolute;inset:0;transform-origin:50% 40%;transition:transform .35s cubic-bezier(.4,0,.2,1),filter .35s}
+.view__scene svg{width:100%;height:100%;display:block}
+.view__tag{position:absolute;top:10px;left:10px;z-index:3;font-size:11.5px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;padding:5px 10px;border-radius:6px;background:rgba(255,255,255,.92);color:#111}
+.view__tag.dig{background:#ffcf4d;color:#4a3600}
+.view__tag.no{background:#ff5a5a;color:#fff}
+.view__blk{position:absolute;inset:0;z-index:4;display:grid;place-items:center;text-align:center;padding:22px;
+  background:rgba(6,9,16,.82);color:#fff;font-size:15px;line-height:1.5}
+.view__foot{padding:13px 16px;background:#fff;border-top:1px solid var(--line);display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.view__foot b{font-size:16px}
+.view__foot span{font-size:13.5px;color:var(--ink-3)}
+.zsteps{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.zstep{border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:9px 18px;font-size:15px;
+  font-weight:600;cursor:pointer;transition:.15s}
+.zstep:hover{border-color:var(--o2-blue);color:var(--o2-blue)}
+.zstep.on{background:var(--o2-navy);border-color:var(--o2-navy);color:#fff}
+.zreach{margin-top:20px;display:grid;gap:8px}
+.zrow{display:flex;gap:12px;align-items:center;font-size:14.5px;padding:9px 14px;border-radius:10px;background:var(--bg-alt)}
+.zrow.can{background:var(--ok-bg)}
+.zrow .ic{width:20px;flex:none;text-align:center;font-weight:700}
+.zrow.can .ic{color:var(--ok)}
+.zrow .nm{font-weight:600;min-width:160px}
+
+/* ---------- SCREEN tool ---------- */
+.demo2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:700px){.demo2{grid-template-columns:1fr}}
+.phone-demo{background:var(--bg-alt);border-radius:var(--r-lg);padding:22px;text-align:center}
+.pd__frame{width:170px;height:340px;margin:0 auto;border-radius:24px;background:#14171c;padding:7px;box-shadow:var(--sh)}
+.pd__scr{width:100%;height:100%;border-radius:18px;overflow:hidden;position:relative;background:#000}
+.pd__strip{position:absolute;inset:0;display:grid;gap:9px;padding:12px;align-content:start}
+.pd__strip i{display:block;height:38px;border-radius:8px;background:linear-gradient(120deg,#0050ff,#3d7bff)}
+.pd__strip i:nth-child(even){background:linear-gradient(120deg,#00008c,#0032c8)}
+.pd__cap{margin-top:14px;font-size:15px;font-weight:600}
+.pd__sub{font-size:13.5px;color:var(--ink-3);margin-top:3px}
+.aod{position:absolute;inset:0;background:#000;display:grid;place-items:center;color:#fff;transition:opacity 1.4s}
+.aod b{font-size:34px;font-weight:300;letter-spacing:-.02em}
+.aod.dim{opacity:.34}
+.aod.off{opacity:0;background:#000}
+
+/* ---------- LONGEVITY ---------- */
+.bars{display:grid;gap:10px}
+.bar{display:grid;grid-template-columns:180px 1fr 84px;gap:14px;align-items:center;font-size:15px}
+.bar__track{display:block;height:26px;background:var(--line-2);border-radius:99px;overflow:hidden;font-size:0;line-height:0}
+.bar__fill{display:block;height:26px;border-radius:99px;background:linear-gradient(90deg,var(--o2-blue),#3d7bff);transition:width .7s cubic-bezier(.4,0,.2,1)}
+.bar__val{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.bar.hl .bar__fill{background:linear-gradient(90deg,#00008c,var(--o2-blue))}
+.bar.hl .bar__nm{font-weight:700}
+@media(max-width:640px){.bar{grid-template-columns:120px 1fr 62px;font-size:14px}}
+
+.aigrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:8px}
+.aicard{border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;background:#fff}
+.aicard h4{font-size:16px;margin-bottom:6px}
+.aicard p{font-size:14px;color:var(--ink-3)}
+.aicard.yes{border-color:#bfe0c0;background:var(--ok-bg)}
+
+/* ---------- SHORTLIST ---------- */
+.slbar{position:fixed;left:0;right:0;bottom:0;background:var(--o2-navy);color:#fff;z-index:80;
+  transform:translateY(105%);transition:transform .28s cubic-bezier(.4,0,.2,1);box-shadow:0 -8px 30px rgba(0,0,0,.22)}
+.slbar.on{transform:none}
+.slbar .wrap{display:flex;gap:14px;align-items:center;padding-top:14px;padding-bottom:14px;flex-wrap:wrap}
+.chipx{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.14);border-radius:10px;padding:7px 9px 7px 13px;font-size:14px;font-weight:600}
+.chipx button{background:none;border:0;color:#fff;opacity:.7;cursor:pointer;font-size:17px;line-height:1;width:18px}
+.chipx button:hover{opacity:1}
+.slbar .act{margin-left:auto;display:flex;gap:10px;align-items:center}
+.slbar .lnk{background:none;border:0;color:#b9ceff;text-decoration:underline;cursor:pointer;font-size:14px}
+body.sl-on{padding-bottom:92px}
+
+.cmp{overflow-x:auto}
+.cmpgrid{display:grid;min-width:min-content}
+.ch{position:sticky;top:0;background:#fff;border-bottom:2px solid var(--line);padding:16px;z-index:4;
+  display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center}
+.ch--lab{left:0;position:sticky;z-index:5;border-right:1px solid var(--line);align-items:flex-start;text-align:left}
+.ch img{max-height:120px;width:auto}
+.ch__ghost{height:120px;display:grid;place-items:center}
+.ch__nm{font-weight:700;font-size:16.5px;line-height:1.2}
+.cc{padding:14px 16px;border-bottom:1px solid var(--line-2);font-size:15px}
+.cc--lab{position:sticky;left:0;background:#fff;z-index:3;border-right:1px solid var(--line);font-weight:600;
+  font-size:12.5px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center}
+.cc__v{font-weight:600}
+.cc__d{font-size:13px;color:var(--ink-3);margin-top:4px;line-height:1.45}
+.cc.same{background:#fbfcfe;color:var(--ink-3)}
+.cc.same .cc__v{font-weight:500;color:var(--ink-3)}
+.cc.diff{background:#fff}
+.cc.win{background:var(--ok-bg)}
+.wintag{display:inline-block;font-size:11px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.05em;margin-top:6px}
+.verdict{background:var(--tint-2);border-left:4px solid var(--o2-blue);border-radius:0 var(--r) var(--r) 0;padding:18px 20px;margin-bottom:22px}
+.verdict h4{font-size:17px;margin-bottom:8px}
+.verdict ul{margin:0;padding-left:20px;display:grid;gap:6px;font-size:15.5px}
+.empty{padding:56px 20px;text-align:center;color:var(--ink-3)}
+
+/* full spec disclosure */
+.disc{margin-top:26px;background:#fff;border:1px solid var(--line);border-radius:var(--r-lg)}
+.disc summary{padding:17px 20px;cursor:pointer;font-weight:600;list-style:none;display:flex;gap:11px;align-items:center}
+.disc summary::-webkit-details-marker{display:none}
+.disc summary::before{content:"+";width:24px;height:24px;border-radius:50%;background:var(--tint-2);color:var(--o2-blue);display:grid;place-items:center;font-weight:700;flex:none}
+.disc[open] summary::before{content:"–"}
+.disc .bd{padding:0 20px 20px}
+.tw{overflow:auto;max-height:66vh;border:1px solid var(--line);border-radius:10px}
+table.full{border-collapse:separate;border-spacing:0;width:100%;font-size:14px;min-width:940px}
+table.full th,table.full td{padding:11px 13px;border-bottom:1px solid var(--line-2);text-align:left;vertical-align:top}
+table.full thead th{position:sticky;top:0;background:var(--o2-navy);color:#fff;z-index:2;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+table.full tbody th{position:sticky;left:0;background:#fff;font-weight:600;z-index:1;border-right:1px solid var(--line)}
+
+/* ---------- handoff ---------- */
+.next{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px}
+.ncard{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:24px;display:flex;flex-direction:column;gap:10px}
+.ncard .ic{width:46px;height:46px;border-radius:50%;background:var(--tint-2);color:var(--o2-blue);display:grid;place-items:center;font-size:20px;margin-bottom:4px}
+.ncard p{font-size:15px;color:var(--ink-3);flex:1}
+.ncard a{font-weight:600;text-decoration:none;font-size:15.5px}
+
+footer.site{background:var(--o2-navy);color:#fff;padding:48px 0 36px;font-size:14px}
+footer.site a{color:#b9ceff;text-decoration:none}
+footer.site .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:26px}
+footer.site h4{font-size:14.5px;margin-bottom:10px}
+footer.site ul{list-style:none;padding:0;margin:0;display:grid;gap:7px}
+.legal{margin-top:30px;padding-top:20px;border-top:1px solid rgba(255,255,255,.22);color:#a8beec;font-size:12.5px;line-height:1.65}
+
+/* ---------- design notes ---------- */
+.fab{position:fixed;right:18px;bottom:18px;z-index:200;background:#111;color:#fff;border:0;border-radius:99px;
+  padding:13px 21px;font-weight:600;font-size:15px;cursor:pointer;box-shadow:var(--sh-lg)}
+body.sl-on .fab{bottom:106px}
+.np{position:fixed;right:0;top:0;bottom:0;width:min(460px,100%);background:#fff;z-index:210;box-shadow:var(--sh-lg);
+  transform:translateX(101%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+.np.open{transform:none}
+.np header{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+.np header button{margin-left:auto;background:var(--bg-alt);border:0;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:18px}
+.npb{overflow:auto;padding:22px;font-size:15px;line-height:1.62}
+.npb h4{font-size:12.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--o2-blue);margin:24px 0 9px}
+.npb h4:first-of-type{margin-top:0}
+.npb ul{padding-left:19px;margin:0;display:grid;gap:9px}
+.co{background:var(--tint-2);border-left:3px solid var(--o2-blue);padding:13px 15px;border-radius:0 10px 10px 0;margin:13px 0;font-size:14.5px}
+.co--w{background:var(--warn-bg);border-color:#d99400}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:205;opacity:0;pointer-events:none;transition:.25s}
+.scrim.on{opacity:1;pointer-events:auto}
+.anno{display:none;background:var(--warn-bg);border:1px dashed #d99400;color:#6f4b00;border-radius:10px;
+  padding:11px 14px;font-size:14px;line-height:1.5;margin:16px 0}
+body.anno-on .anno{display:block}
+
+@media(max-width:700px){
+  .minirow{flex-direction:column;align-items:stretch;gap:11px;padding:16px 18px}
+  .minirow .nm{min-width:0;font-size:16.5px}
+  .minirow .fx{width:100%}
+  .minirow .pickbtn{width:100%}
+  .gengroup__photo{min-height:170px;padding:18px}
+  .gengroup__txt{padding:22px}
+  .section{padding:52px 0}
+  body{font-size:16px}
+  .stage{gap:16px;padding:20px 12px}
+}
+</style>
+</head>
+<body>
+
+<div class="concept"><b>Concept</b><span>Option A — decision-led revamp. Official O2 assets. No pricing, by design.</span></div>
+
+<header class="nav"><div class="wrap">
+  <span class="logo" aria-label="O2">__LOGO_SVG__</span>
+  <nav><a href="#">Shop</a><a href="#">Why O2</a><a href="#">Help</a><a href="#" aria-current="page">iPhone</a></nav>
+  <div class="icons"><span>My O2</span><span>Search</span><span>Basket</span></div>
+</div></header>
+
+<!-- ================= HERO ================= -->
+<section class="hero">
+  <span class="bub b1"></span><span class="bub b2"></span><span class="bub b3"></span>
+  <div class="wrap">
+    <div>
+      <div class="crumb"><a href="#">Home</a> › <span style="color:#fff">iPhone comparison</span></div>
+      <h1>Which iPhone<br>is right for you?</h1>
+      <p class="lede">Most iPhones are more alike than different. Here's what actually changes between them — shown, not listed.</p>
+      <div class="ctas">
+        <a class="btn btn--w" href="#size">See them at real size</a>
+        <a class="btn btn--g" href="#range">Browse the range</a>
+      </div>
+    </div>
+    <div class="hero-shots">
+      <img src="__IMG_17__" alt="iPhone 17">
+      <img src="__IMG_17PM__" alt="iPhone 17 Pro Max">
+      <img src="__IMG_AIR__" alt="iPhone Air">
+    </div>
+  </div>
+</section>
+
+<nav class="jump" aria-label="Jump to a section"><div class="wrap" id="jump">
+  <a href="#range">The range</a>
+  <a href="#size">Size</a>
+  <a href="#camera">Camera</a>
+  <a href="#screen">Screen</a>
+  <a href="#last">How long it lasts</a>
+  <a href="#shortlist">Your shortlist</a>
+</div></nav>
+
+<div class="wrap"><div class="anno" style="margin-top:20px"><b>The reframe.</b> This page can't show prices or link to live deals, so it can't be a conversion page. That's freeing: its one job is to get someone to a confident decision and then hand them to the shop. Everything here is built around the five things that genuinely differ between iPhones — size, camera, screen, chip and battery — and each is <i>demonstrated</i> rather than tabulated.</div></div>
+
+<!-- ================= THE RANGE ================= -->
+<section class="section" id="range"><div class="wrap">
+  <div class="shead">
+    <span class="eyebrow">Start here</span>
+    <h2>The range, in three tiers</h2>
+    <p>Fourteen models is too many to hold in your head. They're really three groups — and only the first is the current line-up.</p>
+  </div>
+
+  <div class="tier">
+    <div class="tier__head">
+      <h3>iPhone 17</h3><span class="badge badge--new">Latest range</span>
+      <p id="g17blurb"></p>
+    </div>
+    <div class="mgrid" id="grid17"></div>
+  </div>
+
+  <div class="anno"><b>Why tiers, not a flat grid of 14.</b> The live page gives an iPhone 15 the same visual weight as an iPhone 17 Pro. Grouping by generation cuts the apparent choice from fourteen to three, puts the current range first, and makes launch day a matter of adding one card to the top tier rather than another row to a table.</div>
+
+  <div class="tier" style="margin-top:40px"><div id="gen16"></div></div>
+  <div class="tier"><div id="gen15"></div></div>
+</div></section>
+
+<!-- ================= SIZE ================= -->
+<section class="section section--alt" id="size"><div class="wrap">
+  <div class="shead">
+    <span class="eyebrow">Decision one</span>
+    <h2>How big is it, really?</h2>
+    <p>The thing people most often get wrong, and the one thing a spec sheet can't tell you. These are drawn to true physical scale.</p>
+  </div>
+
+  <div class="tool">
+    <div class="tool__bar">
+      <div class="pickers">
+        <span class="lbl">Compare</span>
+        <select class="sel" id="s1"></select>
+        <select class="sel" id="s2"></select>
+        <select class="sel" id="s3"></select>
+      </div>
+    </div>
+    <div class="tool__body">
+      <div class="stage" id="sizeStage"></div>
+
+      <div class="calib">
+        <div class="calib__top">
+          <b>See them at actual size</b>
+          <span class="tiny muted">Hold a bank card against your screen and drag until the blue card matches it.</span>
+        </div>
+        <div class="calib__top" style="margin-top:12px">
+          <input type="range" id="calib" min="170" max="620" value="240" aria-label="Calibrate to a bank card">
+          <span class="tiny muted" id="calibOut"></span>
+        </div>
+        <div class="card-ref" id="cardRef">85.60 × 53.98 mm — standard bank card</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="anno"><b>Why this earns its place.</b> Screen size is quoted as a diagonal measurement of the display, which tells you almost nothing about whether the phone fits your hand or your pocket — and the gap between a 6.3" and a 6.9" iPhone is the single most common source of buyer's regret. Calibrating against a bank card (85.6&nbsp;mm, identical worldwide) turns an abstract number into something you can physically hold up. No comparison page in UK telco does this.</div>
+</div></section>
+
+<!-- ================= CAMERA ================= -->
+<section class="section" id="camera"><div class="wrap">
+  <div class="shead">
+    <span class="eyebrow">Decision two</span>
+    <h2>How much zoom do you actually need?</h2>
+    <p>"48MP Fusion Telephoto" means nothing until you see it. So: you're at the back of The O2. Here's the same moment on two different iPhones.</p>
+  </div>
+
+  <div class="tool">
+    <div class="tool__bar">
+      <div class="pickers">
+        <span class="lbl">Compare</span>
+        <select class="sel" id="z1"></select>
+        <span class="lbl">with</span>
+        <select class="sel" id="z2"></select>
+      </div>
+    </div>
+    <div class="tool__body">
+      <div class="zsteps" id="zsteps"></div>
+      <div class="zgrid">
+        <div class="view"><div class="view__port" id="vp1"></div><div class="view__foot" id="vf1"></div></div>
+        <div class="view"><div class="view__port" id="vp2"></div><div class="view__foot" id="vf2"></div></div>
+      </div>
+      <div class="zreach" id="zreach"></div>
+    </div>
+  </div>
+
+  <div class="anno"><b>Show, don't specify.</b> The camera is the main reason to move up a tier, and it's the spec people understand least. Framing it as "you're in row Z at The O2" ties the decision to a moment O2 customers actually have — Priority Tickets is one of the brand's biggest draws. The degradation shown past each phone's optical limit is the honest part: digital zoom is not the same thing, and a table saying "2X Optical Zoom" never conveys that.</div>
+</div></section>
+
+<!-- ================= SCREEN ================= -->
+<section class="section section--alt" id="screen"><div class="wrap">
+  <div class="shead">
+    <span class="eyebrow">Decision three</span>
+    <h2>ProMotion and Always-On</h2>
+    <p>Two features that split the range, and that most people have never had explained to them.</p>
+  </div>
+
+  <div class="tool"><div class="tool__body">
+    <div class="demo2">
+      <div class="phone-demo">
+        <div class="pd__frame"><div class="pd__scr"><div class="pd__strip" id="scrollA"></div></div></div>
+        <div class="pd__cap">With ProMotion</div>
+        <div class="pd__sub">Up to 120Hz — scrolling and animation stay smooth</div>
+      </div>
+      <div class="phone-demo">
+        <div class="pd__frame"><div class="pd__scr"><div class="pd__strip" id="scrollB"></div></div></div>
+        <div class="pd__cap">Without ProMotion</div>
+        <div class="pd__sub">60Hz — the same movement, in fewer steps</div>
+      </div>
+    </div>
+    <p class="tiny muted" style="margin-top:14px;text-align:center">Illustrative. The real difference is 120Hz against 60Hz; this demo exaggerates the gap so it survives being viewed on a 60Hz monitor.</p>
+
+    <div class="demo2" style="margin-top:34px">
+      <div class="phone-demo">
+        <div class="pd__frame"><div class="pd__scr"><div class="aod" id="aodA"><b>9:41</b></div></div></div>
+        <div class="pd__cap">With Always-On</div>
+        <div class="pd__sub">Dims but stays readable — glance without touching it</div>
+      </div>
+      <div class="phone-demo">
+        <div class="pd__frame"><div class="pd__scr"><div class="aod" id="aodB"><b>9:41</b></div></div></div>
+        <div class="pd__cap">Without Always-On</div>
+        <div class="pd__sub">Screen goes black — pick it up to check the time</div>
+      </div>
+    </div>
+
+    <div style="margin-top:30px" id="whoHas"></div>
+  </div></div>
+
+  <div class="anno"><b>Two rows of the old table, made real.</b> "OLED, ProMotion and Always-On, Dynamic Island" appears in the display cell of six models. Nothing on the page says what any of it does, or that it is the main thing separating a 17 from a 17e. Ten seconds of animation does the job that a sentence of jargon does not.</div>
+</div></section>
+
+<!-- ================= LONGEVITY ================= -->
+<section class="section" id="last"><div class="wrap">
+  <div class="shead">
+    <span class="eyebrow">Decision four</span>
+    <h2>How long will it last you?</h2>
+    <p>Two different questions: how long it lasts in a day, and how long it stays current.</p>
+  </div>
+
+  <div class="tool"><div class="tool__body">
+    <h3 style="margin-bottom:6px">Battery — hours of video playback</h3>
+    <p class="sm muted" style="margin-bottom:20px">Apple's own comparable measure, as quoted on O2's current page.</p>
+    <div class="bars" id="battBars"></div>
+
+    <h3 style="margin:38px 0 6px">Apple Intelligence</h3>
+    <p class="sm muted" style="margin-bottom:16px">The clearest dividing line in the range — and the one most likely to matter in three years.</p>
+    <div class="aigrid" id="aiCards"></div>
+  </div></div>
+
+  <div class="anno"><b>Ranked, not listed.</b> Battery is quoted on the live page as a sentence in each row, so you cannot tell that the 17 Pro Max lasts nearly twice as long as the 15 without reading fourteen cells and doing the arithmetic. One sorted bar chart answers it instantly. Apple Intelligence support is the same story: a hard yes/no that the current page mentions only in a footnote.</div>
+</div></section>
+
+<!-- ================= SHORTLIST ================= -->
+<section class="section section--alt" id="shortlist"><div class="wrap">
+  <div class="shead">
+    <span class="eyebrow">Finally</span>
+    <h2>Your shortlist</h2>
+    <p>Everything you've saved, with the things they share faded back so only the differences stand out.</p>
+  </div>
+  <div class="tool"><div id="cmpWrap"></div></div>
+
+  <details class="disc">
+    <summary>Every model, every spec — the full table</summary>
+    <div class="bd">
+      <p class="tiny muted" style="margin-bottom:12px">Kept in full for anyone who wants it, with sticky headers and proper row and column scope for screen readers.</p>
+      <div class="tw"><table class="full" id="fullTable"></table></div>
+    </div>
+  </details>
+
+  <div class="anno"><b>Comparison last, not first.</b> The live page opens with the table — asking you to compare before you know what you're comparing on. Here you arrive with a shortlist you built while learning what the differences mean, and the comparison fades out everything identical so the page answers the only question left: what actually separates these two?</div>
+</div></section>
+
+<!-- ================= HANDOFF ================= -->
+<section class="section"><div class="wrap">
+  <div class="shead"><h2>Made your mind up?</h2></div>
+  <div class="next">
+    <div class="ncard"><div class="ic">→</div><h3>See it in the shop</h3><p>Availability, colours, storage and what's in stock right now.</p><a href="#">Shop iPhone</a></div>
+    <div class="ncard"><div class="ic">↻</div><h3>Already with O2?</h3><p>Check your upgrade date and whether you can use Switch Up.</p><a href="#">Sign in to My O2</a></div>
+    <div class="ncard"><div class="ic">◎</div><h3>Rather talk it through?</h3><p>Someone in store can put two of these in your hands side by side.</p><a href="#">Find a store</a></div>
+  </div>
+  <div class="anno"><b>The handoff is the conversion event.</b> With no pricing on the page, success is measured by clicks into the shop, not by orders. Three exits, each matching a different state of mind — decided, existing customer, still unsure.</div>
+</div></section>
+
+<footer class="site"><div class="wrap">
+  <div class="cols">
+    <div><h4>Shop</h4><ul><li><a href="#">Phones</a></li><li><a href="#">Tablets</a></li><li><a href="#">Pay Monthly SIM</a></li></ul></div>
+    <div><h4>Help and Support</h4><ul><li><a href="#">Help home</a></li><li><a href="#">Contact us</a></li><li><a href="#">My O2</a></li></ul></div>
+    <div><h4>About O2</h4><ul><li><a href="#">Careers</a></li><li><a href="#">News &amp; PR</a></li><li><a href="#">Accessibility</a></li></ul></div>
+    <div><h4>Legal</h4><ul><li><a href="#">Terms &amp; Conditions</a></li><li><a href="#">Privacy policy</a></li><li><a href="#">Cookie policy</a></li></ul></div>
+  </div>
+  <p class="legal">
+    Internal concept prototype for design review. Not a live O2 page.
+    Product photography, the O2 logo, the On&nbsp;Air typeface and the brand colour tokens are official O2 assets retrieved from
+    o2.co.uk and storyblok.cdn.vmo2digital.co.uk. Specifications are quoted from the existing o2.co.uk/iphone-comparison page.
+    Device dimensions and weights are Apple's published figures, added for the size tool, and should be verified before publishing.
+    No pricing, tariff or deal information appears anywhere on this page.
+  </p>
+</div></footer>
+
+<div class="slbar" id="slbar"><div class="wrap">
+  <span class="tiny" style="color:#b9ceff;font-weight:600">Shortlist</span>
+  <span id="slChips" style="display:flex;gap:9px;flex-wrap:wrap"></span>
+  <span class="act"><button class="lnk" id="slClear">Clear</button><a class="btn btn--w btn--sm" href="#shortlist">Compare</a></span>
+</div></div>
+
+<button class="fab" id="fab">Design notes</button>
+<div class="scrim" id="scrim"></div>
+<aside class="np" id="np" aria-hidden="true">
+  <header><h3 style="font-size:19px">Option A — design notes</h3><button id="npClose" aria-label="Close">×</button></header>
+  <div class="npb">
+    <label style="display:flex;gap:10px;align-items:center;cursor:pointer;margin-bottom:20px;font-size:15px">
+      <input type="checkbox" id="annoT" style="width:18px;height:18px;accent-color:var(--o2-blue)">
+      Show annotations on the page
+    </label>
+
+    <h4>What changed since the last round</h4>
+    <p>Two constraints reshaped this completely: it uses only official O2 assets, and it carries <strong>no pricing anywhere</strong> — no monthly cost, no upfront, no links to live deals.</p>
+    <p style="margin-top:10px">That second constraint is the interesting one. Without price or a route to basket, this cannot be a conversion page. Its only job is to get someone to a confident decision and hand them to the shop. So the design stops being retail furniture and becomes a set of demonstrations.</p>
+
+    <h4>The core idea</h4>
+    <div class="co"><strong>All iPhones are nearly the same.</strong> Only five things genuinely differ: size, camera, screen, chip and battery. A table gives all seven columns equal weight and buries that. This page devotes one section to each real decision and <em>shows</em> the difference rather than describing it.</div>
+
+    <h4>The three things that make it work</h4>
+    <ul>
+      <li><strong>True-scale sizing with bank-card calibration.</strong> A 6.9-inch diagonal is meaningless; a phone you can hold your card against is not. Size is the most common regret and the least well served online.</li>
+      <li><strong>The zoom demo.</strong> Camera is the main reason to move up a tier and the least understood spec. Two phones, the same shot from row Z at The O2, with honest degradation past each one's optical limit.</li>
+      <li><strong>Comparison arrives last.</strong> You build a shortlist while learning what the differences mean, and the final view fades out everything the models share.</li>
+    </ul>
+
+    <h4>Assets</h4>
+    <p>Everything is official and embedded, so the file works offline:</p>
+    <ul>
+      <li>Product photography for the five iPhone 17 models, and family shots for the 16 and 15 ranges — O2's Storyblok CDN.</li>
+      <li>The O2 logo, as inline SVG so it takes the brand blue.</li>
+      <li><strong>On Air</strong>, O2's own variable brand typeface.</li>
+      <li>Colour tokens read from o2.co.uk's stylesheet: <code>#0050ff</code> primary, <code>#00008c</code> hover, <code>#0019a5</code> footer navy, <code>#d4e2ff</code> tint.</li>
+    </ul>
+    <div class="co co--w"><strong>Asset gap.</strong> O2's shop pages sit behind a Queue-it waiting room, so only the iPhone 17 family has individually retrievable cut-outs. The 16 and 15 models use official family photography instead, which is why they're presented as groups. That grouping is the right IA anyway — but nine individual product shots would need pulling from the DAM before build.</div>
+
+    <h4>Launch readiness</h4>
+    <p>A new model is one object in the data file. It appears in the top tier, in all four decision tools, in the shortlist comparison and in the full table. Launch day is a content change, not a build. A pre-announcement model can sit in the top tier with empty spec values and a register-interest link.</p>
+
+    <h4>How you'd measure it</h4>
+    <div class="co">
+      Primary: click-through into the shop, and assisted device sales.<br>
+      Secondary: tool engagement (size calibrations, zoom steps, shortlists built), scroll depth on mobile, exit rate to apple.com.<br>
+      Guardrail: organic entrances for "iPhone comparison" — the full spec table stays on the page for exactly this reason.
+    </div>
+
+    <h4>Effort</h4>
+    <p>Bigger than Option B: roughly 8–10 weeks with a designer, a front-end developer and a content designer. The four tools are independent, so they can ship one at a time — size first, since it needs only dimensions data.</p>
+
+    <h4>Content issues found in the live table</h4>
+    <div class="co co--w">
+      Worth fixing whichever direction you take:
+      <ul style="margin-top:8px">
+        <li><strong>iPhone 16 Plus</strong> is listed as 6.1-inch. It's 6.7-inch — and the bigger screen is the only reason to choose it over the 16.</li>
+        <li><strong>iPhone 15 and 15 Plus</strong> are credited with a "12MP Telephoto with 2X Optical Zoom". Neither has a telephoto lens; the 2× is a crop of the main sensor.</li>
+        <li><strong>iPhone 15 Pro</strong> says "A17 Bionic" while the 15 Pro Max says "A17 Pro". Both are A17 Pro.</li>
+        <li><strong>iPhone 16 Pro Max</strong> lists "48MP Macro" as a fourth camera. Macro is a mode on the ultra-wide.</li>
+        <li><strong>iPhone 17 Pro</strong>'s camera cell says "48MP Fusion camera system" twice.</li>
+        <li><strong>Optical zoom figures are given for the 15 and 16 ranges but omitted for the 17 Pro models</strong> — the newest and most capable cameras on the page.</li>
+        <li><strong>Row order</strong> (17, Air, 17 Pro, 17 Pro Max, 17e, 16e, 16, 16 Plus…) follows neither tier nor generation nor the order of the editorial section above it.</li>
+      </ul>
+    </div>
+  </div>
+</aside>
+
+<script>
+/*__MODELS__*/
+
+const IMG = {
+  '17':'__IMG_17__', '17p':'__IMG_17P__', '17pm':'__IMG_17PM__',
+  '17e':'__IMG_17E__', 'air':'__IMG_AIR__',
+  fam16:'__IMG_FAM16__', fam15:'__IMG_FAM15__'
+};
+
+/* ---------------- schematic device outline (used where no cut-out exists,
+   and always in the size tool, where an outline is the correct representation) */
+function outline(m, h){
+  const [L,W] = m.dims, ratio = W/L;
+  const H = h, wd = Math.round(H*ratio);
+  return `<svg width="${wd}" height="${H}" viewBox="0 0 ${wd} ${H}" role="img" aria-label="${m.name}">
+    <rect x="1" y="1" width="${wd-2}" height="${H-2}" rx="${wd*0.13}" fill="#f3f5f9" stroke="#9aa7bd" stroke-width="1.5"/>
+    <rect x="${wd*0.06}" y="${H*0.045}" width="${wd*0.88}" height="${H*0.91}" rx="${wd*0.09}" fill="#dfe6f2"/>
+    ${m.island?`<rect x="${wd*0.36}" y="${H*0.075}" width="${wd*0.28}" height="${H*0.026}" rx="${H*0.013}" fill="#9aa7bd"/>`:''}
+  </svg>`;
+}
+function art(m, h){
+  return m.shot ? `<img src="${IMG[m.shot]}" alt="${m.name}" style="max-height:${h}px;width:auto">`
+                : outline(m, h);
+}
+
+/* ---------------- shortlist state ---------------- */
+let shortlist = ['17','17p'];
+const MAXSL = 3;
+
+function toggleSL(id){
+  const i = shortlist.indexOf(id);
+  if(i>-1) shortlist.splice(i,1);
+  else if(shortlist.length<MAXSL) shortlist.push(id);
+  else { shortlist.shift(); shortlist.push(id); }
+  renderRange(); renderSLBar(); renderCompare();
+}
+function renderSLBar(){
+  const on = shortlist.length>0;
+  document.getElementById('slbar').classList.toggle('on', on);
+  document.body.classList.toggle('sl-on', on);
+  document.getElementById('slChips').innerHTML = shortlist.map(id=>
+    `<span class="chipx">${BY_ID[id].name}<button data-rm="${id}" aria-label="Remove ${BY_ID[id].name}">×</button></span>`).join('');
+}
+
+/* ---------------- range ---------------- */
+function facts(m){
+  return [
+    `${m.size}" screen`,
+    m.lenses + (m.lenses===1?' camera':' cameras'),
+    m.batt + ' hrs video',
+    m.promotion?'ProMotion':'60Hz'
+  ].map(f=>`<span class="fact">${f}</span>`).join('');
+}
+function renderRange(){
+  document.getElementById('g17blurb').textContent = GENS['17'].blurb;
+  document.getElementById('grid17').innerHTML = MODELS.filter(m=>m.gen==='17').map(m=>`
+    <article class="mcard ${shortlist.includes(m.id)?'picked':''}">
+      <div class="mcard__art">${art(m,190)}</div>
+      <div class="mcard__name">${m.name}</div>
+      <div class="mcard__who">${m.who}</div>
+      <div class="keyfacts">${facts(m)}</div>
+      <button class="pickbtn" data-sl="${m.id}">${shortlist.includes(m.id)?'✓ On your shortlist':'+ Add to shortlist'}</button>
+    </article>`).join('');
+
+  [['16','gen16','fam16'],['15','gen15','fam15']].forEach(([g,slot,img])=>{
+    const ms = MODELS.filter(m=>m.gen===g);
+    document.getElementById(slot).innerHTML = `
+      <div class="gengroup">
+        <div class="gengroup__top">
+          <div class="gengroup__photo"><img src="${IMG[img]}" alt="The iPhone ${g} range"></div>
+          <div class="gengroup__txt">
+            <span class="badge">${GENS[g].tag}</span>
+            <h3 style="margin-top:12px">${GENS[g].label}</h3>
+            <p>${GENS[g].blurb}</p>
+          </div>
+        </div>
+        <div class="gengroup__list">
+          ${ms.map(m=>`<div class="minirow">
+            <span class="nm">${m.name}</span>
+            <span class="fx">${facts(m)}</span>
+            <button class="pickbtn" data-sl="${m.id}">${shortlist.includes(m.id)?'✓ Shortlisted':'+ Shortlist'}</button>
+          </div>`).join('')}
+        </div>
+      </div>`;
+  });
+}
+
+/* ---------------- size tool ---------------- */
+let pxPerMm = 330/85.6;
+function opts(sel, val, allowNone){
+  sel.innerHTML = (allowNone?`<option value="">— none —</option>`:'') +
+    MODELS.map(m=>`<option value="${m.id}" ${m.id===val?'selected':''}>${m.name}</option>`).join('');
+}
+function renderSize(){
+  const ids = ['s1','s2','s3'].map(i=>document.getElementById(i).value).filter(Boolean);
+  const stage = document.getElementById('sizeStage');
+  if(!ids.length){ stage.innerHTML = '<p class="muted">Choose a model to compare.</p>'; return; }
+  const big = Math.max(...ids.map(id=>BY_ID[id].dims[0]));
+  stage.innerHTML = ids.map(id=>{
+    const m = BY_ID[id], [L,W] = m.dims;
+    const h = L*pxPerMm, w = W*pxPerMm;
+    const isBig = L===big && ids.length>1;
+    return `<div class="dev ${isBig?'hl':''}">
+      <div class="dev__body" style="width:${w}px;height:${h}px">
+        <div class="dev__screen"></div>
+        ${m.island?`<div class="dev__island" style="width:${w*0.30}px;height:${Math.max(6,h*0.026)}px"></div>`:''}
+      </div>
+      <div class="dev__cap"><b>${m.name}</b>
+        ${L} × ${W} mm${m.dimsApprox?'*':''}<br>${m.weight} g · ${m.size}" screen</div>
+    </div>`;
+  }).join('');
+}
+document.getElementById('calib').addEventListener('input', e=>{
+  const px = +e.target.value;
+  pxPerMm = px/85.6;
+  document.getElementById('cardRef').style.width = px+'px';
+  document.getElementById('calibOut').textContent = 'Card is ' + px + 'px wide on this screen';
+  renderSize();
+});
+
+/* ---------------- zoom tool ---------------- */
+const ZOOMS = [0.5,1,2,5,10];
+let zoom = 2;
+
+/* The scene: an arena. Drawn as SVG so nothing is faked with stock photography. */
+function scene(){
+  return `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <radialGradient id="beam" cx="50%" cy="0%" r="70%">
+        <stop offset="0%" stop-color="#8fb4ff" stop-opacity=".55"/><stop offset="100%" stop-color="#8fb4ff" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="stg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#123"/><stop offset="100%" stop-color="#05070d"/>
+      </linearGradient>
+      <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#ffd98a" stop-opacity=".95"/><stop offset="100%" stop-color="#ffb347" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="400" height="300" fill="url(#stg)"/>
+    <!-- roof rig -->
+    <rect x="120" y="18" width="160" height="7" rx="2" fill="#2a3140"/>
+    ${[135,165,195,225,255].map(x=>`<circle cx="${x}" cy="29" r="3.4" fill="#cfe0ff"/>`).join('')}
+    <!-- light beams -->
+    <polygon points="150,30 120,150 190,150" fill="url(#beam)"/>
+    <polygon points="250,30 210,150 280,150" fill="url(#beam)"/>
+    <!-- side screens -->
+    <rect x="96" y="70" width="52" height="40" rx="3" fill="#0d1830" stroke="#2b3a5c"/>
+    <rect x="252" y="70" width="52" height="40" rx="3" fill="#0d1830" stroke="#2b3a5c"/>
+    <circle cx="122" cy="90" r="9" fill="#3f5fa8" opacity=".75"/>
+    <circle cx="278" cy="90" r="9" fill="#3f5fa8" opacity=".75"/>
+    <!-- stage deck -->
+    <rect x="118" y="140" width="164" height="9" rx="2" fill="#1b2436"/>
+    <!-- performer -->
+    <circle cx="200" cy="120" r="26" fill="url(#glow)"/>
+    <g fill="#12182a">
+      <circle cx="200" cy="112" r="5.4"/>
+      <path d="M194 118 h12 l3 17 h-18 z"/>
+      <path d="M194 119 l-8 12 3 2 7 -9 z"/>
+      <path d="M206 119 l8 -12 3 2 -7 12 z"/>
+      <rect x="195" y="135" width="4" height="12" rx="1.4"/>
+      <rect x="201" y="135" width="4" height="12" rx="1.4"/>
+    </g>
+    <!-- mic stand -->
+    <rect x="213" y="104" width="1.6" height="34" fill="#2c3purple" opacity=".8"/>
+    <!-- speaker stacks -->
+    <rect x="126" y="104" width="16" height="38" rx="2" fill="#151c2b"/>
+    <rect x="258" y="104" width="16" height="38" rx="2" fill="#151c2b"/>
+    <!-- crowd -->
+    <g fill="#080b12">
+      ${Array.from({length:46},(_,i)=>{
+        const x = (i*9.1)%404, y = 205 + ((i*37)%9)*3;
+        return `<circle cx="${x}" cy="${y}" r="7"/><rect x="${x-8}" y="${y+5}" width="16" height="30" rx="6"/>`;
+      }).join('')}
+    </g>
+    <g fill="#03050a">
+      ${Array.from({length:30},(_,i)=>{
+        const x = (i*13.7)%406, y = 252 + ((i*23)%7)*4;
+        return `<circle cx="${x}" cy="${y}" r="11"/><rect x="${x-13}" y="${y+8}" width="26" height="44" rx="9"/>`;
+      }).join('')}
+    </g>
+    <!-- phone screens in the crowd -->
+    ${[[42,214],[96,224],[168,210],[246,220],[318,212],[372,226]].map(([x,y])=>
+      `<rect x="${x}" y="${y}" width="5" height="9" rx="1.2" fill="#bcd4ff" opacity=".85"/>`).join('')}
+  </svg>`;
+}
+
+function renderZoomSteps(){
+  document.getElementById('zsteps').innerHTML =
+    `<span class="lbl" style="align-self:center;margin-right:4px">Zoom</span>` +
+    ZOOMS.map(z=>`<button class="zstep ${z===zoom?'on':''}" data-z="${z}">${z}×</button>`).join('');
+}
+function renderView(portId, footId, modelId){
+  const m = BY_ID[modelId], port = document.getElementById(portId), foot = document.getElementById(footId);
+  const reach = opticalReach(m);
+
+  // 0.5x needs an ultra wide lens
+  if(zoom === 0.5 && !m.ultrawide){
+    port.innerHTML = `<div class="view__tag no">No ultra wide</div>
+      <div class="view__scene" style="transform:scale(1)">${scene()}</div>
+      <div class="view__blk">${m.name} has no Ultra&nbsp;Wide lens.<br>
+        <span style="color:#b9ceff">This is as wide as it goes.</span></div>`;
+    foot.innerHTML = `<b>${m.name}</b><span>Can't take this shot</span>`;
+    return;
+  }
+
+  const optical = zoom <= reach;
+  const over = optical ? 0 : zoom / reach;
+  const blur = optical ? 0 : Math.min(4.2, (over-1)*1.9);
+  const sat  = optical ? 1 : Math.max(.62, 1-(over-1)*.22);
+
+  port.innerHTML = `
+    <div class="view__tag ${optical?'':'dig'}">${optical
+        ? (zoom===0.5?'Ultra Wide lens':'Optical — full quality')
+        : `Digital — past ${reach}×`}</div>
+    <div class="view__scene" style="transform:scale(${zoom===0.5?0.62:zoom});filter:blur(${blur}px) saturate(${sat}) contrast(${optical?1:0.93})">${scene()}</div>`;
+  foot.innerHTML = `<b>${m.name}</b><span>${
+    optical ? (zoom===0.5?'Taken on the Ultra Wide lens':`Within its ${reach}× optical range`)
+            : `Only reaches ${reach}× optically — beyond that the phone enlarges and softens the image`
+  }${m.opticalNote?' · '+m.opticalNote:''}</span>`;
+}
+function renderZoom(){
+  const a = document.getElementById('z1').value, b = document.getElementById('z2').value;
+  renderView('vp1','vf1',a); renderView('vp2','vf2',b);
+  document.getElementById('zreach').innerHTML =
+    `<p class="lbl" style="margin-bottom:4px">Which models get this shot at full quality?</p>` +
+    MODELS.map(m=>{
+      const can = (zoom===0.5) ? m.ultrawide : zoom <= opticalReach(m);
+      return `<div class="zrow ${can?'can':''}">
+        <span class="ic">${can?'✓':'–'}</span>
+        <span class="nm">${m.name}</span>
+        <span class="muted tiny">${m.opticalNote || zoomLabel(m)}${m.ultrawide?' · Ultra Wide':''}</span></div>`;
+    }).join('');
+}
+
+/* ---------------- screen demos ---------------- */
+(function screenDemos(){
+  const strip = n => Array.from({length:9},()=>'<i></i>').join('');
+  document.getElementById('scrollA').innerHTML = strip();
+  document.getElementById('scrollB').innerHTML = strip();
+  const A = document.getElementById('scrollA'), B = document.getElementById('scrollB');
+  let t = 0, lastB = 0, offB = 0;
+  function frame(ts){
+    t = ts/1000;
+    const y = (Math.sin(t*0.9)*0.5+0.5) * -142;
+    A.style.transform = `translateY(${y}px)`;                 // every frame
+    if(ts - lastB > 132){ lastB = ts; offB = y; }             // deliberately coarse
+    B.style.transform = `translateY(${offB}px)`;
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  const aodA = document.getElementById('aodA'), aodB = document.getElementById('aodB');
+  setInterval(()=>{
+    aodA.classList.toggle('dim'); aodB.classList.toggle('off');
+  }, 2400);
+})();
+
+function renderWhoHas(){
+  const pm = MODELS.filter(m=>m.promotion), ao = MODELS.filter(m=>m.alwaysOn);
+  document.getElementById('whoHas').innerHTML = `
+    <div class="aigrid">
+      <div class="aicard yes"><h4>Has ProMotion (${pm.length})</h4><p>${pm.map(m=>m.name).join(' · ')}</p></div>
+      <div class="aicard yes"><h4>Has Always-On (${ao.length})</h4><p>${ao.map(m=>m.name).join(' · ')}</p></div>
+      <div class="aicard"><h4>Neither (${MODELS.length-pm.length})</h4><p>${MODELS.filter(m=>!m.promotion).map(m=>m.name).join(' · ')}</p></div>
+    </div>`;
+}
+
+/* ---------------- longevity ---------------- */
+function renderLongevity(){
+  const sorted = [...MODELS].sort((a,b)=>b.batt-a.batt), max = sorted[0].batt;
+  document.getElementById('battBars').innerHTML = sorted.map(m=>`
+    <div class="bar ${shortlist.includes(m.id)?'hl':''}">
+      <span class="bar__nm">${m.name}</span>
+      <span class="bar__track"><span class="bar__fill" style="width:${(m.batt/max*100).toFixed(1)}%"></span></span>
+      <span class="bar__val">${m.batt} hrs</span>
+    </div>`).join('');
+
+  const yes = MODELS.filter(m=>m.ai), no = MODELS.filter(m=>!m.ai);
+  document.getElementById('aiCards').innerHTML = `
+    <div class="aicard yes"><h4>Runs Apple Intelligence (${yes.length})</h4><p>${yes.map(m=>m.name).join(' · ')}</p></div>
+    <div class="aicard"><h4>Doesn't (${no.length})</h4><p>${no.map(m=>m.name).join(' · ')}</p></div>`;
+}
+
+/* ---------------- comparison ---------------- */
+const ROWS = [
+  {k:'Screen',   v:m=>m.size+'-inch',                         d:m=>m.screen+' — '+m.screenD, cmp:m=>m.size,   w:'Biggest'},
+  {k:'Size',     v:m=>m.dims[0]+' × '+m.dims[1]+' mm',        d:m=>m.weight+' g',            cmp:m=>-m.dims[0], w:'Smallest'},
+  {k:'Cameras',  v:m=>m.lenses+(m.lenses===1?' rear camera':' rear cameras'), d:m=>m.cameraD, cmp:m=>m.lenses, w:'Most versatile'},
+  {k:'Zoom',     v:m=>m.opticalNote?'Telephoto':zoomLabel(m), d:m=>m.ultrawide?'Ultra Wide lens included':'No Ultra Wide lens', cmp:m=>opticalReach(m), w:'Longest reach'},
+  {k:'Smoothness',v:m=>m.promotion?'ProMotion 120Hz':'60Hz',  d:m=>m.alwaysOn?'Always-On display':'No Always-On'},
+  {k:'Chip',     v:m=>m.chip,                                  d:m=>m.chipD,                 cmp:m=>m.chipGen, w:'Newest'},
+  {k:'Apple Intelligence', v:m=>m.ai?'Yes':'No',               d:m=>''},
+  {k:'Battery',  v:m=>m.batt+' hrs video',                     d:m=>m.battD,                 cmp:m=>m.batt,   w:'Longest'},
+  {k:'Build',    v:m=>m.material,                              d:m=>m.designD},
+  {k:'Security', v:m=>m.sec,                                   d:m=>''}
+];
+
+function verdict(cols){
+  if(cols.length<2) return '';
+  const out = [];
+  const sizes = [...new Set(cols.map(m=>m.size))];
+  if(sizes.length>1){
+    const big = cols.reduce((a,b)=>a.size>b.size?a:b), sm = cols.reduce((a,b)=>a.size<b.size?a:b);
+    out.push(`<strong>${big.name}</strong> is the bigger phone — ${(big.dims[0]-sm.dims[0]).toFixed(1)} mm taller and ${big.weight-sm.weight} g heavier than ${sm.name}.`);
+  }
+  const lens = [...new Set(cols.map(m=>m.lenses))];
+  if(lens.length>1){
+    const most = cols.reduce((a,b)=>a.lenses>b.lenses?a:b);
+    out.push(`<strong>${most.name}</strong> has the most cameras (${most.lenses}) — that's the main thing you gain.`);
+  } else out.push(`Same number of rear cameras on ${cols.length>2?'all three':'both'}.`);
+  const pm = [...new Set(cols.map(m=>m.promotion))];
+  if(pm.length>1) out.push(`Only <strong>${cols.filter(m=>m.promotion).map(m=>m.name).join(' and ')}</strong> ${cols.filter(m=>m.promotion).length>1?'have':'has'} ProMotion and Always-On.`);
+  const batts = cols.map(m=>m.batt), spread = Math.max(...batts)-Math.min(...batts);
+  if(spread>=3){
+    const bb = cols.reduce((a,b)=>a.batt>b.batt?a:b);
+    out.push(`<strong>${bb.name}</strong> lasts ${spread} hours longer on video playback.`);
+  } else out.push('Battery life is within a few hours across these.');
+  const ai = [...new Set(cols.map(m=>m.ai))];
+  if(ai.length>1) out.push(`Only <strong>${cols.filter(m=>m.ai).map(m=>m.name).join(' and ')}</strong> run Apple Intelligence.`);
+  return `<div class="verdict"><h4>In short</h4><ul>${out.map(o=>`<li>${o}</li>`).join('')}</ul></div>`;
+}
+
+function renderCompare(){
+  const wrap = document.getElementById('cmpWrap');
+  const cols = shortlist.map(id=>BY_ID[id]);
+  if(!cols.length){
+    wrap.innerHTML = `<div class="empty"><h3 style="color:var(--ink)">Nothing shortlisted yet</h3>
+      <p style="margin-top:8px">Add a model from <a href="#range">the range</a> and it'll appear here.</p></div>`;
+    return;
+  }
+  const n = cols.length;
+  let html = verdict(cols) + `<div class="cmp"><div class="cmpgrid" style="grid-template-columns:158px repeat(${n},minmax(210px,1fr))">`;
+  html += `<div class="ch ch--lab"><span class="tiny muted" style="font-weight:600">${n} shortlisted</span></div>`;
+  cols.forEach(m=>{
+    html += `<div class="ch">
+      ${m.shot?`<img src="${IMG[m.shot]}" alt="${m.name}">`:`<div class="ch__ghost">${outline(m,120)}</div>`}
+      <span class="ch__nm">${m.name}</span></div>`;
+  });
+  ROWS.forEach(r=>{
+    const vals = cols.map(r.v);
+    const same = n>1 && vals.every(v=>v===vals[0]);
+    let win = new Set();
+    if(!same && r.cmp && n>1){
+      const sc = cols.map(r.cmp), best = Math.max(...sc);
+      if(sc.some(s=>s<best)) sc.forEach((s,i)=>{ if(s===best) win.add(i); });
+    }
+    html += `<div class="cc cc--lab">${r.k}</div>`;
+    cols.forEach((m,i)=>{
+      const d = r.d ? r.d(m) : '';
+      html += `<div class="cc ${same?'same':'diff'} ${win.has(i)?'win':''}">
+        <div class="cc__v">${vals[i]}</div>
+        ${d?`<div class="cc__d">${d}</div>`:''}
+        ${win.has(i)?`<span class="wintag">${win.size>1?'Joint ':''}${r.w||'Best'}</span>`:''}</div>`;
+    });
+  });
+  html += `</div></div>
+    <p class="tiny muted" style="padding:14px 16px">Rows that are identical across ${n>2?'all three':'both'} are faded back. Nothing here is a price — this page doesn't carry any.</p>`;
+  wrap.innerHTML = html;
+}
+
+/* full spec table, preserved verbatim */
+(function(){
+  const cols = [
+    ['Display', m=>m.screen+' with '+m.screenD],
+    ['Design',  m=>m.design+', '+m.designD],
+    ['Camera',  m=>m.cameraD],
+    ['Security',m=>m.sec],
+    ['Chip',    m=>m.chip+' — '+m.chipD],
+    ['Battery', m=>m.battD]
+  ];
+  document.getElementById('fullTable').innerHTML =
+    `<thead><tr><th scope="col">iPhone model</th>${cols.map(c=>`<th scope="col">${c[0]}</th>`).join('')}</tr></thead>
+     <tbody>${MODELS.map(m=>`<tr><th scope="row">${m.name}</th>${cols.map(c=>`<td>${c[1](m)}</td>`).join('')}</tr>`).join('')}</tbody>`;
+})();
+
+/* ---------------- wiring ---------------- */
+document.addEventListener('click', e=>{
+  const sl = e.target.closest('[data-sl]');
+  if(sl){ toggleSL(sl.dataset.sl); renderLongevity(); return; }
+  const rm = e.target.closest('[data-rm]');
+  if(rm){ shortlist = shortlist.filter(x=>x!==rm.dataset.rm); renderRange(); renderSLBar(); renderCompare(); renderLongevity(); return; }
+  if(e.target.id==='slClear'){ shortlist=[]; renderRange(); renderSLBar(); renderCompare(); renderLongevity(); return; }
+  const z = e.target.closest('[data-z]');
+  if(z){ zoom = +z.dataset.z; renderZoomSteps(); renderZoom(); return; }
+});
+
+opts(document.getElementById('s1'),'17pm'); opts(document.getElementById('s2'),'17',true); opts(document.getElementById('s3'),'17e',true);
+opts(document.getElementById('z1'),'17'); opts(document.getElementById('z2'),'17pm');
+['s1','s2','s3'].forEach(i=>document.getElementById(i).addEventListener('change', renderSize));
+['z1','z2'].forEach(i=>document.getElementById(i).addEventListener('change', renderZoom));
+
+/* jump nav active state */
+const secs = [...document.querySelectorAll('section[id]')];
+const links = [...document.querySelectorAll('#jump a')];
+new IntersectionObserver(es=>{
+  es.forEach(en=>{ if(en.isIntersecting){
+    links.forEach(l=>l.classList.toggle('on', l.getAttribute('href')==='#'+en.target.id));
+  }});
+},{rootMargin:'-45% 0px -50% 0px'}).observe ? secs.forEach(s=>{
+  new IntersectionObserver(es=>es.forEach(en=>{ if(en.isIntersecting)
+    links.forEach(l=>l.classList.toggle('on', l.getAttribute('href')==='#'+en.target.id));
+  }),{rootMargin:'-45% 0px -50% 0px'}).observe(s);
+}) : null;
+
+/* design notes */
+const np=document.getElementById('np'), scrim=document.getElementById('scrim');
+function openNP(o){ np.classList.toggle('open',o); scrim.classList.toggle('on',o); np.setAttribute('aria-hidden',!o); }
+document.getElementById('fab').onclick=()=>openNP(true);
+document.getElementById('npClose').onclick=()=>openNP(false);
+scrim.onclick=()=>openNP(false);
+document.getElementById('annoT').addEventListener('change',e=>document.body.classList.toggle('anno-on',e.target.checked));
+
+/* init */
+document.getElementById('calib').dispatchEvent(new Event('input'));
+renderRange(); renderSLBar(); renderZoomSteps(); renderZoom();
+renderWhoHas(); renderLongevity(); renderCompare();
+</script>
+</body>
+</html>
