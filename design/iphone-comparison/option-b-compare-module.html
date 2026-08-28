@@ -1,0 +1,845 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Option B — iPhone comparison: rebuilt compare module (O2 concept)</title>
+<style>
+/* ============================================================
+   O2 iPhone Comparison — OPTION B (toned-down)
+   Page structure & copy kept as-is. The 14x7 spec table is
+   replaced with a "pick up to 3, compare side by side" module.
+   Self-contained concept prototype. Not production code.
+   ============================================================ */
+
+:root{
+  --o2-blue:#0050FF;
+  --o2-blue-dark:#0019A5;
+  --o2-navy:#001E62;
+  --o2-navy-deep:#032B5A;
+  --ink:#0B1B33;
+  --ink-2:#43556F;
+  --ink-3:#6B7C94;
+  --line:#DFE5EF;
+  --line-2:#EDF1F7;
+  --bg:#FFFFFF;
+  --bg-alt:#F4F7FC;
+  --bg-tint:#EAF0FF;
+  --green:#0E7A4B;
+  --green-bg:#E6F5ED;
+  --amber:#8A5A00;
+  --radius:16px;
+  --radius-lg:24px;
+  --shadow-sm:0 1px 2px rgba(11,27,51,.06), 0 2px 8px rgba(11,27,51,.05);
+  --shadow-md:0 4px 12px rgba(11,27,51,.08), 0 12px 32px rgba(11,27,51,.08);
+  --shadow-lg:0 8px 24px rgba(11,27,51,.10), 0 24px 64px rgba(11,27,51,.12);
+  --font:"Frutiger 55","Frutiger","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;font-family:var(--font);color:var(--ink);background:var(--bg);
+  font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;
+}
+img{max-width:100%;display:block}
+button{font:inherit;color:inherit}
+a{color:var(--o2-blue)}
+h1,h2,h3,h4{line-height:1.15;margin:0;letter-spacing:-.02em;font-weight:700}
+h1{font-size:clamp(30px,5vw,46px)}
+h2{font-size:clamp(24px,3.4vw,34px)}
+h3{font-size:clamp(18px,2.2vw,22px)}
+p{margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+.stack>*+*{margin-top:var(--gap,16px)}
+.muted{color:var(--ink-3)}
+.tiny{font-size:13px;line-height:1.45}
+
+/* ---------- concept banner ---------- */
+.concept-bar{
+  background:var(--o2-navy);color:#fff;font-size:13px;padding:9px 20px;
+  display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap;text-align:center;
+}
+.concept-bar strong{background:#fff;color:var(--o2-navy);padding:2px 8px;border-radius:99px;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+
+/* ---------- chrome (simplified O2 shell) ---------- */
+.util{background:var(--bg-alt);border-bottom:1px solid var(--line);font-size:13px}
+.util .wrap{display:flex;gap:18px;align-items:center;height:38px;color:var(--ink-2)}
+.util a{color:var(--ink-2);text-decoration:none}
+.util .spacer{margin-left:auto}
+.nav{border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);z-index:60}
+.nav .wrap{display:flex;align-items:center;gap:28px;height:64px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:700;color:var(--o2-blue);letter-spacing:-.03em;font-size:22px;text-decoration:none}
+.logo-mark{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--o2-blue),#00C2FF);display:grid;place-items:center;color:#fff;font-size:15px;font-weight:700}
+.nav nav{display:flex;gap:22px;font-size:15px}
+.nav nav a{color:var(--ink);text-decoration:none;padding:6px 0;border-bottom:2px solid transparent}
+.nav nav a[aria-current]{border-color:var(--o2-blue);font-weight:600}
+.nav .icons{margin-left:auto;display:flex;gap:16px;color:var(--ink-2);font-size:14px}
+@media(max-width:820px){.nav nav,.util{display:none}}
+
+.crumb{font-size:13px;color:var(--ink-3);padding:16px 0 0}
+.crumb a{color:var(--ink-3);text-decoration:none}
+
+/* ---------- hero ---------- */
+.hero{padding:26px 0 34px}
+.hero p.lede{font-size:clamp(17px,2vw,20px);color:var(--ink-2);max-width:56ch;margin-top:12px}
+
+/* ---------- editorial rail (kept from live page) ---------- */
+.section{padding:44px 0}
+.section--alt{background:var(--bg-alt)}
+.section__head{max-width:62ch;margin-bottom:24px}
+.section__head p{color:var(--ink-2);margin-top:10px}
+
+.edit-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+.edit-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:20px;display:flex;flex-direction:column;gap:10px}
+.edit-card h3{font-size:18px}
+.edit-card p{font-size:14.5px;color:var(--ink-2)}
+.edit-card .edit-link{margin-top:auto;font-weight:600;font-size:14.5px;text-decoration:none}
+
+/* ============================================================
+   THE NEW MODULE
+   ============================================================ */
+.compare{padding:52px 0 60px;background:var(--bg-alt)}
+
+.step{display:flex;gap:12px;align-items:baseline;margin-bottom:6px}
+.step__n{width:26px;height:26px;flex:none;border-radius:50%;background:var(--o2-blue);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:700;transform:translateY(4px)}
+.step__t{font-weight:700;font-size:19px}
+
+/* preset chips */
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 18px}
+.preset{
+  background:#fff;border:1px solid var(--line);border-radius:99px;padding:8px 15px;font-size:14px;
+  cursor:pointer;transition:.15s;font-weight:500;display:flex;gap:7px;align-items:center;
+}
+.preset:hover{border-color:var(--o2-blue);color:var(--o2-blue)}
+.preset.on{background:var(--o2-navy);border-color:var(--o2-navy);color:#fff}
+
+/* model picker rail */
+.picker{position:relative}
+.rail{
+  display:grid;grid-auto-flow:column;grid-auto-columns:150px;gap:12px;
+  overflow-x:auto;padding:6px 2px 16px;scroll-snap-type:x mandatory;scrollbar-width:thin;
+}
+.rail::-webkit-scrollbar{height:8px}
+.rail::-webkit-scrollbar-thumb{background:var(--line);border-radius:99px}
+
+.tile{
+  scroll-snap-align:start;background:#fff;border:1.5px solid var(--line);border-radius:var(--radius);
+  padding:12px 12px 14px;cursor:pointer;text-align:left;position:relative;transition:.15s;
+  display:flex;flex-direction:column;gap:8px;min-height:212px;
+}
+.tile:hover{border-color:#B9C7E6;transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+.tile.on{border-color:var(--o2-blue);box-shadow:0 0 0 3px rgba(0,80,255,.14)}
+.tile.disabled{opacity:.42;cursor:not-allowed}
+.tile.disabled:hover{transform:none;box-shadow:none;border-color:var(--line)}
+.tile__check{
+  position:absolute;top:9px;right:9px;width:21px;height:21px;border-radius:50%;
+  border:1.5px solid var(--line);background:#fff;display:grid;place-items:center;color:#fff;font-size:12px;
+}
+.tile.on .tile__check{background:var(--o2-blue);border-color:var(--o2-blue)}
+.tile__art{height:96px;display:grid;place-items:end center}
+.tile__name{font-weight:600;font-size:14.5px;line-height:1.25}
+.tile__price{font-size:12.5px;color:var(--ink-3)}
+.tile__price b{color:var(--ink);font-size:14px}
+.flag{
+  position:absolute;top:9px;left:9px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  padding:3px 7px;border-radius:5px;background:var(--o2-navy);color:#fff;
+}
+.flag--new{background:linear-gradient(120deg,var(--o2-blue),#00C2FF)}
+.flag--value{background:var(--green)}
+
+/* selection bar */
+.selbar{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;margin-top:4px;
+}
+.selbar__label{font-size:13.5px;color:var(--ink-3);font-weight:600}
+.pill{
+  display:inline-flex;align-items:center;gap:8px;background:var(--bg-tint);color:var(--o2-navy);
+  border-radius:99px;padding:6px 8px 6px 13px;font-size:13.5px;font-weight:600;
+}
+.pill button{background:none;border:0;cursor:pointer;width:19px;height:19px;border-radius:50%;
+  display:grid;place-items:center;color:var(--o2-navy);opacity:.65;font-size:15px;line-height:1}
+.pill button:hover{opacity:1;background:rgba(0,30,98,.1)}
+.pill--empty{background:var(--line-2);color:var(--ink-3);border:1px dashed #C6D0E2;font-weight:500}
+.selbar .clear{margin-left:auto;background:none;border:0;color:var(--o2-blue);font-size:13.5px;font-weight:600;cursor:pointer;text-decoration:underline}
+
+/* board controls */
+.boardbar{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:30px 0 14px}
+.switch{display:inline-flex;align-items:center;gap:10px;cursor:pointer;font-size:14.5px;font-weight:500;user-select:none}
+.switch input{position:absolute;opacity:0;pointer-events:none}
+.switch .track{width:42px;height:24px;border-radius:99px;background:#C8D2E4;position:relative;transition:.18s;flex:none}
+.switch .track::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.18s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.switch input:checked+.track{background:var(--o2-blue)}
+.switch input:checked+.track::after{transform:translateX(18px)}
+.switch input:focus-visible+.track{outline:2px solid var(--o2-navy);outline-offset:2px}
+
+/* the board */
+.board{background:#fff;border:1px solid var(--line);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm)}
+.board__scroll{overflow-x:auto}
+.grid{display:grid;min-width:min-content}
+
+.cell{padding:14px 16px;border-bottom:1px solid var(--line-2);font-size:14.5px;min-width:0}
+.cell--label{
+  background:#fff;position:sticky;left:0;z-index:3;border-right:1px solid var(--line);
+  font-weight:600;font-size:13px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em;
+  display:flex;align-items:center;gap:8px;
+}
+.cell__value{font-weight:600;font-size:15.5px;line-height:1.3}
+.cell__detail{font-size:13px;color:var(--ink-3);margin-top:4px;line-height:1.45}
+.cell--best{background:var(--green-bg)}
+.best-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--green);
+  text-transform:uppercase;letter-spacing:.04em;margin-top:6px}
+.same-tag{font-size:11px;color:var(--ink-3);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+
+/* sticky column headers */
+.head{
+  position:sticky;top:64px;z-index:5;background:#fff;border-bottom:1px solid var(--line);
+  padding:14px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;
+}
+.head.head--label{z-index:6;left:0;border-right:1px solid var(--line)}
+.head__art{height:108px;display:grid;place-items:end center;width:100%}
+.head__name{font-weight:700;font-size:17px;line-height:1.2}
+.head__price{font-size:13px;color:var(--ink-3)}
+.head__price{display:flex;align-items:baseline;gap:5px;flex-wrap:wrap}
+.head__price b{font-size:20px;color:var(--ink);line-height:1.2}
+.head__cta{
+  display:inline-block;background:var(--o2-blue);color:#fff;text-decoration:none;font-weight:600;font-size:14px;
+  padding:9px 18px;border-radius:99px;width:100%;text-align:center;margin-top:auto;
+}
+.head__cta:hover{background:var(--o2-blue-dark)}
+.head__swap{background:none;border:0;color:var(--o2-blue);font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline;padding:0}
+.head--empty{align-items:center;justify-content:center;color:var(--ink-3);text-align:center;gap:8px;
+  border:2px dashed #C9D4E8;border-radius:14px;margin:12px;padding:24px 14px;min-height:200px}
+.head--empty button{background:var(--o2-blue);color:#fff;border:0;border-radius:99px;padding:9px 16px;font-weight:600;font-size:14px;cursor:pointer}
+
+.board__foot{padding:14px 16px;background:var(--bg-alt);font-size:13px;color:var(--ink-3);border-top:1px solid var(--line)}
+
+/* empty state */
+.empty-board{padding:56px 24px;text-align:center;color:var(--ink-3)}
+
+/* full table fallback */
+.disclose{margin-top:26px;background:#fff;border:1px solid var(--line);border-radius:var(--radius)}
+.disclose summary{padding:16px 18px;cursor:pointer;font-weight:600;list-style:none;display:flex;align-items:center;gap:10px}
+.disclose summary::-webkit-details-marker{display:none}
+.disclose summary::before{content:"+";width:22px;height:22px;border-radius:50%;background:var(--bg-tint);color:var(--o2-blue);display:grid;place-items:center;font-weight:700}
+.disclose[open] summary::before{content:"–"}
+.disclose .body{padding:0 18px 18px}
+.tblwrap{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:12px}
+table.full{border-collapse:separate;border-spacing:0;width:100%;font-size:13.5px;min-width:900px}
+table.full th,table.full td{padding:11px 13px;border-bottom:1px solid var(--line-2);text-align:left;vertical-align:top}
+table.full thead th{position:sticky;top:0;background:var(--o2-navy);color:#fff;z-index:2;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+table.full tbody th{position:sticky;left:0;background:#fff;font-weight:600;z-index:1;border-right:1px solid var(--line)}
+table.full tbody tr:nth-child(even) td,table.full tbody tr:nth-child(even) th{background:#FAFCFF}
+
+/* ---------- closing sections (kept) ---------- */
+.cards3{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+.promo{background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column}
+.promo__img{height:130px;background:linear-gradient(135deg,var(--o2-navy),var(--o2-blue) 70%,#00C2FF)}
+.promo__b{padding:18px;display:flex;flex-direction:column;gap:8px;flex:1}
+.promo__b p{font-size:14.5px;color:var(--ink-2)}
+.promo__b a{margin-top:auto;font-weight:600;text-decoration:none;font-size:14.5px}
+
+footer.site{background:var(--o2-navy);color:#fff;padding:38px 0;font-size:13.5px;margin-top:10px}
+footer.site a{color:#B9CEFF;text-decoration:none}
+footer.site .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:24px}
+footer.site h4{font-size:14px;margin-bottom:8px}
+footer.site ul{list-style:none;padding:0;margin:0;display:grid;gap:6px}
+.legal{margin-top:26px;padding-top:18px;border-top:1px solid rgba(255,255,255,.2);color:#A8BEEC;font-size:12px;line-height:1.6}
+
+/* ---------- design notes ---------- */
+.notes-fab{
+  position:fixed;right:18px;bottom:18px;z-index:200;background:var(--o2-navy);color:#fff;border:0;
+  border-radius:99px;padding:13px 20px;font-weight:600;font-size:14.5px;cursor:pointer;box-shadow:var(--shadow-lg);
+  display:flex;gap:8px;align-items:center;
+}
+.notes-panel{
+  position:fixed;right:0;top:0;bottom:0;width:min(430px,100%);background:#fff;z-index:210;
+  box-shadow:var(--shadow-lg);transform:translateX(101%);transition:transform .28s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;
+}
+.notes-panel.open{transform:none}
+.notes-panel header{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+.notes-panel header h3{font-size:18px}
+.notes-panel header button{margin-left:auto;background:var(--bg-alt);border:0;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:17px}
+.notes-body{overflow:auto;padding:20px;font-size:14.5px;line-height:1.6}
+.notes-body h4{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--o2-blue);margin:22px 0 8px}
+.notes-body h4:first-child{margin-top:0}
+.notes-body ul{padding-left:18px;margin:0;display:grid;gap:8px}
+.notes-body li strong{font-weight:600}
+.callout{background:var(--bg-tint);border-left:3px solid var(--o2-blue);padding:12px 14px;border-radius:0 10px 10px 0;margin:12px 0;font-size:14px}
+.callout--warn{background:#FFF6E6;border-color:#D99400}
+.scrim{position:fixed;inset:0;background:rgba(11,27,51,.35);z-index:205;opacity:0;pointer-events:none;transition:.25s}
+.scrim.on{opacity:1;pointer-events:auto}
+
+/* annotation markers (toggled by notes mode) */
+.anno{
+  display:none;position:relative;background:#FFF6E6;border:1px dashed #D99400;color:#7A5100;
+  border-radius:10px;padding:9px 12px;font-size:13px;line-height:1.5;margin:10px 0;
+}
+body.show-anno .anno{display:block}
+.anno b{font-weight:700}
+
+@media(max-width:700px){
+  .notes-fab{padding:10px 15px;font-size:13px;right:12px;bottom:12px}
+  .section{padding:34px 0}
+  .compare{padding:36px 0 44px}
+  .head{top:56px;padding:12px}
+  .head__art{height:96px}
+  .cell{padding:12px}
+}
+</style>
+</head>
+<body>
+
+<div class="concept-bar">
+  <strong>Concept</strong>
+  <span>Option B — toned-down: same page, rebuilt comparison module. Pricing and imagery are illustrative placeholders.</span>
+</div>
+
+<!-- ============ simplified O2 chrome ============ -->
+<div class="util"><div class="wrap">
+  <a href="#">Personal</a><a href="#">Business</a>
+  <span class="spacer"></span><a href="#">Sign in</a><a href="#">Register</a>
+</div></div>
+
+<header class="nav"><div class="wrap">
+  <a class="logo" href="#"><span class="logo-mark">O2</span></a>
+  <nav>
+    <a href="#">Shop</a><a href="#">Why O2</a><a href="#">Help</a>
+    <a href="#" aria-current="page">iPhone</a>
+  </nav>
+  <div class="icons"><span>My O2</span><span>Search</span><span>Basket</span></div>
+</div></header>
+
+<div class="wrap"><div class="crumb"><a href="#">Home</a> › <span>iPhone comparison</span></div></div>
+
+<!-- ============ hero (copy unchanged) ============ -->
+<section class="hero"><div class="wrap">
+  <h1>Compare iPhone models</h1>
+  <p class="lede">See the range and pick the one for you. Whatever you're looking for, we've got you covered.</p>
+  <div class="anno"><b>Kept as-is.</b> Option B changes nothing above this line — no copy, IA or template changes to negotiate. The whole scope is the module below.</div>
+</div></section>
+
+<!-- ============ editorial rail (copy unchanged, re-laid out) ============ -->
+<section class="section section--alt"><div class="wrap">
+  <div class="section__head">
+    <h2>There's an iPhone just for you</h2>
+    <p>Read about each iPhone below to find the perfect one for you.</p>
+  </div>
+  <div class="edit-grid" id="editGrid"></div>
+  <div class="anno"><b>Light touch only.</b> The live page runs these as long prose paragraphs. Same words, put into equal-weight cards so the range is scannable and each entry has its own CTA.</div>
+</div></section>
+
+<!-- ============ THE NEW MODULE ============ -->
+<section class="compare" id="compare"><div class="wrap">
+
+  <div class="section__head" style="margin-bottom:18px">
+    <h2>Compare the tech specs</h2>
+    <p>Pick up to three models and see them side by side.</p>
+  </div>
+
+  <div class="anno"><b>The replacement.</b> The live page shows a 14-row × 7-column table. Nobody compares 14 phones — they compare two or three. This module makes that the primary path, and keeps the full table available underneath for spec hunters.</div>
+
+  <!-- Step 1 -->
+  <div class="step"><span class="step__n">1</span><span class="step__t">Choose your models</span></div>
+  <p class="muted tiny">Start with a shortcut, or pick your own below.</p>
+
+  <div class="presets" id="presets"></div>
+
+  <div class="picker">
+    <div class="rail" id="rail" role="group" aria-label="Choose iPhone models to compare"></div>
+  </div>
+
+  <div class="selbar" id="selbar"></div>
+
+  <!-- Step 2 -->
+  <div class="step" style="margin-top:34px"><span class="step__n">2</span><span class="step__t">Compare side by side</span></div>
+
+  <div class="boardbar">
+    <label class="switch">
+      <input type="checkbox" id="diffOnly"><span class="track"></span>
+      <span>Show differences only</span>
+    </label>
+    <label class="switch">
+      <input type="checkbox" id="bestOn" checked><span class="track"></span>
+      <span>Highlight the best in each row</span>
+    </label>
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <div class="anno"><b>Why this works.</b> Sticky headers keep the phone, the price and the Buy button in view while you scan. Every value leads with a plain-English answer ("Longest battery — 37 hrs") and demotes the spec string to a second line. "Differences only" answers the actual question: <i>what do I get for the extra £10 a month?</i></div>
+
+  <!-- full table fallback -->
+  <details class="disclose">
+    <summary>Prefer the full table? See all 14 models and every spec</summary>
+    <div class="body">
+      <p class="tiny muted" style="margin-bottom:12px">Sticky headers, sticky model column, proper row/column scope for screen readers.</p>
+      <div class="tblwrap"><table class="full" id="fullTable"></table></div>
+    </div>
+  </details>
+  <div class="anno"><b>Nothing is lost.</b> The old table survives as progressive disclosure — the ~5% of visitors who genuinely want to read all 98 cells still can, and the SEO content stays on the page.</div>
+
+</div></section>
+
+<!-- ============ closing sections (copy unchanged) ============ -->
+<section class="section"><div class="wrap">
+  <div class="section__head"><h2>Ready to choose?</h2></div>
+  <div class="cards3">
+    <div class="promo"><div class="promo__img"></div><div class="promo__b"><h3>Ready to buy?</h3><p>Choose the right iPhone for you.</p><a href="#">Get yours now →</a></div></div>
+    <div class="promo"><div class="promo__img" style="background:linear-gradient(135deg,#0E7A4B,#5BC236)"></div><div class="promo__b"><h3>Already on O2?</h3><p>Sign in to My O2 to see your upgrade options.</p><a href="#">Go to My O2 →</a></div></div>
+    <div class="promo"><div class="promo__img" style="background:linear-gradient(135deg,#7A1FA2,#E0218A)"></div><div class="promo__b"><h3>Looking for something else?</h3><p>Take a look at our full range of devices.</p><a href="#">Shop now →</a></div></div>
+  </div>
+</div></section>
+
+<footer class="site"><div class="wrap">
+  <div class="cols">
+    <div><h4>Shop</h4><ul><li><a href="#">Phones</a></li><li><a href="#">Tablets</a></li><li><a href="#">Pay Monthly SIM</a></li></ul></div>
+    <div><h4>Help and Support</h4><ul><li><a href="#">Help home</a></li><li><a href="#">Contact us</a></li><li><a href="#">My O2</a></li></ul></div>
+    <div><h4>About O2</h4><ul><li><a href="#">Careers</a></li><li><a href="#">News &amp; PR</a></li><li><a href="#">Accessibility</a></li></ul></div>
+    <div><h4>Legal</h4><ul><li><a href="#">Terms &amp; Conditions</a></li><li><a href="#">Privacy policy</a></li><li><a href="#">Cookie policy</a></li></ul></div>
+  </div>
+  <p class="legal">
+    Concept prototype for internal review. Not an O2 page and not affiliated with Telefónica UK Limited or Apple Inc.
+    Device names and specifications are quoted from the existing o2.co.uk/iphone-comparison page for design-comparison purposes.
+    All prices shown are illustrative placeholders for layout only and are not real O2 prices.
+  </p>
+</div></footer>
+
+<button class="notes-fab" id="notesFab">Design notes</button>
+<div class="scrim" id="scrim"></div>
+<aside class="notes-panel" id="notesPanel" aria-hidden="true">
+  <header><h3>Option B — design notes</h3><button id="notesClose" aria-label="Close">×</button></header>
+  <div class="notes-body">
+    <label class="switch" style="margin-bottom:18px">
+      <input type="checkbox" id="annoToggle"><span class="track"></span><span>Show annotations on page</span>
+    </label>
+
+    <h4>The brief</h4>
+    <p>Fix the table without renegotiating the page. Everything above and below the comparison module is untouched — same copy, same IA, same templates — so this ships as one component, not a redesign programme.</p>
+
+    <h4>What was wrong with the table</h4>
+    <ul>
+      <li><strong>14 × 7 = 98 cells.</strong> It asks the visitor to do the comparison work. On mobile it becomes a horizontal-scroll block where you lose the model name the moment you scroll to Battery.</li>
+      <li><strong>Prose in every cell.</strong> "A19 Chip with 5 core GPU and 6 core CPU with 16-core Neural Engine" is a spec sheet, not an answer. There is no way to tell at a glance which chip is <em>better</em>.</li>
+      <li><strong>No prices.</strong> A comparison page on a retailer site with no commercial information — the visitor has to leave to find out what anything costs.</li>
+      <li><strong>No pictures.</strong> The editorial section has the storytelling, the table has the facts, and neither has an image of the phone.</li>
+      <li><strong>No CTAs.</strong> You can read all 98 cells and still have nowhere to click.</li>
+      <li><strong>Doesn't scale.</strong> Each launch adds rows to a table that is already too long.</li>
+    </ul>
+
+    <h4>What the module does instead</h4>
+    <ul>
+      <li><strong>Two or three, not fourteen.</strong> Selection first, comparison second — the real mental model.</li>
+      <li><strong>Presets do the work.</strong> "Latest three", "Pro vs Pro Max", "Best value" cover most intents in one tap.</li>
+      <li><strong>Answer first, spec second.</strong> Each cell leads with a short verdict and keeps the full spec string underneath.</li>
+      <li><strong>Differences only.</strong> One toggle collapses everything the models share, so the page answers "what am I paying extra for?".</li>
+      <li><strong>Best-in-row highlighting.</strong> Battery, cameras and chip generation are ranked automatically.</li>
+      <li><strong>Price and CTA in the sticky header.</strong> Commercial information travels with the comparison.</li>
+      <li><strong>Phones drawn to relative screen size</strong> — the single most common real-world decision factor, and currently buried in a text string.</li>
+    </ul>
+
+    <h4>Launch readiness</h4>
+    <p>A new model is a data entry, not a layout change. Add the object, tag it <code>new</code>, and it appears at the front of the rail, in the "Latest" preset and in the full table. A pre-announcement model can carry a "Coming soon / Register interest" state with empty spec values.</p>
+
+    <h4>Effort &amp; risk</h4>
+    <div class="callout">
+      <strong>Roughly one sprint for one front-end dev</strong> plus a content pass to write the plain-English verdict lines. No CMS re-platforming, no new page template, no nav changes. The full table stays in place underneath, so the SEO content and the accessibility fallback are unchanged.
+    </div>
+
+    <h4>Content issues found in the live table</h4>
+    <div class="callout callout--warn">
+      Worth fixing whichever option you pick:
+      <ul style="margin-top:8px">
+        <li><strong>iPhone 16 Plus</strong> is listed as a 6.1-inch display. It is 6.7-inch — and it is the only reason to buy it over the 16.</li>
+        <li><strong>iPhone 15 and 15 Plus</strong> are credited with a "12MP Telephoto with 2X Optical Zoom". Neither has a telephoto lens; the 2x is a crop of the 48MP main sensor.</li>
+        <li><strong>iPhone 15 Pro</strong> is listed with an "A17 Bionic Chip" while the 15 Pro Max says "A17 Pro". Both are A17 Pro.</li>
+        <li><strong>iPhone 16 Pro Max</strong> lists "48MP Macro" as a fourth camera. Macro is a mode on the ultra-wide, not a separate lens.</li>
+        <li><strong>iPhone 17 Pro</strong>'s camera cell repeats "48MP Fusion camera system" twice.</li>
+        <li><strong>Row order</strong> (17, Air, 17 Pro, 17 Pro Max, 17e, 16e, 16, 16 Plus…) matches neither price nor tier nor the order of the editorial section above it.</li>
+      </ul>
+    </div>
+
+    <h4>Not in this option</h4>
+    <p>Guided "help me choose", filtering, trade-in values, upgrade personalisation and the launch hero are all Option A. Option B is deliberately the smallest change that fixes the actual complaint.</p>
+  </div>
+</aside>
+
+<script>
+/* ============================================================
+   DATA — quoted from the live o2.co.uk/iphone-comparison table.
+   `price` values are ILLUSTRATIVE placeholders for layout only.
+   ============================================================ */
+const MODELS = [
+  {id:'17pm', name:'iPhone 17 Pro Max', series:'iPhone 17', flag:'new', tier:'pro', price:64.99, colour:'#3D3D45', accent:'#C9A227',
+   size:6.9, screen:'6.9-inch Super Retina XDR', screenD:'OLED, ProMotion 120Hz, Always-On, Dynamic Island',
+   design:'Aluminium unibody', designD:'Ceramic Shield 2 front (3× better scratch resistance), Ceramic Shield back',
+   lenses:3, camera:'Triple 48MP Pro Fusion', cameraD:'48MP Main, 48MP Ultra Wide, 48MP Telephoto',
+   chip:'A19 Pro', chipD:'5-core GPU, 6-core CPU, 16-core Neural Engine', chipGen:19.5,
+   batt:37, battD:'Up to 37 hours video playback', sec:'Face ID',
+   best:'The everything phone'},
+
+  {id:'17p', name:'iPhone 17 Pro', series:'iPhone 17', flag:'new', tier:'pro', price:59.99, colour:'#B85C38', accent:'#E8825A',
+   size:6.3, screen:'6.3-inch Super Retina XDR', screenD:'OLED, ProMotion 120Hz, Always-On, Dynamic Island',
+   design:'Aluminium unibody', designD:'Ceramic Shield 2 front (3× better scratch resistance), Ceramic Shield back',
+   lenses:3, camera:'Triple 48MP Pro Fusion', cameraD:'48MP Main, 48MP Ultra Wide, 48MP Telephoto',
+   chip:'A19 Pro', chipD:'5-core GPU, 6-core CPU, 16-core Neural Engine', chipGen:19.5,
+   batt:31, battD:'Up to 31 hours video playback', sec:'Face ID',
+   best:'Pro power, one hand'},
+
+  {id:'air', name:'iPhone Air', series:'iPhone 17', flag:'new', tier:'air', price:54.99, colour:'#D6D2C4', accent:'#8E8A7C',
+   size:6.5, screen:'6.5-inch Super Retina XDR', screenD:'OLED, ProMotion 120Hz, Always-On, Dynamic Island',
+   design:'Titanium frame', designD:'Ceramic Shield 2 front (3× better scratch resistance), Ceramic Shield back',
+   lenses:1, camera:'Single 48MP Fusion', cameraD:'48MP Fusion Main',
+   chip:'A19 Pro', chipD:'5-core GPU, 6-core CPU, 16-core Neural Engine', chipGen:19.5,
+   batt:27, battD:'Up to 27 hours video playback', sec:'Face ID',
+   best:'The thinnest iPhone ever'},
+
+  {id:'17', name:'iPhone 17', series:'iPhone 17', flag:'new', tier:'std', price:49.99, colour:'#7FA8D9', accent:'#B8D4F0',
+   size:6.3, screen:'6.3-inch Super Retina XDR', screenD:'OLED, ProMotion 120Hz, Always-On, Dynamic Island',
+   design:'Aluminium unibody', designD:'Ceramic Shield 2 front, 3× better scratch resistance',
+   lenses:2, camera:'Dual 48MP Fusion', cameraD:'48MP Fusion Main, 48MP Fusion Ultra Wide',
+   chip:'A19', chipD:'5-core GPU, 6-core CPU, 16-core Neural Engine', chipGen:19,
+   batt:30, battD:'Up to 30 hours video playback', sec:'Face ID',
+   best:'The one most people should buy'},
+
+  {id:'17e', name:'iPhone 17e', series:'iPhone 17', flag:'value', tier:'e', price:34.99, colour:'#2C2C34', accent:'#5A5A66',
+   size:6.1, screen:'6.1-inch Super Retina XDR', screenD:'OLED, 60Hz',
+   design:'Aluminium frame', designD:'Ceramic Shield 2 front, 3× better scratch resistance',
+   lenses:1, camera:'48MP Fusion with 2× Telephoto', cameraD:'48MP Fusion, 2× Telephoto crop, 4K Dolby Vision video',
+   chip:'A19', chipD:'4-core GPU with Neural Accelerators, 16-core Neural Engine, C1X modem', chipGen:18.9,
+   batt:26, battD:'Up to 26 hours video playback', sec:'Face ID',
+   best:'Latest chip, lowest price'},
+
+  {id:'16pm', name:'iPhone 16 Pro Max', series:'iPhone 16', flag:'', tier:'pro', price:54.99, colour:'#4A4A52', accent:'#8E8E98',
+   size:6.9, screen:'6.9-inch Super Retina XDR', screenD:'OLED, ProMotion 120Hz',
+   design:'Aerospace-grade titanium', designD:'Ceramic Shield front',
+   lenses:3, camera:'48MP Main + 48MP Ultra Wide + 5× Telephoto', cameraD:'48MP Fusion Main, 48MP Ultra Wide (macro), Telephoto with 5× optical zoom',
+   chip:'A18 Pro', chipD:'6-core GPU, 6-core CPU, 16-core Neural Engine', chipGen:18.5,
+   batt:33, battD:'Up to 33 hours video playback', sec:'Face ID',
+   best:'Last year’s flagship, this year’s price'},
+
+  {id:'16p', name:'iPhone 16 Pro', series:'iPhone 16', flag:'', tier:'pro', price:49.99, colour:'#5C4A3A', accent:'#9A8574',
+   size:6.3, screen:'6.3-inch Super Retina XDR', screenD:'OLED, ProMotion 120Hz, Always-On',
+   design:'Aerospace-grade titanium', designD:'Ceramic Shield front',
+   lenses:3, camera:'48MP Main + 48MP Ultra Wide + 5× Telephoto', cameraD:'48MP Fusion Main, 48MP Ultra Wide, Telephoto with 5× optical zoom',
+   chip:'A18 Pro', chipD:'6-core GPU, 6-core CPU, 16-core Neural Engine', chipGen:18.5,
+   batt:27, battD:'Up to 27 hours video playback', sec:'Face ID',
+   best:'Titanium and 5× zoom for less'},
+
+  {id:'16plus', name:'iPhone 16 Plus', series:'iPhone 16', flag:'', tier:'std', price:42.99, colour:'#4ECDC4', accent:'#A8E6E1',
+   size:6.7, screen:'6.7-inch Super Retina XDR', screenD:'OLED, 60Hz', screenFix:true,
+   design:'Aluminium with colour-infused glass back', designD:'Ceramic Shield front',
+   lenses:2, camera:'48MP Fusion Main + 12MP Ultra Wide', cameraD:'48MP Main Fusion, 12MP Ultra Wide, 2× optical-quality zoom',
+   chip:'A18', chipD:'5-core GPU, 6-core CPU, 16-core Neural Engine', chipGen:18,
+   batt:27, battD:'Up to 27 hours video playback', sec:'Face ID',
+   best:'Big screen without the Pro price'},
+
+  {id:'16', name:'iPhone 16', series:'iPhone 16', flag:'', tier:'std', price:38.99, colour:'#5BC236', accent:'#A8E68A',
+   size:6.1, screen:'6.1-inch Super Retina XDR', screenD:'OLED, 60Hz',
+   design:'Aluminium with colour-infused glass back', designD:'Ceramic Shield front, Camera Control',
+   lenses:2, camera:'48MP Fusion Main + 12MP Ultra Wide', cameraD:'48MP Main Fusion, 12MP Ultra Wide, 2× optical-quality zoom',
+   chip:'A18', chipD:'5-core GPU, 6-core CPU, 16-core Neural Engine', chipGen:18,
+   batt:22, battD:'Up to 22 hours video playback', sec:'Face ID',
+   best:'Five colours, Apple Intelligence'},
+
+  {id:'16e', name:'iPhone 16e', series:'iPhone 16', flag:'value', tier:'e', price:29.99, colour:'#F5F5F0', accent:'#C9C9C0',
+   size:6.1, screen:'6.1-inch Super Retina XDR', screenD:'OLED, 60Hz',
+   design:'Aluminium with glass back', designD:'Ceramic Shield front',
+   lenses:1, camera:'2-in-1 48MP Fusion', cameraD:'48MP Fusion camera system',
+   chip:'A18', chipD:'4-core GPU, 6-core CPU, 16-core Neural Engine', chipGen:17.9,
+   batt:26, battD:'Up to 26 hours video playback', sec:'Face ID',
+   best:'Cheapest way into Apple Intelligence'},
+
+  {id:'15pm', name:'iPhone 15 Pro Max', series:'iPhone 15', flag:'', tier:'pro', price:46.99, colour:'#3F4A47', accent:'#7D8A86',
+   size:6.7, screen:'6.7-inch Super Retina XDR', screenD:'OLED, ProMotion 120Hz',
+   design:'Aerospace-grade titanium', designD:'Ceramic Shield front, Action button',
+   lenses:3, camera:'48MP Main + 12MP Ultra Wide + 5× Telephoto', cameraD:'48MP Main, 12MP Ultra Wide, 12MP Telephoto with 5× optical zoom',
+   chip:'A17 Pro', chipD:'6-core GPU, 6-core CPU, 16-core Neural Engine', chipGen:17.5,
+   batt:29, battD:'Up to 29 hours video playback', sec:'Face ID',
+   best:'5× zoom on a budget'},
+
+  {id:'15p', name:'iPhone 15 Pro', series:'iPhone 15', flag:'', tier:'pro', price:41.99, colour:'#5A5A66', accent:'#9494A0',
+   size:6.1, screen:'6.1-inch Super Retina XDR', screenD:'OLED, ProMotion 120Hz',
+   design:'Aerospace-grade titanium', designD:'Ceramic Shield front, Action button',
+   lenses:3, camera:'48MP Main + 12MP Ultra Wide + 3× Telephoto', cameraD:'48MP Main, 12MP Ultra Wide, 12MP Telephoto with 3× optical zoom',
+   chip:'A17 Pro', chipD:'6-core GPU, 6-core CPU, 16-core Neural Engine', chipGen:17.5, chipFix:true,
+   batt:23, battD:'Up to 23 hours video playback', sec:'Face ID',
+   best:'Small, light, titanium'},
+
+  {id:'15plus', name:'iPhone 15 Plus', series:'iPhone 15', flag:'', tier:'std', price:34.99, colour:'#B8D4E8', accent:'#DCE9F2',
+   size:6.7, screen:'6.7-inch Super Retina XDR', screenD:'OLED, 60Hz, Dynamic Island',
+   design:'Aerospace-grade aluminium', designD:'Ceramic Shield front, colour-infused glass, USB-C',
+   lenses:2, camera:'48MP Main + 12MP Ultra Wide', cameraD:'48MP Main, 12MP Ultra Wide, 2× zoom (sensor crop)', cameraFix:true,
+   chip:'A16 Bionic', chipD:'5-core GPU, 6-core CPU, 16-core Neural Engine', chipGen:16,
+   batt:26, battD:'Up to 26 hours video playback', sec:'Face ID',
+   best:'Cheapest big screen'},
+
+  {id:'15', name:'iPhone 15', series:'iPhone 15', flag:'', tier:'std', price:30.99, colour:'#F2C2C9', accent:'#F9E0E4',
+   size:6.1, screen:'6.1-inch Super Retina XDR', screenD:'OLED, 60Hz, Dynamic Island',
+   design:'Aerospace-grade aluminium', designD:'Ceramic Shield front, colour-infused glass, USB-C',
+   lenses:2, camera:'48MP Main + 12MP Ultra Wide', cameraD:'48MP Main, 12MP Ultra Wide, 2× zoom (sensor crop)', cameraFix:true,
+   chip:'A16 Bionic', chipD:'5-core GPU, 6-core CPU, 16-core Neural Engine', chipGen:16,
+   batt:20, battD:'Up to 20 hours video playback', sec:'Face ID',
+   best:'The value pick'}
+];
+
+const BY_ID = Object.fromEntries(MODELS.map(m=>[m.id,m]));
+
+/* editorial copy, lifted verbatim from the live page */
+const EDITORIAL = [
+  {t:'iPhone 17 Pro & Pro Max', c:'The most powerful iPhone ever, with the lightning fast A19 Pro chip, all 48MP rear cameras and best-ever battery life.'},
+  {t:'iPhone Air', c:'The thinnest iPhone ever, with the power of a Pro chip inside and a 48MP Fusion camera system.'},
+  {t:'iPhone 17', c:'Designed to delight, built to last with Ceramic Shield 2, all 48MP rear cameras, Center Stage front camera, A19 chip and more.'},
+  {t:'iPhone 17e', c:'Say hello to a good buy. iPhone 17e comes with many of the same great features as iPhone 17, at a wallet-friendly price.'},
+  {t:'iPhone 16e', c:'Powered by the A18 chip. Shoot super-high-resolution photos with the 48MP Fusion camera, with supersized battery life.'},
+  {t:'iPhone 16 Pro', c:'Featuring a stunning titanium design, Camera Control, 4K 120 fps Dolby Vision and the A18 Pro chip.'},
+  {t:'iPhone 16', c:'Engineered with Camera Control, a 48MP Fusion camera, five vibrant colours and the A18 chip.'},
+  {t:'iPhone 15 & 15 Plus', c:'Dynamic Island, a colour-infused glass and aluminium design, a 48MP Main camera and USB-C.'},
+  {t:'iPhone 15 Pro & Pro Max', c:'Forged in titanium, with the A17 Pro chip, a customisable Action button and a more versatile Pro camera system.'}
+];
+
+const PRESETS = [
+  {id:'latest', label:'Latest three', pick:['17pm','17p','17']},
+  {id:'pro',    label:'Pro vs Pro Max', pick:['17p','17pm']},
+  {id:'value',  label:'Best value', pick:['17e','16e','15']},
+  {id:'upgrade',label:'Worth upgrading?', pick:['17','16','15']},
+  {id:'size',   label:'Big screens', pick:['17pm','16plus','15plus']},
+  {id:'thin',   label:'Air vs the rest', pick:['air','17','17p']}
+];
+
+/* ---------- phone artwork ---------- */
+function phoneSVG(m, h){
+  const ratio = m.size/6.9;                 // relative screen size, visualised
+  const H = Math.round(h * (0.72 + ratio*0.28));
+  const W = Math.round(H*0.485);
+  const r = Math.round(W*0.14);
+  const uid = 'g'+m.id+Math.round(h);
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${m.name}">
+    <defs>
+      <linearGradient id="${uid}" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="${m.accent}"/><stop offset="100%" stop-color="${m.colour}"/>
+      </linearGradient>
+      <linearGradient id="${uid}b" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="${m.colour}"/><stop offset="100%" stop-color="${m.accent}"/>
+      </linearGradient>
+    </defs>
+    <rect x="1" y="1" width="${W-2}" height="${H-2}" rx="${r}" fill="url(#${uid}b)" stroke="rgba(11,27,51,.22)"/>
+    <rect x="4" y="4" width="${W-8}" height="${H-8}" rx="${r-3}" fill="url(#${uid})"/>
+    <rect x="${W*0.3}" y="${Math.max(9,H*0.028)}" width="${W*0.4}" height="${Math.max(7,H*0.026)}" rx="${Math.max(4,H*0.013)}" fill="rgba(0,0,0,.55)"/>
+  </svg>`;
+}
+function lensSVG(n,colour){
+  const w = 16+ (n>1?18:0) + (n>2?0:0);
+  const dots = {1:[[13,13]],2:[[12,12],[12,28]],3:[[12,11],[12,27],[27,19]]}[n];
+  const box = n===3?42:(n===2?40:26);
+  return `<svg width="34" height="34" viewBox="0 0 ${box} ${box}" aria-hidden="true" style="flex:none">
+    <rect x="1" y="1" width="${box-2}" height="${box-2}" rx="10" fill="${colour}22" stroke="${colour}66"/>
+    ${dots.map(d=>`<circle cx="${d[0]+ (n===3?3:1)}" cy="${d[1]+ (n===3?2:1)}" r="5.4" fill="#fff" stroke="${colour}" stroke-width="2.2"/>`).join('')}
+  </svg>`;
+}
+
+/* ---------- rows definition ---------- */
+const ROWS = [
+  {key:'price',  label:'From',     get:m=>({v:'£'+m.price.toFixed(2)+'/mo', d:'On a 36-month plan, £0 upfront (illustrative)'})},
+  {key:'size',   label:'Screen',   get:m=>({v:m.screen.replace('-inch','"').replace(' Super Retina XDR',''), d:m.screen+' · '+m.screenD}),
+                 cmp:m=>m.size, unit:'', bestLabel:'Biggest'},
+  {key:'camera', label:'Cameras',  get:m=>({v:m.lenses+(m.lenses===1?' rear camera':' rear cameras'), d:m.cameraD, art:m=>lensSVG(m.lenses,m.colour)}),
+                 cmp:m=>m.lenses, bestLabel:'Most versatile'},
+  {key:'batt',   label:'Battery',  get:m=>({v:m.batt+' hrs video', d:m.battD}), cmp:m=>m.batt, bestLabel:'Longest battery'},
+  {key:'chip',   label:'Chip',     get:m=>({v:m.chip, d:m.chipD}), cmp:m=>m.chipGen, bestLabel:'Fastest'},
+  {key:'design', label:'Build',    get:m=>({v:m.design, d:m.designD})},
+  {key:'sec',    label:'Security', get:m=>({v:m.sec, d:'Secure unlock, Apple Pay and app authentication'})},
+  {key:'best',   label:'Best for', get:m=>({v:m.best, d:''})}
+];
+
+/* ---------- state ---------- */
+let selected = ['17pm','17p','17'];
+const MAX = 3;
+
+/* ---------- render: editorial ---------- */
+document.getElementById('editGrid').innerHTML = EDITORIAL.map(e=>`
+  <article class="edit-card">
+    <h3>${e.t}</h3><p>${e.c}</p>
+    <a class="edit-link" href="#compare">Compare specs →</a>
+  </article>`).join('');
+
+/* ---------- render: presets ---------- */
+function renderPresets(){
+  document.getElementById('presets').innerHTML = PRESETS.map(p=>{
+    const on = p.pick.length===selected.length && p.pick.every(x=>selected.includes(x));
+    return `<button class="preset ${on?'on':''}" data-preset="${p.id}">${p.label}</button>`;
+  }).join('');
+}
+
+/* ---------- render: rail ---------- */
+function renderRail(){
+  document.getElementById('rail').innerHTML = MODELS.map(m=>{
+    const on = selected.includes(m.id);
+    const full = !on && selected.length>=MAX;
+    const flag = m.flag==='new' ? '<span class="flag flag--new">New</span>'
+              : m.flag==='value' ? '<span class="flag flag--value">Value</span>' : '';
+    return `<button class="tile ${on?'on':''} ${full?'disabled':''}" data-id="${m.id}"
+              aria-pressed="${on}" ${full?'aria-disabled="true"':''}>
+      ${flag}<span class="tile__check">${on?'✓':''}</span>
+      <span class="tile__art">${phoneSVG(m,96)}</span>
+      <span class="tile__name">${m.name}</span>
+      <span class="tile__price">From <b>£${m.price.toFixed(2)}</b>/mo</span>
+    </button>`;
+  }).join('');
+}
+
+/* ---------- render: selection bar ---------- */
+function renderSelbar(){
+  const slots = [];
+  for(let i=0;i<MAX;i++){
+    const id = selected[i];
+    if(id){
+      const m = BY_ID[id];
+      slots.push(`<span class="pill">${m.name}<button data-remove="${id}" aria-label="Remove ${m.name}">×</button></span>`);
+    } else {
+      slots.push(`<span class="pill pill--empty">+ Add a model</span>`);
+    }
+  }
+  document.getElementById('selbar').innerHTML =
+    `<span class="selbar__label">Comparing ${selected.length} of ${MAX}</span>` + slots.join('') +
+    (selected.length ? `<button class="clear" id="clearAll">Clear all</button>` : '');
+}
+
+/* ---------- render: board ---------- */
+function renderBoard(){
+  const board = document.getElementById('board');
+  if(!selected.length){
+    board.innerHTML = `<div class="empty-board"><h3 style="color:var(--ink)">Nothing selected yet</h3>
+      <p style="margin-top:8px">Pick a model above, or start with <button class="preset" data-preset="latest" style="display:inline-flex">Latest three</button></p></div>`;
+    return;
+  }
+  const diffOnly = document.getElementById('diffOnly').checked;
+  const bestOn   = document.getElementById('bestOn').checked;
+  const cols = selected.map(id=>BY_ID[id]);
+  const n = cols.length;
+  const tmpl = `200px repeat(${Math.max(n, 1)}, minmax(230px,1fr))${n<MAX?' minmax(200px,.8fr)':''}`;
+
+  let html = `<div class="board__scroll"><div class="grid" style="grid-template-columns:${tmpl}">`;
+
+  // header row
+  html += `<div class="head head--label"><span class="tiny muted" style="font-weight:600">Comparing ${n} model${n>1?'s':''}</span></div>`;
+  cols.forEach(m=>{
+    html += `<div class="head">
+      <span class="head__art">${phoneSVG(m,108)}</span>
+      <span class="head__name">${m.name}</span>
+      <span class="head__price"><span class="tiny">From</span><b>£${m.price.toFixed(2)}</b><span class="tiny">a month</span></span>
+      <a class="head__cta" href="#">See deals</a>
+      <button class="head__swap" data-remove="${m.id}">Remove</button>
+    </div>`;
+  });
+  if(n<MAX){
+    html += `<div class="head head--empty">
+      <span class="tiny">Add another model to compare</span>
+      <button id="addMore">Choose a model</button></div>`;
+  }
+
+  // spec rows
+  ROWS.forEach(row=>{
+    const vals = cols.map(m=>row.get(m));
+    const allSame = vals.every(v=>v.v===vals[0].v) && n>1;
+    if(diffOnly && allSame) return;
+
+    let bestIdx = new Set();
+    if(bestOn && row.cmp && n>1){
+      const scores = cols.map(row.cmp), bv = Math.max(...scores);
+      // only badge a winner if it actually beats something
+      if(scores.some(s=>s<bv)) scores.forEach((s,i)=>{ if(s===bv) bestIdx.add(i); });
+    }
+
+    html += `<div class="cell cell--label">${row.label}</div>`;
+    cols.forEach((m,i)=>{
+      const v = vals[i];
+      const art = v.art ? v.art(m) : '';
+      const win = bestIdx.has(i);
+      html += `<div class="cell ${win?'cell--best':''}">
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          ${art}
+          <div>
+            <div class="cell__value">${v.v}</div>
+            ${v.d?`<div class="cell__detail">${v.d}</div>`:''}
+            ${win?`<div class="best-tag">★ ${bestIdx.size>1?'Joint '+(row.bestLabel||'best').toLowerCase():(row.bestLabel||'Best here')}</div>`:''}
+            ${allSame && i===0 && !diffOnly?`<div class="same-tag" style="margin-top:6px">Same on all three</div>`:''}
+          </div>
+        </div>
+      </div>`;
+    });
+    if(n<MAX) html += `<div class="cell" style="background:#FBFCFE"></div>`;
+  });
+
+  html += `</div></div>`;
+  const hidden = diffOnly ? ROWS.filter(r=>{
+      const vals=cols.map(m=>r.get(m)); return vals.every(v=>v.v===vals[0].v)&&n>1;
+    }).length : 0;
+  html += `<div class="board__foot">${
+    diffOnly
+      ? `Showing differences only — ${hidden} row${hidden===1?'':'s'} hidden because ${n>2?'all three':'both'} are identical.`
+      : 'Monthly prices shown are illustrative placeholders. Real pricing would come from the tariff engine and update with the plan selector.'
+  }</div>`;
+  board.innerHTML = html;
+}
+
+/* ---------- render: full table fallback ---------- */
+(function renderFullTable(){
+  const cols = [
+    ['Display', m=>m.screen+' — '+m.screenD],
+    ['Design',  m=>m.design+', '+m.designD],
+    ['Camera',  m=>m.cameraD],
+    ['Security',m=>m.sec],
+    ['Chip',    m=>m.chip+' — '+m.chipD],
+    ['Battery', m=>m.battD]
+  ];
+  document.getElementById('fullTable').innerHTML =
+    `<thead><tr><th scope="col">iPhone model</th>${cols.map(c=>`<th scope="col">${c[0]}</th>`).join('')}</tr></thead>
+     <tbody>${MODELS.map(m=>
+       `<tr><th scope="row">${m.name}<br><span class="tiny muted" style="font-weight:400">From £${m.price.toFixed(2)}/mo</span></th>
+        ${cols.map(c=>`<td>${c[1](m)}</td>`).join('')}</tr>`).join('')}</tbody>`;
+})();
+
+/* ---------- interactions ---------- */
+function toggle(id){
+  const i = selected.indexOf(id);
+  if(i>-1) selected.splice(i,1);
+  else if(selected.length<MAX) selected.push(id);
+  renderAll();
+}
+function renderAll(){ renderPresets(); renderRail(); renderSelbar(); renderBoard(); }
+
+document.addEventListener('click', e=>{
+  const tile = e.target.closest('.tile');
+  if(tile && !tile.classList.contains('disabled')){ toggle(tile.dataset.id); return; }
+
+  const preset = e.target.closest('[data-preset]');
+  if(preset){ selected = [...PRESETS.find(p=>p.id===preset.dataset.preset).pick]; renderAll();
+    document.getElementById('board').scrollIntoView({behavior:'smooth',block:'start'}); return; }
+
+  const rm = e.target.closest('[data-remove]');
+  if(rm){ selected = selected.filter(x=>x!==rm.dataset.remove); renderAll(); return; }
+
+  if(e.target.id==='clearAll'){ selected=[]; renderAll(); return; }
+  if(e.target.id==='addMore'){ document.getElementById('rail').scrollIntoView({behavior:'smooth',block:'center'}); return; }
+});
+
+document.getElementById('diffOnly').addEventListener('change', renderBoard);
+document.getElementById('bestOn').addEventListener('change', renderBoard);
+
+/* design notes panel */
+const panel=document.getElementById('notesPanel'), scrim=document.getElementById('scrim');
+function openNotes(o){ panel.classList.toggle('open',o); scrim.classList.toggle('on',o); panel.setAttribute('aria-hidden',!o); }
+document.getElementById('notesFab').onclick=()=>openNotes(true);
+document.getElementById('notesClose').onclick=()=>openNotes(false);
+scrim.onclick=()=>openNotes(false);
+document.getElementById('annoToggle').addEventListener('change',e=>{
+  document.body.classList.toggle('show-anno', e.target.checked);
+});
+
+renderAll();
+</script>
+</body>
+</html>
