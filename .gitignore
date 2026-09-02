@@ -35,3 +35,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# GSC export
+/gsc_export/
+gsc_export.zip
+service_account.json
+*-service-account.json
