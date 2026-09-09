@@ -41,3 +41,6 @@ next-env.d.ts
 gsc_export*.zip
 service_account.json
 *-service-account.json
+
+# SIM-free pull outputs
+/gsc_simfree/
