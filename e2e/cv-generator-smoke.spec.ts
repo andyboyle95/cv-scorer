@@ -72,8 +72,8 @@ test.describe("CV Generator", () => {
     await page.getByRole("button", { name: /Download PDF/i }).click();
     const download = await downloadPromise;
 
-    // Filename slug should come from the candidate name.
-    expect(download.suggestedFilename()).toMatch(/test-candidate\.pdf/i);
+    // Filename should be the candidate name in Title Case.
+    expect(download.suggestedFilename()).toBe("Test-Candidate.pdf");
   });
 
   test("Download DOCX triggers a file download and doesn't error", async ({ page }) => {
@@ -93,7 +93,7 @@ test.describe("CV Generator", () => {
     await page.getByRole("button", { name: /^DOCX$/ }).click();
     const download = await downloadPromise;
 
-    expect(download.suggestedFilename()).toMatch(/docx-test\.docx/i);
+    expect(download.suggestedFilename()).toBe("Docx-Test.docx");
     expect(consoleErrors, `Console errors during DOCX build: ${consoleErrors.join("; ")}`).toEqual([]);
   });
 });

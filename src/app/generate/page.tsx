@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect, Fragment } from 'react'
 import { FEATURES } from '@/lib/features'
+import { toTitleCaseFileName } from '@/lib/utils'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { Header } from '@/components/header'
@@ -731,14 +732,13 @@ export default function GeneratePage() {
     try {
       const { buildCvDocx } = await import('@/lib/build-cv-docx')
       const blob = await buildCvDocx(data)
-      const slug = (data.candidateName || 'cv')
-        .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+      const fileName = toTitleCaseFileName(data.candidateName)
       // Native blob download — no file-saver dependency (its ESM interop
       // varies by bundler and was silently failing at runtime).
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${slug}.docx`
+      a.download = `${fileName}.docx`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -818,9 +818,7 @@ export default function GeneratePage() {
 
       wrapper.setAttribute('style', prev)
 
-      const slug = (data.candidateName || 'cv')
-        .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-      pdf!.save(`${slug}.pdf`)
+      pdf!.save(`${toTitleCaseFileName(data.candidateName)}.pdf`)
       // Milestone save — persist the current state to Postgres so it lands
       // in the Recent list. Runs in the background; ignored if it fails.
       void remoteSync()
@@ -1429,10 +1427,8 @@ export default function GeneratePage() {
               variant="outline"
               size="sm"
               onClick={() => {
-                const slug = (data.candidateName || 'cv')
-                  .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
                 const prev = document.title
-                document.title = slug
+                document.title = toTitleCaseFileName(data.candidateName)
                 window.print()
                 setTimeout(() => { document.title = prev }, 1500)
               }}

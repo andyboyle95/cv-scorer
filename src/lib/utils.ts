@@ -11,6 +11,27 @@ export function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+// Download file name from a person's name, in Title Case:
+// "jack dowman" or "JACK DOWMAN" → "Jack-Dowman". Mixed-case words keep
+// their capitals (McDonald), and so do initials such as "AJ" unless the
+// whole name is in capitals. Accents are folded (José → Jose) to keep the
+// name ASCII-safe for email attachments.
+export function toTitleCaseFileName(name: string | null | undefined): string {
+  const words = (name || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .split(/[^A-Za-z0-9]+/)
+    .filter(Boolean);
+  const allCaps = words.every((word) => word === word.toUpperCase());
+  const titled = words.map((word) => {
+    const isMixedCase = word !== word.toLowerCase() && word !== word.toUpperCase();
+    const isInitials = !allCaps && word.length <= 2 && word === word.toUpperCase();
+    const rest = isMixedCase || isInitials ? word.slice(1) : word.slice(1).toLowerCase();
+    return word.charAt(0).toUpperCase() + rest;
+  });
+  return titled.join("-") || "CV";
+}
+
 export function getScoreColor(score: number): string {
   if (score >= 75) return "text-green-600";
   if (score >= 50) return "text-amber-600";
