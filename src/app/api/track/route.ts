@@ -26,6 +26,7 @@ const VALID_ACTIONS = new Set([
   "interview-questions",
   "pdf-export",
   "docx-export",
+  "original-cv-export",
   "score",
   "generate-spec",
   "generate-questions",

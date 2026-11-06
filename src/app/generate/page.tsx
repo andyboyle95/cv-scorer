@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect, Fragment } from 'react'
 import { FEATURES } from '@/lib/features'
 import { toTitleCaseFileName } from '@/lib/utils'
+import { canKeepOriginalFormat, downloadOriginalCv } from '@/lib/original-cv'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { Header } from '@/components/header'
@@ -12,7 +13,7 @@ import { Input } from '@/ui/input'
 import { Textarea } from '@/ui/textarea'
 import { Label } from '@/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/tabs'
-import { Plus, Trash2, FileDown, ArrowLeft, Upload, ClipboardPaste, Loader2, CheckCircle2, ChevronDown, ChevronUp, Wand2, Sparkles, Pencil, RefreshCw, Target, X, EyeOff, Mail, Copy, FileText, User, Briefcase, GraduationCap, MessageSquare } from 'lucide-react'
+import { Plus, Trash2, FileDown, ArrowLeft, Upload, ClipboardPaste, Loader2, CheckCircle2, ChevronDown, ChevronUp, Wand2, Sparkles, Pencil, RefreshCw, Target, X, EyeOff, Mail, Copy, FileText, User, Briefcase, GraduationCap, MessageSquare, FileCheck2, AlignLeft, ShieldCheck, AlertTriangle } from 'lucide-react'
 import Image from 'next/image'
 
 interface InterviewQuestion {
@@ -350,6 +351,21 @@ export default function GeneratePage() {
   const [anonymising, setAnonymising] = useState(false)
   const [anonymiseError, setAnonymiseError] = useState('')
 
+  // ── Client CV (no AI) ──
+  // For clients who ask for a CV that is not AI-written. Two outputs:
+  //   1. the candidate's own file, contact details removed, layout unchanged
+  //   2. this template filled with the candidate's exact wording (no summary,
+  //      no rewrites; the server checks each line against the CV)
+  const [exactWording, setExactWording] = useState(false) // pre-import option
+  const [wordingMode, setWordingMode] = useState<'ai' | 'exact'>('ai')
+  const [unverifiedLines, setUnverifiedLines] = useState<string[]>([])
+  const [sourceFile, setSourceFile] = useState<File | null>(null)
+  const [sourceText, setSourceText] = useState('')
+  const [clientCvOpen, setClientCvOpen] = useState(false)
+  const clientCvRef = useRef<HTMLDivElement>(null)
+  const [originalBusy, setOriginalBusy] = useState(false)
+  const [clientCvMsg, setClientCvMsg] = useState<{ tone: 'ok' | 'warn'; text: string } | null>(null)
+
   // Speculative introduction email state
   const [emailOpen, setEmailOpen] = useState(false)
   const [emailData, setEmailData] = useState<{ subject: string; body: string } | null>(null)
@@ -399,6 +415,18 @@ export default function GeneratePage() {
     document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
   }, [sendOptionsOpen])
+
+  // Close the Client CV dropdown when clicking outside it.
+  useEffect(() => {
+    if (!clientCvOpen) return
+    const onClick = (e: MouseEvent) => {
+      if (clientCvRef.current && !clientCvRef.current.contains(e.target as Node)) {
+        setClientCvOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [clientCvOpen])
 
   // Close the Recent dropdown when clicking outside it.
   useEffect(() => {
@@ -522,6 +550,7 @@ export default function GeneratePage() {
 
   const handleRewrite = async () => {
     if (!data.executiveSummary.trim()) return
+    setWordingMode('ai')
     setRewriting(true)
     setRewriteError('')
     try {
@@ -550,6 +579,7 @@ export default function GeneratePage() {
   // ── Anonymise CV ─────────────────────────────────────────────
 
   const runAnonymise = async (): Promise<CandidateData | null> => {
+    setWordingMode('ai')
     setAnonymising(true)
     setAnonymiseError('')
     // Snapshot the CURRENT CV before we mutate it. Powers the revert flow
@@ -681,6 +711,7 @@ export default function GeneratePage() {
 
   const handleTailorProfileSkills = async () => {
     if (!jobSpecText.trim()) return
+    setWordingMode('ai')
     setTailoringProfile(true)
     setTailorError('')
     try {
@@ -865,14 +896,39 @@ export default function GeneratePage() {
     }))
   }
 
-  const extractAndApply = async (cvText: string) => {
+  // Exact-wording import: replace every candidate field, so nothing from a
+  // previous CV or from AI writing is left behind.
+  const applyVerbatim = (extracted: Record<string, unknown>) => {
+    const list = (v: unknown) => (Array.isArray(v) ? (v as string[]) : [])
+    setData((prev) => ({
+      ...prev,
+      candidateName: (extracted.candidateName as string) || prev.candidateName,
+      linkedIn: '',
+      executiveSummary: '',
+      profile: (extracted.profile as string) ?? '',
+      skills: list(extracted.skills),
+      experience: (Array.isArray(extracted.experience) ? extracted.experience as Omit<ExperienceEntry, 'id'>[] : []).map((e, i) => ({
+        company: e.company ?? '',
+        role: e.role ?? '',
+        dateFrom: e.dateFrom ?? '',
+        dateTo: e.dateTo ?? '',
+        description: e.description ?? '',
+        bullets: Array.isArray(e.bullets) ? e.bullets : [],
+        id: String(i + 1),
+      })),
+      qualifications: list(extracted.qualifications),
+      languages: list(extracted.languages),
+    }))
+  }
+
+  const extractAndApply = async (cvText: string, verbatim = exactWording) => {
     setImportStatus('extracting')
     setImportError('')
     try {
       const res = await fetch('/api/extract-cv-fields', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvText }),
+        body: JSON.stringify(verbatim ? { cvText, mode: 'verbatim' } : { cvText }),
       })
       let extracted: Record<string, unknown>
       try {
@@ -881,7 +937,12 @@ export default function GeneratePage() {
         throw new Error(`Server error (${res.status}) — check your ANTHROPIC_API_KEY is set`)
       }
       if (!res.ok) throw new Error((extracted as { error?: string }).error ?? 'Extraction failed')
-      applyExtracted(extracted)
+      if (verbatim) applyVerbatim(extracted)
+      else applyExtracted(extracted)
+      setSourceText(cvText)
+      setWordingMode(verbatim ? 'exact' : 'ai')
+      setUnverifiedLines(verbatim && Array.isArray(extracted.unverified) ? extracted.unverified as string[] : [])
+      setClientCvMsg(null)
       setImportStatus('done')
       setPasteText('')
       setHasStarted(true)
@@ -892,7 +953,8 @@ export default function GeneratePage() {
       // If the recruiter set intent BEFORE importing (attached a job spec
       // and/or ticked anonymous), chain those on the next render tick so
       // the first preview reflects them.
-      if (jobSpecText.trim() || sendAnonymously) {
+      // Not in exact-wording mode: tailoring and anonymising rewrite the text.
+      if (!verbatim && (jobSpecText.trim() || sendAnonymously)) {
         setAutoPrepPending(true)
       }
     } catch (err) {
@@ -902,6 +964,39 @@ export default function GeneratePage() {
   }
 
 
+
+  // ── Client CV (no AI) actions ──
+  const handleUseExactWording = async () => {
+    if (!sourceText) return
+    if (wordingMode !== 'exact' && !confirm("Replace this CV with the candidate's exact wording? AI-written text and your edits will be lost.")) return
+    setClientCvOpen(false)
+    setPreAnonymiseSnapshot(null)
+    await extractAndApply(sourceText, true)
+  }
+
+  const handleDownloadOriginal = async () => {
+    if (!sourceFile) return
+    setOriginalBusy(true)
+    setClientCvMsg(null)
+    try {
+      // Use the real name for the file name, even if the template is anonymised:
+      // the original file still shows it.
+      const name = preAnonymiseSnapshot?.candidateName || data.candidateName || sourceFile.name.replace(/\.[^.]+$/, '')
+      const result = await downloadOriginalCv(sourceFile, name)
+      if (result.warning) setClientCvMsg({ tone: 'warn', text: result.warning })
+      else if (result.changes === 0) setClientCvMsg({ tone: 'warn', text: 'No contact details were found in this CV. Check it before you send it.' })
+      else setClientCvMsg({ tone: 'ok', text: 'Downloaded. Check it before you send it to the client.' })
+      void fetch('/api/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tool: 'cv-generator', action: 'original-cv-export' }),
+      }).catch(() => { /* silent */ })
+    } catch (err) {
+      setClientCvMsg({ tone: 'warn', text: err instanceof Error ? err.message : 'Download failed. Please try again.' })
+    } finally {
+      setOriginalBusy(false)
+    }
+  }
 
   const handleFile = async (file: File) => {
     setImportStatus('parsing')
@@ -918,6 +1013,7 @@ export default function GeneratePage() {
       }
       if (!res.ok) throw new Error((parsed as { error?: string }).error ?? 'Failed to parse file')
       const { text } = parsed as { text: string }
+      setSourceFile(file)
       await extractAndApply(text)
     } catch (err) {
       setImportError(err instanceof Error ? err.message : 'File parsing failed')
@@ -934,6 +1030,7 @@ export default function GeneratePage() {
 
   const handlePasteExtract = () => {
     if (pasteText.trim().length < 50) return
+    setSourceFile(null) // no file, so "original format" is not available
     extractAndApply(pasteText)
   }
 
@@ -1185,6 +1282,10 @@ export default function GeneratePage() {
                     setData(DEFAULT_DATA)
                     setImportStatus('idle')
                     setHasStarted(true)
+                    setSourceFile(null)
+                    setSourceText('')
+                    setWordingMode('ai')
+                    setUnverifiedLines([])
                     setPreAnonymiseSnapshot(null)
                     setSendAnonymously(false)
                   }}
@@ -1228,6 +1329,12 @@ export default function GeneratePage() {
                 setData({ ...BLANK_DATA, dateSubmitted: new Date().toLocaleDateString('en-GB') })
                 setImportStatus('idle')
                 setHasStarted(false)
+                setSourceFile(null)
+                setSourceText('')
+                setWordingMode('ai')
+                setUnverifiedLines([])
+                setClientCvMsg(null)
+                setExactWording(false)
                 clearJobSpec()
                 setSendAnonymously(false)
                 setPreAnonymiseSnapshot(null)
@@ -1340,6 +1447,91 @@ export default function GeneratePage() {
                 )}
               </button>
             )}
+
+            {/* Client CV (no AI) — candidate's own words, contact details removed */}
+            <div ref={clientCvRef} className="relative">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setClientCvOpen((o) => !o)}
+                className={`text-xs gap-1.5 ${wordingMode === 'exact' ? 'border-green-600/60 text-green-700' : ''}`}
+                disabled={!hasStarted}
+                title={hasStarted ? 'CV for clients who do not want AI-written CVs' : 'Start a CV first'}
+              >
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Client CV (no AI)
+                <ChevronDown className="h-3 w-3 opacity-60" />
+              </Button>
+
+              {clientCvOpen && (
+                <div
+                  className="absolute right-0 top-full mt-1.5 w-80 bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden z-40"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="px-3 py-2 border-b border-gray-100 bg-gray-50">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Client CV (no AI)</p>
+                    <p className="text-[10.5px] text-gray-500 mt-0.5 leading-snug">
+                      The candidate&rsquo;s own words. Contact details are removed.
+                    </p>
+                  </div>
+
+                  {/* Option 1 — original file, contact details removed */}
+                  <button
+                    type="button"
+                    onClick={handleDownloadOriginal}
+                    disabled={!canKeepOriginalFormat(sourceFile) || originalBusy}
+                    className="w-full flex items-start gap-2.5 px-3 py-2.5 hover:bg-gray-50 text-left border-b border-gray-100 disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    <span className="w-4 h-4 flex-shrink-0 mt-0.5 flex items-center justify-center">
+                      {originalBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin text-[#1a3668]" /> : <FileCheck2 className="h-3.5 w-3.5 text-gray-600" />}
+                    </span>
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-gray-800">Original CV, contact details removed</p>
+                      <p className="text-[10.5px] text-gray-500 mt-0.5 leading-snug">
+                        {!sourceFile
+                          ? 'Import a CV file to use this (not available for pasted text or saved drafts).'
+                          : !canKeepOriginalFormat(sourceFile)
+                            ? 'Only for PDF and Word (.docx) files.'
+                            : 'Their own file and layout. Removes email, phone, LinkedIn and home address.'}
+                      </p>
+                    </div>
+                  </button>
+
+                  {/* Option 2 — this template, exact wording */}
+                  <button
+                    type="button"
+                    onClick={handleUseExactWording}
+                    disabled={!sourceText || busy}
+                    className="w-full flex items-start gap-2.5 px-3 py-2.5 hover:bg-gray-50 text-left disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    <span className="w-4 h-4 flex-shrink-0 mt-0.5 flex items-center justify-center">
+                      <AlignLeft className="h-3.5 w-3.5 text-gray-600" />
+                    </span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-xs font-semibold text-gray-800">Aaron Wallis layout, exact wording</p>
+                        {wordingMode === 'exact' && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-600">
+                            <CheckCircle2 className="h-3 w-3" /> Applied
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10.5px] text-gray-500 mt-0.5 leading-snug">
+                        {sourceText
+                          ? 'Fills this template with their words exactly as written. No AI summary or rewrites. Then use Download PDF or DOCX.'
+                          : 'Import a CV first.'}
+                      </p>
+                    </div>
+                  </button>
+
+                  {clientCvMsg && (
+                    <p className={`px-3 pb-2.5 text-[10.5px] leading-snug ${clientCvMsg.tone === 'ok' ? 'text-green-700' : 'text-amber-700'}`}>
+                      {clientCvMsg.text}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Send options — anonymise + intro email (moved from Cover tab) */}
             <div ref={sendOptionsRef} className="relative">
@@ -1539,7 +1731,7 @@ export default function GeneratePage() {
                     Turn a candidate&rsquo;s CV into a client-ready document.
                   </h2>
                   <p className="text-[11.5px] text-gray-500 leading-snug">
-                    Import a CV to get started. Tick the options below if you want the first preview tailored or anonymised.
+                    Import a CV to get started. Tick the options below if you want the first preview tailored, anonymised or in the candidate&rsquo;s exact words.
                   </p>
                 </div>
 
@@ -1576,8 +1768,30 @@ export default function GeneratePage() {
                 <div className="rounded-lg border border-gray-200 bg-gray-50/60 p-3 space-y-2.5">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Also apply (optional)</p>
 
+                  {/* Exact wording (no AI writing) */}
+                  <div className="border-b border-gray-200 pb-2.5">
+                    <label className="flex items-start gap-2 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={exactWording}
+                        onChange={(e) => setExactWording(e.target.checked)}
+                        className="w-3.5 h-3.5 rounded flex-shrink-0 mt-0.5"
+                        style={{ accentColor: '#1a3668' }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <ShieldCheck className="h-3.5 w-3.5 text-gray-600" />
+                          <span className="text-xs font-semibold text-gray-800 group-hover:text-[#1a3668]">Use their exact wording (no AI writing)</span>
+                        </div>
+                        <p className="text-[10.5px] text-gray-500 mt-0.5 leading-snug">
+                          For clients who don&rsquo;t want AI-written CVs. Fills the template with the candidate&rsquo;s own words, removes contact details and adds no executive summary.
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+
                   {/* Tailor to a job spec */}
-                  <div>
+                  <div className={exactWording ? 'opacity-50 pointer-events-none' : ''} title={exactWording ? 'Not used with exact wording' : undefined}>
                     <label className="flex items-start gap-2 cursor-pointer group">
                       <input
                         type="checkbox"
@@ -1661,7 +1875,7 @@ export default function GeneratePage() {
                   </div>
 
                   {/* Send anonymously */}
-                  <div className="border-t border-gray-200 pt-2.5">
+                  <div className={`border-t border-gray-200 pt-2.5 ${exactWording ? 'opacity-50 pointer-events-none' : ''}`} title={exactWording ? 'Not used with exact wording' : undefined}>
                     <label className="flex items-start gap-2 cursor-pointer group">
                       <input
                         type="checkbox"
@@ -1753,6 +1967,43 @@ export default function GeneratePage() {
                 Wrapped as a fragment so the second half of the wrapper is
                 closed after </Tabs> further down. */}
             {hasStarted && <>
+
+            {/* Exact-wording notice */}
+            {wordingMode === 'exact' && (
+              <div className="mx-5 mt-4 space-y-2">
+                <div className="rounded-lg border border-green-200 bg-green-50 p-3 flex items-start gap-2.5">
+                  <ShieldCheck className="h-4 w-4 text-green-700 flex-shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-green-900 leading-snug">
+                    <span className="font-semibold">Exact wording.</span> This CV uses the candidate&rsquo;s own words with contact details removed. Do not use Rewrite, Tailor or Anonymise if the client wants no AI.
+                  </p>
+                </div>
+                {unverifiedLines.length > 0 && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 flex items-start gap-2.5">
+                    <AlertTriangle className="h-4 w-4 text-amber-700 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-semibold text-amber-900">
+                        {unverifiedLines.length === 1 ? '1 line does' : `${unverifiedLines.length} lines do`} not match the CV word for word. Check {unverifiedLines.length === 1 ? 'it' : 'them'}:
+                      </p>
+                      <ul className="mt-1 space-y-0.5 list-disc pl-4">
+                        {unverifiedLines.slice(0, 8).map((line, i) => (
+                          <li key={i} className="text-[10.5px] text-amber-900 leading-snug break-words">{line}</li>
+                        ))}
+                      </ul>
+                      {unverifiedLines.length > 8 && (
+                        <p className="text-[10.5px] text-amber-800 mt-1">…and {unverifiedLines.length - 8} more.</p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setUnverifiedLines([])}
+                        className="mt-1.5 text-[10.5px] font-semibold text-amber-800 hover:text-amber-950 underline"
+                      >
+                        Checked, hide this
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* ── STEP 1 · Import from CV ── */}
             <div className="border-b border-gray-200">

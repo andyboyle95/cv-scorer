@@ -26,6 +26,7 @@ export type UsageAction =
   | "interview-questions"
   | "pdf-export"
   | "docx-export"
+  | "original-cv-export"
   // CV Scorer
   | "score"
   // Job Spec Creator
