@@ -24,8 +24,13 @@ const STREET =
 const LABELLED =
   /\b(?:home\s+address|address|e-?mail|tel(?:ephone)?|phone|mobile|mob|cell|linked\s?in|contact(?:\s+(?:number|details))?)(?:\s*:\s*|\s+[–-]\s+)/gi;
 
-// Separators people use to put contact details on one line.
-const SEPARATOR = /\s*(?:[|•·▪●◦⋅/]|\t| {3,})\s*/;
+// Separators people use to put contact details on one line: a symbol with at
+// most two spaces each side ("07700 900123 | jane@x.com"), or a wide gap (a
+// tab or 3+ spaces). A wide gap is also how two columns side by side are
+// joined into one line (PDF sidebars, Word tabs), so one separator is never
+// both: taking a contact detail plus its separator must not reach across a
+// column gap and take the "•" of a bullet point in the next column.
+const SEPARATOR = /(?: {0,2}[|•·▪●◦⋅/] {0,2}|\t+| {3,})/;
 const SEPARATOR_GLOBAL = new RegExp(SEPARATOR.source, "g");
 
 const LABEL_BEFORE =
@@ -124,12 +129,16 @@ export function findContactRanges(line: string): Range[] {
 
   // A range at the start or end of the line also takes the separator on its
   // open side ("London | 07700 900123" becomes "London").
+  // Never past a column gap: if the range already reaches one, what is on the
+  // other side belongs to the next column.
+  const GAP_AT_START = /^(?:\t| {3})/;
+  const GAP_AT_END = /(?:\t| {3})$/;
   const merged = merge(grown).map(([s, e]): Range => {
-    if (line.slice(e).trim() === "") {
+    if (line.slice(e).trim() === "" && !GAP_AT_START.test(line.slice(s, e))) {
       const prev = line.slice(0, s).match(new RegExp(SEPARATOR.source + "$"));
       if (prev) s -= prev[0].length;
     }
-    if (line.slice(0, s).trim() === "") {
+    if (line.slice(0, s).trim() === "" && !GAP_AT_END.test(line.slice(s, e))) {
       const after = line.slice(e).match(new RegExp("^" + SEPARATOR.source));
       if (after) e += after[0].length;
     }
