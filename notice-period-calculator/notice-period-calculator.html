@@ -1,0 +1,666 @@
+<!-- ===================================================================== -->
+<!-- Aaron Wallis Notice Period Calculator - embeddable block              -->
+<!-- Paste this whole block into a uSkinned "Code" component.             -->
+<!-- Self-contained: no server, no API key, no external libraries.         -->
+<!-- All styles are scoped under #aw-notice-calc and all classes are       -->
+<!-- namespaced (awnc-*) so nothing collides with the host page.          -->
+<!--                                                                       -->
+<!-- Settings (attributes on the #aw-notice-calc div below):               -->
+<!--   data-audience="candidate"  copy for people resigning (default)      -->
+<!--   data-audience="employer"   copy for hiring managers                 -->
+<!--   data-region="ew|sc|ni"     default bank holiday region              -->
+<!--                                                                       -->
+<!-- Bank holidays: live from GOV.UK (gov.uk/bank-holidays.json), with a   -->
+<!-- built-in copy for 2026-2028 if that request fails.                    -->
+<!-- Analytics: pushes "aw_notice_calculator" events to window.dataLayer.  -->
+<!-- ===================================================================== -->
+<div id="aw-notice-calc" data-audience="candidate" data-region="ew">
+  <style>
+    #aw-notice-calc{
+      --awnc-navy:#1a3668; --awnc-navy-2:#274e94; --awnc-navy-ink:#12284b;
+      --awnc-pink:#df2781; --awnc-pink-dark:#c41f6e; --awnc-pink-tint:#fdeef5;
+      --awnc-bg:#f2f4f7; --awnc-line:#dfe4ec; --awnc-muted:#5b6b85; --awnc-soft:#d2dae8;
+      --awnc-warn-bg:#fff6e5; --awnc-warn-line:#f3d29a; --awnc-warn-ink:#7a4b00;
+      max-width:820px; margin:0 auto; color:var(--awnc-navy); line-height:1.5;
+      font-family:"Montserrat",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+      font-size:15px; text-align:left;
+    }
+    #aw-notice-calc *{box-sizing:border-box}
+    #aw-notice-calc [hidden]{display:none !important}
+    #aw-notice-calc .awnc-head{margin:0 0 18px}
+    #aw-notice-calc h2.awnc-title{font-size:1.75rem;line-height:1.2;font-weight:600;margin:0 0 6px;color:var(--awnc-navy);text-transform:none;letter-spacing:0}
+    #aw-notice-calc p{margin:0}
+    #aw-notice-calc .awnc-sub{color:var(--awnc-muted);font-size:15px;max-width:640px}
+    #aw-notice-calc a{color:var(--awnc-navy);text-decoration:underline;text-underline-offset:2px}
+    #aw-notice-calc a:hover{color:var(--awnc-pink)}
+
+    /* Mode tabs */
+    #aw-notice-calc .awnc-tabs{display:flex;gap:6px;padding:5px;background:var(--awnc-bg);border-radius:12px;margin:0 0 16px}
+    #aw-notice-calc .awnc-tab{flex:1 1 0;min-height:44px;padding:10px 12px;border:0;border-radius:9px;background:transparent;color:var(--awnc-navy);font:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s,color .15s;line-height:1.3}
+    #aw-notice-calc .awnc-tab:hover{background:rgba(26,54,104,.07)}
+    #aw-notice-calc .awnc-tab[aria-selected="true"]{background:var(--awnc-navy);color:#fff;box-shadow:0 1px 3px rgba(18,40,75,.25)}
+    #aw-notice-calc .awnc-tab:focus-visible,#aw-notice-calc .awnc-pill:focus-visible,#aw-notice-calc .awnc-btn:focus-visible,#aw-notice-calc .awnc-link-btn:focus-visible,#aw-notice-calc summary:focus-visible{outline:3px solid var(--awnc-pink);outline-offset:2px}
+
+    /* Input card */
+    #aw-notice-calc .awnc-card{background:#fff;border:1px solid var(--awnc-line);border-radius:16px;padding:22px;margin:0 0 16px}
+    #aw-notice-calc .awnc-step{margin:0 0 22px}
+    #aw-notice-calc .awnc-step:last-child{margin-bottom:0}
+    #aw-notice-calc .awnc-step-label{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;color:var(--awnc-navy);margin:0 0 10px;padding:0}
+    #aw-notice-calc .awnc-num{flex:0 0 auto;width:26px;height:26px;border-radius:50%;background:var(--awnc-navy);color:#fff;font-size:13px;font-weight:700;display:inline-grid;place-items:center}
+    #aw-notice-calc .awnc-opt{font-weight:500;color:var(--awnc-muted);font-size:13px}
+    #aw-notice-calc .awnc-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    #aw-notice-calc .awnc-pills{display:flex;flex-wrap:wrap;gap:8px}
+    #aw-notice-calc .awnc-pill{min-height:44px;padding:9px 18px;border-radius:999px;border:1px solid rgba(26,54,104,.35);background:#fff;color:var(--awnc-navy);font:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+    #aw-notice-calc .awnc-pill:hover{border-color:var(--awnc-navy);background:rgba(26,54,104,.05)}
+    #aw-notice-calc .awnc-pill[aria-pressed="true"]{background:var(--awnc-navy);border-color:var(--awnc-navy);color:#fff}
+    #aw-notice-calc .awnc-field{display:flex;align-items:stretch;border:1px solid #cfd6e2;border-radius:10px;overflow:hidden;background:#fff;min-height:46px}
+    #aw-notice-calc .awnc-field:focus-within{border-color:var(--awnc-navy);box-shadow:0 0 0 3px rgba(26,54,104,.15)}
+    #aw-notice-calc .awnc-field input{flex:1 1 auto;width:100%;min-width:0;border:0;outline:0;margin:0;padding:10px 12px;font:inherit;font-size:16px;color:var(--awnc-navy-ink);background:transparent;box-shadow:none;height:auto;border-radius:0}
+    #aw-notice-calc .awnc-suffix{display:flex;align-items:center;padding:0 12px;color:var(--awnc-muted);border-left:1px solid #e5e9f0;font-size:13px;font-weight:500;background:#f8f9fb;white-space:nowrap}
+    #aw-notice-calc .awnc-w-num{width:120px;flex:0 0 120px}
+    #aw-notice-calc .awnc-w-date{width:100%;max-width:260px}
+    #aw-notice-calc .awnc-w-hol{width:170px}
+    #aw-notice-calc .awnc-hint{margin:10px 0 0;font-size:13px;color:var(--awnc-muted)}
+    #aw-notice-calc .awnc-link-btn{display:inline;padding:0;margin:0;border:0;background:none;color:var(--awnc-navy);font:inherit;font-size:13px;font-weight:600;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+    #aw-notice-calc .awnc-link-btn:hover{color:var(--awnc-pink)}
+    #aw-notice-calc details.awnc-more{border-top:1px solid var(--awnc-line);padding-top:16px}
+    #aw-notice-calc details.awnc-more summary{cursor:pointer;font-weight:600;font-size:14px;color:var(--awnc-navy);list-style:none;display:flex;align-items:center;gap:8px;min-height:32px}
+    #aw-notice-calc details.awnc-more summary::-webkit-details-marker{display:none}
+    #aw-notice-calc details.awnc-more summary::before{content:"+";display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1px solid rgba(26,54,104,.35);font-size:15px;line-height:1}
+    #aw-notice-calc details.awnc-more[open] summary::before{content:"\2212"}
+    #aw-notice-calc details.awnc-more .awnc-more-body{padding-top:12px}
+    #aw-notice-calc .awnc-err{margin:10px 0 0;font-size:13px;color:#a3123f;font-weight:600}
+
+    /* Results */
+    #aw-notice-calc .awnc-results > * + *{margin-top:16px}
+    #aw-notice-calc .awnc-hero{background:var(--awnc-navy);color:#fff;border-radius:16px;padding:24px;position:relative;overflow:hidden}
+    #aw-notice-calc .awnc-hero::after{content:"";position:absolute;right:-40px;top:-40px;width:140px;height:140px;border-radius:50%;border:18px solid rgba(223,39,129,.55)}
+    #aw-notice-calc .awnc-hero.awnc-warn{background:#fff;color:var(--awnc-navy);border:2px solid var(--awnc-pink)}
+    #aw-notice-calc .awnc-hero.awnc-warn::after{display:none}
+    #aw-notice-calc .awnc-hero-k{font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--awnc-soft);margin:0 0 6px;position:relative;z-index:1}
+    #aw-notice-calc .awnc-hero.awnc-warn .awnc-hero-k{color:var(--awnc-pink-dark)}
+    #aw-notice-calc .awnc-hero-v{font-size:clamp(1.5rem,4.6vw,2.2rem);font-weight:700;line-height:1.15;margin:0;position:relative;z-index:1;max-width:calc(100% - 70px)}
+    #aw-notice-calc .awnc-hero-m{margin:10px 0 0;font-size:14px;color:#e6eaf2;position:relative;z-index:1;max-width:560px}
+    #aw-notice-calc .awnc-hero.awnc-warn .awnc-hero-m{color:var(--awnc-navy)}
+    #aw-notice-calc .awnc-hero-m strong{color:#fff}
+    #aw-notice-calc .awnc-hero.awnc-warn .awnc-hero-m strong{color:var(--awnc-navy)}
+
+    #aw-notice-calc .awnc-panel{background:#fff;border:1px solid var(--awnc-line);border-radius:16px;padding:20px 22px}
+    #aw-notice-calc .awnc-panel-h{font-size:16px;font-weight:700;color:var(--awnc-navy);margin:0 0 14px}
+
+    /* Timeline */
+    #aw-notice-calc ol.awnc-tl{list-style:none;margin:0;padding:0;position:relative}
+    #aw-notice-calc ol.awnc-tl li{position:relative;padding:0 0 18px 34px;margin:0;list-style:none}
+    #aw-notice-calc ol.awnc-tl li::before{content:none}
+    #aw-notice-calc ol.awnc-tl li:last-child{padding-bottom:0}
+    #aw-notice-calc ol.awnc-tl li .awnc-dot{position:absolute;left:4px;top:4px;width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid var(--awnc-navy);z-index:1}
+    #aw-notice-calc ol.awnc-tl li::after{content:"";position:absolute;left:11px;top:20px;bottom:-4px;width:2px;background:var(--awnc-line)}
+    #aw-notice-calc ol.awnc-tl li:last-child::after{display:none}
+    #aw-notice-calc ol.awnc-tl li.awnc-key .awnc-dot{background:var(--awnc-navy)}
+    #aw-notice-calc ol.awnc-tl li.awnc-goal .awnc-dot{background:var(--awnc-pink);border-color:var(--awnc-pink)}
+    #aw-notice-calc ol.awnc-tl li.awnc-hol .awnc-dot{border-color:var(--awnc-pink)}
+    #aw-notice-calc .awnc-tl-k{font-size:13px;color:var(--awnc-muted);font-weight:500;display:block}
+    #aw-notice-calc .awnc-tl-v{font-size:16px;font-weight:700;color:var(--awnc-navy);display:block}
+    #aw-notice-calc .awnc-tl-n{font-size:13px;color:var(--awnc-muted);display:block;margin-top:2px}
+
+    /* Stat tiles */
+    #aw-notice-calc .awnc-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    #aw-notice-calc .awnc-stat{background:var(--awnc-bg);border-radius:12px;padding:14px 12px}
+    #aw-notice-calc .awnc-stat b{display:block;font-size:24px;line-height:1.1;font-weight:700;color:var(--awnc-navy)}
+    #aw-notice-calc .awnc-stat span{display:block;font-size:12px;color:var(--awnc-muted);margin-top:4px;line-height:1.3}
+    @media (max-width:600px){#aw-notice-calc .awnc-stats{grid-template-columns:repeat(2,1fr)}}
+
+    /* What-if table */
+    #aw-notice-calc table.awnc-what{width:100%;border-collapse:collapse;font-size:14px;margin:0;border:0}
+    #aw-notice-calc table.awnc-what th,#aw-notice-calc table.awnc-what td{padding:10px 8px;border:0;border-bottom:1px solid #edf0f5;text-align:left;vertical-align:top;background:none;color:var(--awnc-navy)}
+    #aw-notice-calc table.awnc-what th{font-size:12px;font-weight:600;color:var(--awnc-muted);text-transform:uppercase;letter-spacing:.05em}
+    #aw-notice-calc table.awnc-what tr:last-child td{border-bottom:0}
+    #aw-notice-calc table.awnc-what td:first-child{padding-left:0;font-weight:600}
+    #aw-notice-calc table.awnc-what th:first-child{padding-left:0}
+    #aw-notice-calc .awnc-gain{display:block;color:var(--awnc-pink-dark);font-weight:600;font-size:13px}
+    @media (max-width:520px){#aw-notice-calc table.awnc-what{font-size:13px}#aw-notice-calc table.awnc-what th,#aw-notice-calc table.awnc-what td{padding:9px 5px}}
+
+    /* Legal minimum */
+    #aw-notice-calc .awnc-legal{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    @media (max-width:600px){#aw-notice-calc .awnc-legal{grid-template-columns:1fr}}
+    #aw-notice-calc .awnc-note{margin-top:12px;padding:12px 14px;border-radius:10px;font-size:14px;background:var(--awnc-bg)}
+    #aw-notice-calc .awnc-note.awnc-note-warn{background:var(--awnc-warn-bg);border:1px solid var(--awnc-warn-line);color:var(--awnc-warn-ink)}
+
+    /* Tips */
+    #aw-notice-calc ul.awnc-tips{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+    #aw-notice-calc ul.awnc-tips li{margin:0;padding:0 0 0 18px;position:relative;font-size:14px;list-style:none}
+    #aw-notice-calc ul.awnc-tips li::before{content:"";position:absolute;left:0;top:7px;width:8px;height:8px;border-radius:2px;background:var(--awnc-pink)}
+    #aw-notice-calc ul.awnc-tips li strong{display:block;color:var(--awnc-navy);font-size:14px}
+
+    /* Actions + CTA */
+    #aw-notice-calc .awnc-actions{display:flex;flex-wrap:wrap;gap:10px}
+    #aw-notice-calc .awnc-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:11px 20px;border-radius:6px;border:2px solid transparent;font:inherit;font-size:14px;font-weight:700;text-decoration:none !important;cursor:pointer;transition:background .15s,color .15s,border-color .15s;line-height:1.2}
+    #aw-notice-calc .awnc-btn svg{width:18px;height:18px;flex:0 0 auto}
+    #aw-notice-calc .awnc-btn-pink{background:var(--awnc-pink);color:#fff}
+    #aw-notice-calc .awnc-btn-pink:hover{background:var(--awnc-pink-dark);color:#fff}
+    #aw-notice-calc .awnc-btn-line{background:#fff;color:var(--awnc-navy);border-color:rgba(26,54,104,.35)}
+    #aw-notice-calc .awnc-btn-line:hover{border-color:var(--awnc-navy);background:rgba(26,54,104,.05);color:var(--awnc-navy)}
+    #aw-notice-calc .awnc-btn-ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.6)}
+    #aw-notice-calc .awnc-btn-ghost:hover{background:#fff;color:var(--awnc-navy)}
+    #aw-notice-calc .awnc-cta{background:var(--awnc-navy);color:#fff;border-radius:16px;padding:24px;display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:space-between}
+    #aw-notice-calc .awnc-cta h3{font-size:19px;font-weight:700;margin:0 0 4px;color:#fff;text-transform:none}
+    #aw-notice-calc .awnc-cta p{font-size:14px;color:#e6eaf2;max-width:440px}
+    #aw-notice-calc .awnc-cta .awnc-actions{flex:0 0 auto}
+    #aw-notice-calc .awnc-toast{font-size:13px;font-weight:600;color:var(--awnc-pink-dark);align-self:center}
+
+    #aw-notice-calc .awnc-disclaimer{font-size:12.5px;color:var(--awnc-muted);background:var(--awnc-bg);border-radius:10px;padding:12px 14px;margin-top:16px}
+    #aw-notice-calc .awnc-disclaimer a{color:var(--awnc-navy)}
+
+    @media (max-width:520px){
+      #aw-notice-calc .awnc-card,#aw-notice-calc .awnc-panel{padding:18px 16px}
+      #aw-notice-calc .awnc-hero,#aw-notice-calc .awnc-cta{padding:20px 18px}
+      #aw-notice-calc .awnc-tab{font-size:13px;padding:8px}
+      #aw-notice-calc .awnc-w-date{max-width:none}
+      #aw-notice-calc .awnc-cta .awnc-actions,#aw-notice-calc .awnc-cta .awnc-btn{width:100%}
+    }
+    @media print{
+      #aw-notice-calc .awnc-tabs,#aw-notice-calc .awnc-card,#aw-notice-calc .awnc-actions,#aw-notice-calc .awnc-cta{display:none !important}
+      #aw-notice-calc .awnc-hero{background:#fff;color:#000;border:2px solid #000}
+    }
+  </style>
+
+  <div class="awnc-head">
+    <h2 class="awnc-title" data-t="title">Notice Period Calculator</h2>
+    <p class="awnc-sub" data-t="sub">Find your last day at work and the earliest date you can start a new job. Or work back from a start date to see when you need to hand in your notice.</p>
+  </div>
+
+  <div class="awnc-tabs" role="tablist" aria-label="What do you want to work out?">
+    <button type="button" class="awnc-tab" role="tab" id="awnc-tab-leave" aria-selected="true" aria-controls="awnc-results" data-mode="leave" data-t="tabLeave">When can I leave?</button>
+    <button type="button" class="awnc-tab" role="tab" id="awnc-tab-resign" aria-selected="false" aria-controls="awnc-results" data-mode="resign" tabindex="-1" data-t="tabResign">When should I resign?</button>
+  </div>
+
+  <form class="awnc-card" novalidate onsubmit="return false">
+    <div class="awnc-step">
+      <label class="awnc-step-label" for="awnc-amount"><span class="awnc-num" aria-hidden="true">1</span><span data-t="q1">How long is your notice period?</span></label>
+      <div class="awnc-row">
+        <div class="awnc-field awnc-w-num"><input id="awnc-amount" type="number" inputmode="numeric" min="0" max="365" step="1" value="1" aria-describedby="awnc-amount-hint"></div>
+        <div class="awnc-pills" role="group" aria-label="Notice period unit">
+          <button type="button" class="awnc-pill" data-unit="weeks" aria-pressed="false">Weeks</button>
+          <button type="button" class="awnc-pill" data-unit="months" aria-pressed="true">Months</button>
+          <button type="button" class="awnc-pill" data-unit="days" aria-pressed="false">Days</button>
+        </div>
+      </div>
+      <p class="awnc-hint" id="awnc-amount-hint"><span data-t="h1">Check your employment contract. No written contract? The legal minimum you must give is 1 week, once you have worked there for a month.</span> <button type="button" class="awnc-link-btn" id="awnc-use-stat" data-t="useStat">Use 1 week</button></p>
+    </div>
+
+    <div class="awnc-step" data-show="leave">
+      <label class="awnc-step-label" for="awnc-handin"><span class="awnc-num" aria-hidden="true">2</span><span data-t="q2leave">When will you hand in your notice?</span></label>
+      <div class="awnc-field awnc-w-date"><input id="awnc-handin" type="date"></div>
+    </div>
+
+    <div class="awnc-step" data-show="resign" hidden>
+      <label class="awnc-step-label" for="awnc-target"><span class="awnc-num" aria-hidden="true">2</span><span data-t="q2resign">When do you want to start your new job?</span></label>
+      <div class="awnc-field awnc-w-date"><input id="awnc-target" type="date"></div>
+    </div>
+
+    <div class="awnc-step">
+      <label class="awnc-step-label" for="awnc-hol"><span class="awnc-num" aria-hidden="true">3</span><span data-t="q3">Holiday days you have left</span> <span class="awnc-opt">(optional)</span></label>
+      <div class="awnc-field awnc-w-hol"><input id="awnc-hol" type="number" inputmode="decimal" min="0" max="60" step="0.5" placeholder="0"><span class="awnc-suffix">days</span></div>
+      <p class="awnc-hint" data-t="h3">If your employer agrees, you can use holiday to finish work before your notice ends.</p>
+    </div>
+
+    <div class="awnc-step">
+      <span class="awnc-step-label" id="awnc-region-label"><span class="awnc-num" aria-hidden="true">4</span><span data-t="q4">Where do you work?</span></span>
+      <div class="awnc-pills" role="group" aria-labelledby="awnc-region-label">
+        <button type="button" class="awnc-pill" data-region="ew" aria-pressed="true">England &amp; Wales</button>
+        <button type="button" class="awnc-pill" data-region="sc" aria-pressed="false">Scotland</button>
+        <button type="button" class="awnc-pill" data-region="ni" aria-pressed="false">Northern Ireland</button>
+      </div>
+      <p class="awnc-hint">Used to skip bank holidays when counting working days.</p>
+    </div>
+
+    <details class="awnc-step awnc-more" id="awnc-more">
+      <summary data-t="moreSummary">Check the legal minimum notice (optional)</summary>
+      <div class="awnc-more-body">
+        <label class="awnc-step-label" for="awnc-started" data-t="q5">When did you start this job?</label>
+        <div class="awnc-field awnc-w-date"><input id="awnc-started" type="date"></div>
+        <p class="awnc-hint" data-t="h5">We use this to show the legal minimum notice for your length of service.</p>
+      </div>
+    </details>
+  </form>
+
+  <div class="awnc-results" id="awnc-results" role="tabpanel" aria-labelledby="awnc-tab-leave" aria-live="polite"></div>
+
+  <p class="awnc-disclaimer">This calculator is a guide, not legal advice. Your employment contract sets your notice period, so check it for rules such as notice having to be in writing or ending on a set day. Notice usually runs from the day after you hand it in. Working days are Monday to Friday, not including <a href="https://www.gov.uk/bank-holidays" target="_blank" rel="noopener">UK bank holidays</a>. For more help, see GOV.UK&rsquo;s guide to <a href="https://www.gov.uk/handing-in-your-notice/giving-notice" target="_blank" rel="noopener">handing in your notice</a> or <a href="https://www.acas.org.uk/notice-periods" target="_blank" rel="noopener">Acas</a>.</p>
+
+  <noscript><p class="awnc-disclaimer">Please turn on JavaScript to use the notice period calculator.</p></noscript>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var root = document.getElementById("aw-notice-calc");
+  if (!root || root.getAttribute("data-awnc-init")) return;
+  root.setAttribute("data-awnc-init", "1");
+
+  /* ---------- Copy (candidate / employer) ---------- */
+  var COPY = {
+    candidate: {
+      title: "Notice Period Calculator",
+      sub: "Find your last day at work and the earliest date you can start a new job. Or work back from a start date to see when you need to hand in your notice.",
+      tabLeave: "When can I leave?", tabResign: "When should I resign?",
+      q1: "How long is your notice period?",
+      h1: "Check your employment contract. No written contract? The legal minimum you must give is 1 week, once you have worked there for a month.",
+      useStat: "Use 1 week",
+      q2leave: "When will you hand in your notice?", q2resign: "When do you want to start your new job?",
+      q3: "Holiday days you have left", h3: "If your employer agrees, you can use holiday to finish work before your notice ends.",
+      q4: "Where do you work?",
+      moreSummary: "Check the legal minimum notice (optional)", q5: "When did you start this job?",
+      h5: "We use this to show the legal minimum notice for your length of service.",
+      heroLeave: "Your notice ends on", heroResign: "Hand in your notice by",
+      handIn: "You hand in your notice", handInBy: "Hand in your notice by", lastDay: "Your last working day",
+      noticeEnds: "Your notice ends", start: "Earliest start date for your new job", startTarget: "Your new job starts",
+      youGive: "Minimum notice you must give", theyGive: "Minimum notice your employer must give you",
+      tooSoonTitle: "That start date is too soon",
+      ctaH: "Got a new sales role lined up, or still looking?",
+      ctaP: "Our specialist consultants can help you find the right sales role, and support you through your resignation and any counter-offer.",
+      ctaA: ["Search sales jobs", "/candidates/job-search/"], ctaB: ["Submit your CV", "/candidates/submit-cv/"]
+    },
+    employer: {
+      title: "Notice Period Calculator",
+      sub: "Plan a new hire around their notice period. See the earliest date they can start, or work back from your target start date to see when they need to resign.",
+      tabLeave: "When can my new hire start?", tabResign: "When must they resign by?",
+      q1: "How long is their notice period?",
+      h1: "Ask your candidate to check their contract. With no written contract, the legal minimum they must give is 1 week, once they have worked there for a month.",
+      useStat: "Use 1 week",
+      q2leave: "When will they hand in their notice?", q2resign: "When do you want them to start?",
+      q3: "Holiday days they have left", h3: "If their employer agrees, they can use holiday to finish work before their notice ends.",
+      q4: "Where do they work?",
+      moreSummary: "Check the legal minimum notice (optional)", q5: "When did they start their current job?",
+      h5: "We use this to show the legal minimum notice for their length of service.",
+      heroLeave: "Earliest start date", heroResign: "They need to resign by",
+      handIn: "They hand in their notice", handInBy: "They hand in their notice by", lastDay: "Their last working day",
+      noticeEnds: "Their notice ends", start: "Earliest start date with you", startTarget: "Your target start date",
+      youGive: "Minimum notice they must give", theyGive: "Minimum notice their employer must give them",
+      tooSoonTitle: "That start date is too soon",
+      ctaH: "Hiring for a sales role?",
+      ctaP: "We find, assess and shortlist sales people for you, and help you manage notice periods and counter-offers so your new hire starts on time.",
+      ctaA: ["Recruit sales staff", "/employers/submit-vacancy/"], ctaB: ["Call 01908 061 400", "tel:+441908061400"]
+    }
+  };
+  var aud = root.getAttribute("data-audience") === "employer" ? "employer" : "candidate";
+  var T = COPY[aud];
+  var you = aud === "employer" ? { you: "they", your: "their", You: "They", Your: "Their", youve: "they have", youd: "they would" }
+                               : { you: "you", your: "your", You: "You", Your: "Your", youve: "you have", youd: "you would" };
+  Array.prototype.forEach.call(root.querySelectorAll("[data-t]"), function (el) {
+    var k = el.getAttribute("data-t"); if (T[k] && typeof T[k] === "string") el.textContent = T[k];
+  });
+
+  /* ---------- Bank holidays (fallback 2026-2028, GOV.UK) ---------- */
+  var FALLBACK = {"ew":["260101","260403","260406","260504","260525","260831","261225","261228","270101","270326","270329","270503","270531","270830","271227","271228","280103","280414","280417","280501","280529","280828","281225","281226"],"sc":["260101","260102","260403","260504","260525","260615","260803","261130","261225","261228","270101","270104","270326","270503","270531","270802","271130","271227","271228","280103","280104","280414","280501","280529","280807","281130","281225","281226"],"ni":["260101","260317","260403","260406","260504","260525","260713","260831","261225","261228","270101","270317","270326","270329","270503","270531","270712","270830","271227","271228","280103","280317","280414","280417","280501","280529","280712","280828","281225","281226"]};
+  var BH = { ew: {}, sc: {}, ni: {} }, BH_MAX = { ew: "", sc: "", ni: "" };
+  function addBh(r, iso) { BH[r][iso] = 1; if (iso > BH_MAX[r]) BH_MAX[r] = iso; }
+  Object.keys(FALLBACK).forEach(function (r) {
+    FALLBACK[r].forEach(function (s) { addBh(r, "20" + s.slice(0, 2) + "-" + s.slice(2, 4) + "-" + s.slice(4, 6)); });
+  });
+  try {
+    if (window.fetch) {
+      fetch("https://www.gov.uk/bank-holidays.json").then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+        if (!d) return;
+        var map = { "england-and-wales": "ew", "scotland": "sc", "northern-ireland": "ni" };
+        Object.keys(map).forEach(function (k) {
+          if (d[k] && d[k].events) d[k].events.forEach(function (e) { if (e && e.date) addBh(map[k], e.date); });
+        });
+        render();
+      })["catch"](function () {});
+    }
+  } catch (e) {}
+
+  /* ---------- Date helpers (whole days, UTC, no time zone drift) ---------- */
+  var DAY = 864e5;
+  function fromYmd(y, m, d) { return Math.round(Date.UTC(y, m, d) / DAY); }
+  function parse(s) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ""); return m ? fromYmd(+m[1], +m[2] - 1, +m[3]) : null; }
+  function jsd(n) { return new Date(n * DAY); }
+  function iso(n) { return jsd(n).toISOString().slice(0, 10); }
+  function dim(y, m) { return new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); }
+  function addMonths(n, k) {
+    var d = jsd(n), t = d.getUTCMonth() + k, y = d.getUTCFullYear() + Math.floor(t / 12), m = ((t % 12) + 12) % 12;
+    return fromYmd(y, m, Math.min(d.getUTCDate(), dim(y, m)));
+  }
+  function dow(n) { return jsd(n).getUTCDay(); }
+  function todayN() { var d = new Date(); return fromYmd(d.getFullYear(), d.getMonth(), d.getDate()); }
+  var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  function fmt(n) { var d = jsd(n); return DAYS[d.getUTCDay()] + " " + d.getUTCDate() + " " + MONTHS[d.getUTCMonth()] + " " + d.getUTCFullYear(); }
+  function fmtS(n) { var d = jsd(n); return DAYS[d.getUTCDay()].slice(0, 3) + " " + d.getUTCDate() + " " + MONTHS[d.getUTCMonth()].slice(0, 3) + " " + d.getUTCFullYear(); }
+  function fmtNoYear(n) { var d = jsd(n); return DAYS[d.getUTCDay()] + " " + d.getUTCDate() + " " + MONTHS[d.getUTCMonth()]; }
+  function plural(n, w, p) { return n + " " + (n === 1 ? w : (p || w + "s")); }
+  function dur(days) {
+    if (days < 7) return plural(days, "day");
+    var w = Math.floor(days / 7), d = days % 7;
+    return plural(w, "week") + (d ? " and " + plural(d, "day") : "");
+  }
+  function isBh(n) { return !!BH[state.region][iso(n)]; }
+  function isWork(n) { var w = dow(n); return w !== 0 && w !== 6 && !isBh(n); }
+  function nextWork(n) { var i = 0; while (!isWork(n) && i++ < 30) n++; return n; }
+  function prevWork(n, floor) { var i = 0; while (!isWork(n) && n > floor && i++ < 30) n--; return n; }
+  function countWork(a, b) { var c = 0; for (var x = a; x <= b; x++) if (isWork(x)) c++; return c; }
+  function countBh(a, b) { var c = 0; for (var x = a; x <= b; x++) { var w = dow(x); if (w !== 0 && w !== 6 && isBh(x)) c++; } return c; }
+  function whyOff(n) { return isBh(n) ? "a bank holiday" : (dow(n) === 6 ? "a Saturday" : "a Sunday"); }
+
+  /* ---------- State ---------- */
+  var state = { mode: "leave", unit: "months", amount: 1, handin: todayN(), target: null, hol: 0, started: null,
+                region: ({ ew: 1, sc: 1, ni: 1 })[root.getAttribute("data-region")] ? root.getAttribute("data-region") : "ew" };
+  (function () { var t = todayN() + 42; while (dow(t) !== 1) t++; state.target = t; })();
+
+  function noticeEnd(d) {
+    var a = state.amount;
+    if (state.unit === "months") return addMonths(d, a);
+    if (state.unit === "weeks") return d + 7 * a;
+    return d + a;
+  }
+  function ofNotice(n, unit) { return plural(n, unit) + (n === 1 ? "'s" : "'") + " notice"; }
+  function noticeLabel() { return ofNotice(state.amount, state.unit.slice(0, -1)); }
+
+  /* ---------- Core calculations ---------- */
+  function forward(handin) {
+    var end = noticeEnd(handin);
+    var startN = handin + 1;
+    var r = { handin: handin, end: end, noticeStart: startN };
+    r.calDays = Math.max(0, end - handin);
+    r.workDays = end > handin ? countWork(startN, end) : 0;
+    r.bhDays = end > handin ? countBh(startN, end) : 0;
+    r.lastWork = end > handin ? prevWork(end, handin) : handin;
+    if (r.lastWork <= handin) r.lastWork = handin;
+    r.endOff = end > handin && !isWork(end);
+    // Holiday
+    var h = Math.floor(state.hol || 0), used = 0, lw = r.lastWork, covered = false;
+    while (used < h) {
+      var p = lw - 1; while (p > handin && !isWork(p)) p--;
+      if (p <= handin) { lw = handin; covered = true; used++; break; }
+      lw = p; used++;
+    }
+    r.holUsed = covered ? r.workDays : Math.min(h, r.workDays);
+    r.holLeft = Math.max(0, (state.hol || 0) - r.holUsed);
+    r.holCovered = covered && h > 0;
+    r.lastWorkHol = h > 0 ? lw : null;
+    r.startDate = nextWork(end + 1);
+    return r;
+  }
+
+  function latestHandIn(target) {
+    var lim = target - 1, d;
+    if (state.unit === "months") {
+      d = addMonths(lim, -state.amount);
+      var g = 0; while (noticeEnd(d + 1) <= lim && g++ < 40) d++;
+      g = 0; while (noticeEnd(d) > lim && g++ < 40) d--;
+    } else {
+      d = lim - (state.unit === "weeks" ? 7 * state.amount : state.amount);
+    }
+    return d;
+  }
+
+  function service(from, to) {
+    if (from == null || to == null || from > to) return null;
+    var y = 0; while (addMonths(from, 12 * (y + 1)) <= to && y < 80) y++;
+    var m = 0; while (addMonths(from, 12 * y + m + 1) <= to && m < 12) m++;
+    var oneMonth = addMonths(from, 1) <= to;
+    return { y: y, m: m, oneMonth: oneMonth, emp: !oneMonth ? 0 : (y < 2 ? 1 : Math.min(y, 12)), ee: oneMonth ? 1 : 0 };
+  }
+
+  /* ---------- Rendering ---------- */
+  var out = root.querySelector("#awnc-results");
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function tlItem(cls, k, v, note) {
+    return '<li class="' + cls + '"><span class="awnc-dot" aria-hidden="true"></span><span class="awnc-tl-k">' + esc(k) + '</span><span class="awnc-tl-v">' + esc(v) + "</span>" + (note ? '<span class="awnc-tl-n">' + note + "</span>" : "") + "</li>";
+  }
+  function stat(v, k) { return '<div class="awnc-stat"><b>' + esc(v) + "</b><span>" + esc(k) + "</span></div>"; }
+
+  var ICON_CAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
+  var ICON_COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+
+  var lastEvents = [], lastSummary = "";
+
+  function render() {
+    var today = todayN(), html = "", events = [], summary = [];
+    if (!(state.amount >= 0)) { out.innerHTML = '<p class="awnc-err">Enter a notice period of 0 or more.</p>'; return; }
+    var handin, r, tooSoon = false, latest = null, latestRaw = null;
+
+    if (state.mode === "leave") {
+      if (state.handin == null) { out.innerHTML = '<p class="awnc-err">Choose the date ' + you.you + ' will hand in ' + you.your + ' notice.</p>'; return; }
+      handin = state.handin;
+      r = forward(handin);
+      var heroDate = aud === "employer" ? r.startDate : r.end;
+      var meta;
+      if (aud === "employer") {
+        meta = "Their notice ends on <strong>" + esc(fmtNoYear(r.end)) + "</strong>, so the next working day is the earliest they can start with you.";
+      } else if (state.amount === 0) {
+        meta = "With no notice to work, " + you.your + " job can end the day " + you.you + " resign.";
+      } else {
+        meta = "That is " + esc(noticeLabel()) + ", starting on <strong>" + esc(fmtNoYear(r.noticeStart)) + "</strong> - the day after " + you.you + " hand it in.";
+        if (r.endOff) meta += " It ends on " + whyOff(r.end) + ", so " + you.your + " last working day is likely <strong>" + esc(fmtNoYear(r.lastWork)) + "</strong>.";
+      }
+      html += '<div class="awnc-hero"><p class="awnc-hero-k">' + esc(T.heroLeave) + '</p><p class="awnc-hero-v">' + esc(fmt(heroDate)) + '</p><p class="awnc-hero-m">' + meta + "</p></div>";
+    } else {
+      if (state.target == null) { out.innerHTML = '<p class="awnc-err">Choose a start date for the new job.</p>'; return; }
+      latestRaw = latestHandIn(state.target);
+      latest = prevWork(latestRaw, latestRaw - 30);
+      tooSoon = latest < today;
+      if (tooSoon) {
+        handin = today;
+        r = forward(handin);
+        var short = r.end - (state.target - 1);
+        var tmeta = "If " + you.you + " hand in " + you.your + " notice today, " + you.your + " notice ends on <strong>" + esc(fmtNoYear(r.end)) + "</strong>, so the earliest start date is <strong>" + esc(fmt(r.startDate)) + "</strong>.";
+        tmeta += " To start on " + esc(fmtNoYear(state.target)) + ", " + you.your + " employer would need to release " + (aud === "employer" ? "them" : "you") + " <strong>" + esc(dur(short)) + "</strong> early.";
+        html += '<div class="awnc-hero awnc-warn"><p class="awnc-hero-k">' + esc(T.tooSoonTitle) + '</p><p class="awnc-hero-v">Earliest start: ' + esc(fmtS(r.startDate)) + '</p><p class="awnc-hero-m">' + tmeta + "</p></div>";
+      } else {
+        handin = latest;
+        r = forward(handin);
+        var left = latest - today;
+        var rmeta = left === 0 ? "That is <strong>today</strong>." : "That is <strong>" + esc(plural(left, "day")) + "</strong> from today.";
+        if (latestRaw !== latest) rmeta += " The latest date is technically " + esc(fmtNoYear(latestRaw)) + ", but that is " + whyOff(latestRaw) + ".";
+        rmeta += " With " + esc(noticeLabel()) + ", " + you.your + " notice would end on <strong>" + esc(fmtNoYear(r.end)) + "</strong>.";
+        html += '<div class="awnc-hero"><p class="awnc-hero-k">' + esc(T.heroResign) + '</p><p class="awnc-hero-v">' + esc(fmt(latest)) + '</p><p class="awnc-hero-m">' + rmeta + "</p></div>";
+      }
+    }
+
+    /* Timeline */
+    var tl = "";
+    tl += tlItem("awnc-key", state.mode === "resign" && !tooSoon ? T.handInBy : T.handIn, fmt(handin), state.amount > 0 ? "Notice starts the next day" : "");
+    if (r.lastWorkHol != null && r.lastWorkHol !== r.lastWork) {
+      var hn = r.holCovered ? "Holiday covers all " + plural(r.workDays, "working day") + " of " + you.your + " notice" + (r.holLeft > 0 ? ". The " + plural(r.holLeft, "day") + " left over should be paid in " + you.your + " final salary" : "") : "Using " + plural(r.holUsed, "day") + " of holiday, if " + you.your + " employer agrees";
+      tl += tlItem("awnc-hol", T.lastDay, fmt(r.lastWorkHol), esc(hn));
+    } else if (r.endOff) {
+      tl += tlItem("", T.lastDay, fmt(r.lastWork), "Notice ends on " + whyOff(r.end));
+    }
+    tl += tlItem("awnc-key", T.noticeEnds, fmt(r.end), r.endOff ? esc("Still employed (and paid) until this date") : "");
+    if (state.mode === "resign" && !tooSoon) {
+      tl += tlItem("awnc-goal", T.startTarget, fmt(state.target), state.target > r.startDate ? esc("Earliest possible: " + fmtS(r.startDate)) : "");
+    } else {
+      tl += tlItem("awnc-goal", T.start, fmt(r.startDate), "Next working day after " + you.your + " notice ends");
+    }
+    html += '<div class="awnc-panel"><h3 class="awnc-panel-h">Key dates</h3><ol class="awnc-tl">' + tl + "</ol></div>";
+
+    /* Stats */
+    var toGo = Math.max(0, r.end - today);
+    html += '<div class="awnc-stats">' +
+      stat(r.calDays, "calendar days of notice") +
+      stat(r.workDays, "working days of notice") +
+      stat(r.bhDays, (r.bhDays === 1 ? "bank holiday" : "bank holidays") + " during notice") +
+      stat(toGo, "days until notice ends") + "</div>";
+
+    /* What-if negotiation (only where it matters) */
+    if (state.mode === "leave" && r.calDays >= 14) {
+      var opts = [], half = ["Half " + you.your + " notice", 0.5, "h"], tries;
+      if (state.unit === "months" && state.amount >= 3) tries = [["2 weeks early", 14, "d"], ["1 month early", -1, "m"], half];
+      else if (state.unit === "months" && state.amount === 2) tries = [["2 weeks early", 14, "d"], ["1 month early", -1, "m"]];
+      else { tries = [["1 week early", 7, "d"], ["2 weeks early", 14, "d"]]; if (r.calDays >= 56) tries.push(half); }
+      tries.forEach(function (t) {
+        var e;
+        if (t[2] === "m") e = addMonths(r.end, t[1]);
+        else if (t[2] === "h") e = handin + Math.ceil(r.calDays / 2);
+        else e = r.end - t[1];
+        if (e <= handin) return;
+        var s = nextWork(e + 1), gain = r.startDate - s;
+        if (gain <= 0) return;
+        opts.push("<tr><td>" + esc(t[0]) + "</td><td>" + esc(fmtS(e)) + "</td><td>" + esc(fmtS(s)) + ' <span class="awnc-gain">' + esc(dur(gain)) + " sooner</span></td></tr>");
+      });
+      if (opts.length) {
+        html += '<div class="awnc-panel"><h3 class="awnc-panel-h">What if ' + you.you + ' negotiate an earlier release?</h3>' +
+          '<table class="awnc-what"><thead><tr><th scope="col">If released</th><th scope="col">Notice ends</th><th scope="col">Could start</th></tr></thead><tbody>' + opts.join("") + "</tbody></table>" +
+          '<p class="awnc-hint">Many employers will agree to shorten notice if ' + you.you + ' offer a good handover. It is not guaranteed, so get any agreement in writing.</p></div>';
+      }
+    }
+
+    /* Legal minimum */
+    if (state.started != null) {
+      var sv = service(state.started, handin);
+      if (!sv) {
+        html += '<div class="awnc-panel"><p class="awnc-err">The job start date must be before the date ' + you.you + ' hand in ' + you.your + " notice.</p></div>";
+      } else {
+        var svTxt = sv.y || sv.m ? (sv.y ? plural(sv.y, "year") : "") + (sv.y && sv.m ? ", " : "") + (sv.m ? plural(sv.m, "month") : "") : "Under 1 month";
+        var lg = '<div class="awnc-legal">' + stat(svTxt, "length of service on " + fmtS(handin)) +
+          stat(sv.ee ? "1 week" : "None", T.youGive + " (by law)") +
+          stat(sv.emp ? plural(sv.emp, "week") : "None", T.theyGive + " (by law)") + "</div>";
+        var contractDays = noticeEnd(handin) - handin;
+        if (sv.ee && contractDays < 7) {
+          lg += '<div class="awnc-note awnc-note-warn">The law says ' + you.you + " must give at least 1 week's notice after a month in the job, even if the contract says less.</div>";
+        } else if (sv.emp && contractDays < sv.emp * 7) {
+          lg += '<div class="awnc-note awnc-note-warn">If ' + you.your + " employer ended " + you.your + " employment, they would have to give at least " + ofNotice(sv.emp, "week") + ", which is more than " + you.your + " contract says. The longer of the two always applies.</div>";
+        } else {
+          lg += '<div class="awnc-note">' + you.Your + " contract notice (" + esc(noticeLabel()) + ") meets the legal minimum. The contract applies as it is the longer of the two.</div>";
+        }
+        html += '<div class="awnc-panel"><h3 class="awnc-panel-h">Legal minimum notice</h3>' + lg + "</div>";
+      }
+    }
+
+    /* Tips */
+    var tips = [];
+    if (aud === "candidate") {
+      tips.push(["Put it in writing, early in the day", 'Your notice usually runs from the day after you hand it in. Use a clear letter and keep a copy. <a href="/candidates/advice/sales-interview-advice/resigning-and-starting-new-job/resignation-letter-template/">Resignation letter template</a>']);
+      if (r.calDays >= 84 || (state.unit === "months" && state.amount >= 3)) tips.push(["Long notice? Expect gardening leave", "Senior roles often have 3 to 6 months' notice. If you are joining a competitor, your employer may put you on gardening leave: you stay on full pay but cannot start your new job until your notice ends."]);
+      if ((state.hol || 0) > 0) tips.push(["Holiday is not automatic", "Your employer must agree to you using holiday during your notice. If you do not use it, any untaken holiday should be paid in your final salary."]);
+      tips.push(["Be ready for a counter-offer", 'If you are good at your job, your employer may try to keep you. Decide your answer before you resign. <a href="/candidates/advice/sales-interview-advice/resigning-and-starting-new-job/how-to-resign-and-manage-a-counter-offer/">How to resign and manage a counter-offer</a>']);
+    } else {
+      tips.push(["Respect their notice period", 'Asking a new hire to walk out early can damage their reputation and, if they would do it to their employer, they could do it to you. <a href="/employers/advice/managing-sales-teams/employee-notice-periods/">Managing notice periods</a>']);
+      if (r.calDays >= 84 || (state.unit === "months" && state.amount >= 3)) tips.push(["Long notice? Plan for gardening leave", "Senior sales people often have 3 to 6 months' notice. If they are joining you from a competitor, their employer may put them on gardening leave, so they cannot start any earlier."]);
+      tips.push(["Stay in touch during notice", "Counter-offers are most likely in the first week after someone resigns. Regular contact, a welcome pack and a clear first-week plan help your new hire stay committed."]);
+    }
+    html += '<div class="awnc-panel"><h3 class="awnc-panel-h">Good to know</h3><ul class="awnc-tips">' + tips.map(function (t) { return "<li><strong>" + esc(t[0]) + "</strong>" + t[1] + "</li>"; }).join("") + "</ul></div>";
+
+    /* Actions */
+    html += '<div class="awnc-actions"><button type="button" class="awnc-btn awnc-btn-line" data-act="ics">' + ICON_CAL + 'Add dates to calendar</button><button type="button" class="awnc-btn awnc-btn-line" data-act="copy">' + ICON_COPY + 'Copy dates</button><span class="awnc-toast" role="status"></span></div>';
+
+    /* CTA */
+    html += '<div class="awnc-cta"><div><h3>' + esc(T.ctaH) + "</h3><p>" + esc(T.ctaP) + '</p></div><div class="awnc-actions"><a class="awnc-btn awnc-btn-pink" data-act="cta" href="' + T.ctaA[1] + '">' + esc(T.ctaA[0]) + '</a><a class="awnc-btn awnc-btn-ghost" data-act="cta" href="' + T.ctaB[1] + '">' + esc(T.ctaB[0]) + "</a></div></div>";
+
+    /* Coverage note for dates beyond known bank holidays */
+    var maxDate = Math.max(r.startDate, state.mode === "resign" ? state.target : 0);
+    if (iso(maxDate) > BH_MAX[state.region]) {
+      html += '<p class="awnc-hint">Bank holidays after ' + esc(fmtS(parse(BH_MAX[state.region]))) + " are not published yet, so they are not included.</p>";
+    }
+
+    out.innerHTML = html;
+
+    /* Calendar + summary data */
+    var who = aud === "employer" ? "New hire: " : "";
+    if (state.mode === "resign" && !tooSoon) events.push([handin, who + "Hand in notice (latest date)"]);
+    if (r.lastWorkHol != null && r.lastWorkHol !== r.end) events.push([r.lastWorkHol, who + "Last working day"]);
+    else if (r.endOff) events.push([r.lastWork, who + "Last working day"]);
+    events.push([r.end, who + "Notice period ends"]);
+    events.push([state.mode === "resign" && !tooSoon ? state.target : r.startDate, aud === "employer" ? "New hire starts" : "New job starts"]);
+    lastEvents = events;
+    summary.push("Notice period: " + noticeLabel());
+    events.forEach(function (e) { summary.push(e[1] + ": " + fmt(e[0])); });
+    summary.push("Calculated with the Aaron Wallis Notice Period Calculator: " + location.href.split("#")[0]);
+    lastSummary = summary.join("\n");
+  }
+
+  /* ---------- Actions ---------- */
+  function toast(msg) { var t = out.querySelector(".awnc-toast"); if (t) { t.textContent = msg; setTimeout(function () { if (t) t.textContent = ""; }, 3000); } }
+  function ics() {
+    var stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+    var lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Aaron Wallis//Notice Period Calculator//EN", "CALSCALE:GREGORIAN"];
+    lastEvents.forEach(function (e, i) {
+      lines.push("BEGIN:VEVENT", "UID:awnc-" + iso(e[0]) + "-" + i + "@aaronwallis.co.uk", "DTSTAMP:" + stamp,
+        "DTSTART;VALUE=DATE:" + iso(e[0]).replace(/-/g, ""), "DTEND;VALUE=DATE:" + iso(e[0] + 1).replace(/-/g, ""),
+        "SUMMARY:" + e[1].replace(/[,;]/g, "\\$&"), "TRANSP:TRANSPARENT", "END:VEVENT");
+    });
+    lines.push("END:VCALENDAR");
+    var blob = new Blob([lines.join("\r\n")], { type: "text/calendar;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "notice-period-dates.ics";
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.parentNode.removeChild(a); }, 500);
+    toast("Calendar file downloaded");
+  }
+  function copy() {
+    function fallback() {
+      var ta = document.createElement("textarea"); ta.value = lastSummary; ta.setAttribute("readonly", "");
+      ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); toast("Dates copied"); } catch (e) { toast("Could not copy"); }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(lastSummary).then(function () { toast("Dates copied"); }, fallback);
+    else fallback();
+  }
+
+  /* ---------- Analytics (GTM dataLayer, if present) ---------- */
+  var tracked = false;
+  function track(action, extra) {
+    try {
+      window.dataLayer = window.dataLayer || [];
+      var o = { event: "aw_notice_calculator", awnc_action: action, awnc_mode: state.mode, awnc_audience: aud, awnc_notice: state.amount + " " + state.unit };
+      if (extra) for (var k in extra) o[k] = extra[k];
+      window.dataLayer.push(o);
+    } catch (e) {}
+  }
+  function used() { if (!tracked) { tracked = true; track("calculate"); } }
+
+  /* ---------- Wire up inputs ---------- */
+  var $ = function (s) { return root.querySelector(s); };
+  var amountEl = $("#awnc-amount"), handinEl = $("#awnc-handin"), targetEl = $("#awnc-target"), holEl = $("#awnc-hol"), startedEl = $("#awnc-started");
+  handinEl.value = iso(state.handin);
+  targetEl.value = iso(state.target);
+  targetEl.min = iso(todayN());
+
+  function setPressed(sel, attr, val) {
+    Array.prototype.forEach.call(root.querySelectorAll(sel), function (b) { b.setAttribute("aria-pressed", b.getAttribute(attr) === val ? "true" : "false"); });
+  }
+  setPressed(".awnc-pill[data-region]", "data-region", state.region);
+
+  amountEl.addEventListener("input", function () {
+    var v = parseFloat(amountEl.value);
+    state.amount = isNaN(v) ? NaN : Math.max(0, Math.min(365, Math.floor(v)));
+    render(); used();
+  });
+  root.addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest("button, a") : null;
+    if (!b || !root.contains(b)) return;
+    if (b.hasAttribute("data-unit")) { state.unit = b.getAttribute("data-unit"); setPressed(".awnc-pill[data-unit]", "data-unit", state.unit); render(); used(); }
+    else if (b.hasAttribute("data-region") && b.classList.contains("awnc-pill")) { state.region = b.getAttribute("data-region"); setPressed(".awnc-pill[data-region]", "data-region", state.region); render(); used(); }
+    else if (b.id === "awnc-use-stat") { state.amount = 1; state.unit = "weeks"; amountEl.value = "1"; setPressed(".awnc-pill[data-unit]", "data-unit", "weeks"); render(); used(); }
+    else if (b.getAttribute("data-mode")) setMode(b.getAttribute("data-mode"), true);
+    else if (b.getAttribute("data-act") === "ics") { ics(); track("calendar"); }
+    else if (b.getAttribute("data-act") === "copy") { copy(); track("copy"); }
+    else if (b.getAttribute("data-act") === "cta") track("cta_click", { awnc_cta: b.textContent });
+  });
+  handinEl.addEventListener("change", function () { state.handin = parse(handinEl.value); render(); used(); });
+  targetEl.addEventListener("change", function () { state.target = parse(targetEl.value); render(); used(); });
+  holEl.addEventListener("input", function () { var v = parseFloat(holEl.value); state.hol = isNaN(v) ? 0 : Math.max(0, Math.min(60, v)); render(); used(); });
+  startedEl.addEventListener("change", function () { state.started = parse(startedEl.value); render(); used(); });
+
+  var tabs = root.querySelectorAll(".awnc-tab");
+  function setMode(m, focus) {
+    state.mode = m;
+    Array.prototype.forEach.call(tabs, function (t) {
+      var on = t.getAttribute("data-mode") === m;
+      t.setAttribute("aria-selected", on ? "true" : "false"); t.tabIndex = on ? 0 : -1;
+      if (on) { out.setAttribute("aria-labelledby", t.id); if (focus) t.focus(); }
+    });
+    Array.prototype.forEach.call(root.querySelectorAll("[data-show]"), function (el) { el.hidden = el.getAttribute("data-show") !== m; });
+    render(); if (focus) { track("mode_change"); used(); }
+  }
+  root.querySelector(".awnc-tabs").addEventListener("keydown", function (e) {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    e.preventDefault(); setMode(state.mode === "leave" ? "resign" : "leave", true);
+  });
+
+  render();
+})();
+</script>
