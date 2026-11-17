@@ -32,7 +32,7 @@ async function openPdf(file: Blob) {
   return { pdfjs, pdf: await pdfjs.getDocument({ data }).promise };
 }
 
-interface PlacedItem {
+export interface PlacedItem {
   str: string;
   x: number; // left, in viewport pixels
   width: number;
@@ -79,10 +79,17 @@ interface Line {
 // Join items into a line. A wide gap gets three spaces, which the contact
 // detection treats as a separator (e.g. two columns side by side).
 function buildLine(items: PlacedItem[]): Line {
+  // Space-only items are left out and the gap is measured between the real
+  // words instead. Some PDF makers (Chrome, Word) fill the gap between two
+  // columns with one very wide " " item; read as an ordinary space it joins
+  // the columns ("07700 900789 • Closed…"), so the "•" of a bullet in the
+  // next column looked like an inline separator and got painted over.
+  const words = items.filter((i) => i.str.trim());
+  const used = words.length > 0 ? words : items;
   let text = "";
   const spans: LineSpan[] = [];
   let prev: PlacedItem | null = null;
-  for (const item of items) {
+  for (const item of used) {
     if (prev) {
       const gap = item.x - (prev.x + prev.width);
       const space = Math.max(prev.size, item.size);
@@ -96,15 +103,15 @@ function buildLine(items: PlacedItem[]): Line {
   return {
     text,
     spans,
-    baseline: items.reduce((s, i) => s + i.baseline, 0) / Math.max(items.length, 1),
-    size: Math.max(0, ...items.map((i) => i.size)),
-    left: Math.min(...items.map((i) => i.x)),
-    right: Math.max(...items.map((i) => i.x + i.width)),
+    baseline: used.reduce((s, i) => s + i.baseline, 0) / Math.max(used.length, 1),
+    size: Math.max(0, ...used.map((i) => i.size)),
+    left: Math.min(...used.map((i) => i.x)),
+    right: Math.max(...used.map((i) => i.x + i.width)),
   };
 }
 
 // Lines by position on the page: items with the same baseline, left to right.
-function visualLines(items: PlacedItem[]): Line[] {
+export function visualLines(items: PlacedItem[]): Line[] {
   const sorted = items
     .filter((i) => i.str.length > 0)
     .sort((a, b) => a.baseline - b.baseline || a.x - b.x);
@@ -146,7 +153,7 @@ interface Box {
   h: number;
 }
 
-function contactBoxes(lines: Line[]): Box[] {
+export function contactBoxes(lines: Line[]): Box[] {
   const boxes: Box[] = [];
   for (const line of lines) {
     for (const [s, e] of findContactRanges(line.text)) {
