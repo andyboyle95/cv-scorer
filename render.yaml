@@ -1,0 +1,38 @@
+# Render Blueprint for Red Letter (English Language marking).
+# Separate service and database from the CV scorer, so school data stays apart.
+services:
+  - type: web
+    name: redletter
+    runtime: node
+    region: frankfurt
+    plan: starter            # must stay awake: marking runs in a background worker inside this service
+    rootDir: english-marking
+    buildCommand: npm ci && npm run build
+    startCommand: npm run migrate && npm start
+    healthCheckPath: /redletter/api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: BASE_PATH
+        value: /redletter
+      - key: DATABASE_URL
+        fromDatabase:
+          name: redletter-db
+          property: connectionString
+      - key: DATABASE_SSL
+        value: "false"
+      - key: ACCESS_PASSWORD
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ANON_SALT
+        generateValue: true
+
+databases:
+  - name: redletter-db
+    region: frankfurt
+    plan: basic-256mb
+    databaseName: redletter
+    ipAllowList: []          # internal connections only

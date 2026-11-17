@@ -1,0 +1,45 @@
+{
+  "name": "english-marking",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3100",
+    "build": "node scripts/copy-pdf-worker.mjs && next build",
+    "start": "next start -p ${PORT:-3100}",
+    "migrate": "node scripts/migrate.mjs",
+    "typecheck": "tsc --noEmit",
+    "postinstall": "node scripts/copy-pdf-worker.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.10.0",
+    "clsx": "^2.1.1",
+    "docx": "^9.15.4",
+    "exceljs": "^4.4.0",
+    "jsqr": "^1.4.0",
+    "jszip": "^3.10.2",
+    "lucide-react": "^1.74.0",
+    "mammoth": "^1.13.0",
+    "next": "^15.5.29",
+    "papaparse": "^5.7.1",
+    "pdfjs-dist": "^6.5.438",
+    "postgres": "^4.1.1",
+    "qrcode": "^1.5.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/papaparse": "^5.5.2",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "autoprefixer": "^10.6.2",
+    "postcss": "^8.5.33",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

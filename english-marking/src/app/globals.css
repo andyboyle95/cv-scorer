@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Red Letter. Colours in OKLCH (L C H). Neutrals carry a trace of the rubric hue. */
+:root {
+  --paper: 0.985 0.004 30;
+  --surface: 1 0 0;
+  --sunk: 0.955 0.006 30;
+  --line: 0.89 0.008 30;
+  --ink: 0.24 0.018 35;
+  --muted: 0.5 0.016 35;
+  --rubric: 0.53 0.19 29;
+  --rubric-ink: 0.45 0.17 29;
+  --rubric-wash: 0.95 0.025 29;
+  --good: 0.5 0.11 150;
+  --good-wash: 0.95 0.03 150;
+  --warn: 0.6 0.13 70;
+  --warn-wash: 0.96 0.04 85;
+  --bad: 0.53 0.19 29;
+  --bad-wash: 0.95 0.025 29;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: 0.17 0.008 35;
+    --surface: 0.21 0.009 35;
+    --sunk: 0.15 0.008 35;
+    --line: 0.3 0.01 35;
+    --ink: 0.93 0.008 35;
+    --muted: 0.7 0.012 35;
+    --rubric: 0.68 0.16 29;
+    --rubric-ink: 0.74 0.14 29;
+    --rubric-wash: 0.27 0.05 29;
+    --good: 0.72 0.12 150;
+    --good-wash: 0.27 0.04 150;
+    --warn: 0.78 0.12 75;
+    --warn-wash: 0.28 0.04 75;
+    --bad: 0.7 0.15 29;
+    --bad-wash: 0.27 0.05 29;
+    color-scheme: dark;
+  }
+}
+
+html { background: oklch(var(--paper)); color: oklch(var(--ink)); }
+body { font-feature-settings: "ss01"; }
+::selection { background: oklch(var(--rubric) / 0.2); }
+:focus-visible { outline: 2px solid oklch(var(--rubric)); outline-offset: 2px; border-radius: 4px; }
+h1, h2, h3 { text-wrap: balance; }
+p { text-wrap: pretty; }
+.tabular { font-variant-numeric: tabular-nums; }
+
+@layer components {
+  .btn { @apply inline-flex items-center gap-2 rounded px-3.5 py-2 text-sm font-semibold transition-colors duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-50; min-height: 40px; }
+  .btn-primary { @apply btn bg-ink text-paper hover:bg-rubric-ink; }
+  .btn-accent { @apply btn bg-rubric text-white hover:bg-rubric-ink; }
+  .btn-quiet { @apply btn border border-line bg-surface text-ink hover:border-ink; }
+  .btn-text { @apply btn px-1 text-rubric-ink underline-offset-4 hover:underline; }
+  .field { @apply block w-full rounded border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-ink focus:outline-none; }
+  .label { @apply mb-1 block text-sm font-semibold; }
+  .hint { @apply mt-1 text-xs text-muted; }
+  .panel { @apply rounded-lg border border-line bg-surface; }
+  .table { @apply w-full text-left text-sm; }
+  .table th { @apply border-b border-line px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted; }
+  .table td { @apply border-b border-line px-3 py-2 align-top; }
+  .table tr:last-child td { @apply border-b-0; }
+  .chip { @apply inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  html, body { background: white; color: black; }
+}
